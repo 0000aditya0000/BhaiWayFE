@@ -104,7 +104,7 @@ export const OTPVerificationScreen = () => {
               canResend ? 'Resend verification code' : `Resend code in ${secondsLeft} seconds`
             }
             style={styles.resendButton}
-            android_ripple={{ color: 'rgba(3, 66, 209, 0.08)' }}
+            android_ripple={{ color: 'rgba(55, 75, 177, 0.08)' }}
           >
             <Text style={[styles.resendText, (!canResend || isBusy) && styles.resendDisabled]}>
               {canResend ? 'Resend Code' : `Resend Code (${secondsLeft}s)`}

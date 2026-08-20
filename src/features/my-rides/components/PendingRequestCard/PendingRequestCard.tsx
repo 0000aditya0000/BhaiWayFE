@@ -12,9 +12,16 @@ export const PendingRequestCard = ({
   request,
   onAccept,
   onDecline,
+  onPressProfile,
 }: PendingRequestCardProps) => (
   <View style={styles.card}>
-    <View style={styles.top}>
+    <Pressable
+      style={styles.top}
+      onPress={onPressProfile}
+      disabled={!onPressProfile}
+      accessibilityRole={onPressProfile ? 'button' : undefined}
+      accessibilityLabel={onPressProfile ? `View ${request.name} profile` : undefined}
+    >
       <Avatar
         size={64}
         uri={request.avatarUri}
@@ -55,7 +62,7 @@ export const PendingRequestCard = ({
           ) : null}
         </View>
       </View>
-    </View>
+    </Pressable>
 
     <View style={styles.actions}>
       <Pressable

@@ -111,8 +111,9 @@ export const CommuteReviewBookingScreen = () => {
             color={colors.primary}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle}>{COMMUTE_REVIEW_BOOKING_SCREEN.title}</Text>
         </View>
+        <Text style={styles.headerTitle}>{COMMUTE_REVIEW_BOOKING_SCREEN.title}</Text>
+
         <IconButton
           icon="notifications-outline"
           onPress={openNotifications}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
 
 import { useRouter } from 'expo-router';
@@ -6,18 +6,14 @@ import { useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import { ROUTES } from '@/config';
-import {
-  demoUsersStore,
-  mapGenderToDemo,
-  userDetailsSheetSync,
-} from '@/DemoData';
-import { getErrorMessage, triggerSuccessHaptic } from '@/shared/utils';
+import { triggerSuccessHaptic } from '@/shared/utils';
 import { authSession, showAppAlert } from '@/store';
-import { aadhaarVerificationStore } from '@/features/profile/store';
+import { verificationStore } from '@/features/profile/store';
+import { getMyVerifications } from '@/features/profile/api';
 import { authService } from '../services';
 import { profileSetupDraft } from '../store';
+import { mapCompleteProfileError, isDuplicateEmailError } from '../utils';
 import { profileValidationSchema, type ProfileFormValues } from '../validation';
-
 
 export interface UseCompleteProfileResult {
   form: UseFormReturn<ProfileFormValues>;
@@ -34,8 +30,9 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
   const initialDraft = profileSetupDraft.get();
   const [avatarUri, setAvatarUriState] = useState<string | null>(initialDraft.avatarUri);
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
   const [isIdentityVerified, setIsIdentityVerified] = useState(
-    () => aadhaarVerificationStore.get() != null,
+    () => verificationStore.isIdentityVerified(),
   );
 
   const form = useForm<ProfileFormValues>({
@@ -75,9 +72,23 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
     return () => subscription.unsubscribe();
   }, [avatarUri, form]);
 
-  useEffect(() => aadhaarVerificationStore.subscribe((record) => {
-    setIsIdentityVerified(record != null);
+  useEffect(() => verificationStore.subscribe((state) => {
+    setIsIdentityVerified(state?.identity.status === 'VERIFIED');
   }), []);
+
+  useEffect(() => {
+    if (!authSession.getToken()) {
+      return;
+    }
+
+    void getMyVerifications()
+      .then((rows) => {
+        verificationStore.set(rows);
+      })
+      .catch(() => {
+        // Profile badge falls back to store snapshot; avoid blocking setup.
+      });
+  }, []);
 
   useEffect(() => {
     if (!initialDraft.promptFillDetails) {
@@ -92,50 +103,55 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
   }, [initialDraft.promptFillDetails]);
 
   const submit = useCallback(() => {
+    if (submittingRef.current) {
+      return;
+    }
+
     void form.handleSubmit(async (values) => {
+      if (submittingRef.current) {
+        return;
+      }
+
       Keyboard.dismiss();
+      submittingRef.current = true;
       setLoading(true);
 
+      const cloudinaryAvatar =
+        avatarUri && /^https?:\/\//i.test(avatarUri) ? avatarUri : undefined;
+
       try {
-        const sessionUserBefore = authSession.getUser();
-        const aadhaar = aadhaarVerificationStore.get();
-
-        // 2-way sheet: validate against Google Sheet, then insert/update local + remote.
-        const cloudinaryAvatar =
-          avatarUri && /^https?:\/\//i.test(avatarUri) ? avatarUri : undefined;
-
-        await userDetailsSheetSync.validateAndSync({
-          userName: values.fullName.trim(),
-          email: values.email.trim(),
-          aadharNumber: aadhaar?.maskedAadhaar ?? '',
-          mobile: sessionUserBefore?.phone ?? '',
-          profilePicture: cloudinaryAvatar,
-          role: 'Both',
-        });
-
         const profile = await authService.completeProfile({
           ...values,
           avatarUri: cloudinaryAvatar ?? avatarUri,
         });
         triggerSuccessHaptic();
         authSession.setUserFromProfile(profile);
-
-        const sessionUser = authSession.getUser();
-        await demoUsersStore.add({
-          full_name: profile.fullName,
-          email: profile.email,
-          mobile: sessionUser?.phone ?? '',
-          profile_image: cloudinaryAvatar ?? profile.avatarUri ?? '',
-          gender: mapGenderToDemo(profile.gender),
-          role: 'both',
-          is_verified: aadhaar != null,
-        });
-
         profileSetupDraft.clear();
         router.replace(ROUTES.home);
       } catch (error) {
-        showAppAlert('Unable to save profile', getErrorMessage(error));
+        const alreadyHasProfile =
+          error &&
+          typeof error === 'object' &&
+          'status' in error &&
+          (error as { status?: number }).status === 409 &&
+          !isDuplicateEmailError(error);
+
+        if (alreadyHasProfile) {
+          authSession.setUserFromProfile({
+            id: authSession.getUser()?.id ?? '',
+            fullName: values.fullName.trim(),
+            email: values.email.trim(),
+            gender: values.gender,
+            avatarUri: cloudinaryAvatar ?? avatarUri ?? null,
+          });
+          profileSetupDraft.clear();
+          router.replace(ROUTES.home);
+          return;
+        }
+
+        showAppAlert('Unable to save profile', mapCompleteProfileError(error));
       } finally {
+        submittingRef.current = false;
         setLoading(false);
       }
     })();

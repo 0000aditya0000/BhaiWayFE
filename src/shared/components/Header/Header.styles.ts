@@ -3,6 +3,7 @@ import { colors, layout, spacing, typography } from '@/shared/theme';
 
 export const styles = StyleSheet.create({
   container: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -17,6 +18,7 @@ export const styles = StyleSheet.create({
     width: layout.minTouchTarget,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 2,
   },
   iconButton: {
     width: layout.minTouchTarget,
@@ -29,7 +31,9 @@ export const styles = StyleSheet.create({
     height: layout.minTouchTarget,
   },
   title: {
-    flex: 1,
+    position: 'absolute',
+    left: layout.minTouchTarget + spacing.screenHorizontal,
+    right: layout.minTouchTarget + spacing.screenHorizontal,
     textAlign: 'center',
     ...typography.title,
     color: colors.primary,

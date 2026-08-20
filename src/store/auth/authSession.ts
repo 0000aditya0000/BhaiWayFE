@@ -5,6 +5,8 @@ import { authStorage } from './authStorage';
 export interface SessionUser {
   id: string;
   fullName: string;
+  /** Preferred greeting name from profile.firstName when available. */
+  firstName: string | null;
   email: string | null;
   avatarUri: string | null;
   phone: string | null;
@@ -14,6 +16,7 @@ interface AuthSessionState {
   token: string | null;
   user: SessionUser | null;
   role: string | null;
+  profileCompleted: boolean;
   hydrated: boolean;
 }
 
@@ -23,6 +26,7 @@ const state: AuthSessionState = {
   token: null,
   user: null,
   role: null,
+  profileCompleted: false,
   hydrated: false,
 };
 
@@ -34,6 +38,7 @@ const notify = (): void => {
       token: state.token,
       user: state.user ? { ...state.user } : null,
       role: state.role,
+      profileCompleted: state.profileCompleted,
       hydrated: state.hydrated,
     }),
   );
@@ -44,6 +49,7 @@ const toSessionUser = (
 ): SessionUser => ({
   id: partial.id,
   fullName: partial.fullName,
+  firstName: partial.firstName ?? null,
   email: partial.email ?? null,
   avatarUri: partial.avatarUri ?? null,
   phone: partial.phone ?? null,
@@ -65,6 +71,7 @@ export const authSession = {
   getToken: (): string | null => state.token,
   getUser: (): SessionUser | null => (state.user ? { ...state.user } : null),
   getRole: (): string | null => state.role,
+  getProfileCompleted: (): boolean => state.profileCompleted,
   isHydrated: (): boolean => state.hydrated,
   isAuthenticated: (): boolean => Boolean(state.token && state.user),
 
@@ -73,35 +80,61 @@ export const authSession = {
     const saved = await authStorage.load();
     if (saved) {
       state.token = saved.token;
-      state.user = saved.user;
+      state.user = toSessionUser({
+        id: saved.user.id,
+        fullName: saved.user.fullName,
+        firstName: saved.user.firstName ?? null,
+        email: saved.user.email,
+        avatarUri: saved.user.avatarUri,
+        phone: saved.user.phone,
+      });
       state.role = saved.role ?? null;
     } else {
       state.token = null;
       state.user = null;
       state.role = null;
+      state.profileCompleted = false;
     }
     state.hydrated = true;
     notify();
     return Boolean(saved);
   },
 
-  setSession: (token: string, user: SessionUser, role?: string | null): void => {
+  setSession: (
+    token: string,
+    user: SessionUser,
+    role?: string | null,
+    profileCompleted?: boolean,
+  ): void => {
     state.token = token;
     state.user = user;
     state.role = role ?? state.role;
+    if (profileCompleted !== undefined) {
+      state.profileCompleted = profileCompleted;
+    }
     state.hydrated = true;
     persistCurrent();
     notify();
   },
 
+  applyServerUser: (user: SessionUser, profileCompleted: boolean): void => {
+    state.user = toSessionUser(user);
+    state.profileCompleted = profileCompleted;
+    persistCurrent();
+    notify();
+  },
+
   setUserFromProfile: (profile: UserProfile): void => {
+    const [firstName] = profile.fullName.trim().split(/\s+/);
     state.user = toSessionUser({
-      id: profile.id,
+      id: state.user?.id || profile.id,
       fullName: profile.fullName,
+      firstName: firstName || null,
       email: profile.email,
       avatarUri: profile.avatarUri,
       phone: state.user?.phone ?? null,
     });
+    state.profileCompleted = true;
     persistCurrent();
     notify();
   },
@@ -110,6 +143,7 @@ export const authSession = {
     state.token = null;
     state.user = null;
     state.role = null;
+    state.profileCompleted = false;
     state.hydrated = true;
     void authStorage.clear();
     notify();

@@ -4,7 +4,7 @@ import { colors, layout, spacing, typography } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const profileTokens = {
-  PRIMARY: '#0342D1',
+  PRIMARY: '#374BB1',
   ON_SURFACE: '#191C1D',
   ON_SURFACE_VARIANT: '#434655',
   SURFACE: '#F8F9FA',
@@ -38,10 +38,15 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: colors.shadow, opacity: 0.04, radius: 8, offsetY: 2, elevation: 2 }),
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '700',
     color: profileTokens.PRIMARY,
+    textAlign: 'center',
   },
   iconButton: {
     width: layout.minTouchTarget,

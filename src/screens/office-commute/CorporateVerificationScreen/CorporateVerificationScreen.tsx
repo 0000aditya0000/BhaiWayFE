@@ -50,33 +50,19 @@ export const CorporateVerificationScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <View style={[styles.header, step === 'otp' && styles.headerCentered]}>
-        {step === 'otp' ? (
-          <>
-            <View style={styles.headerSide}>
-              <IconButton
-                icon="arrow-back"
-                onPress={goBack}
-                color="#0342D1"
-                accessibilityLabel="Go back"
-              />
-            </View>
-            <Text style={[styles.title, styles.titleCentered]}>
-              {CORPORATE_VERIFICATION_SCREEN.title}
-            </Text>
-            <View style={styles.headerSide} />
-          </>
-        ) : (
-          <View style={styles.headerLeft}>
-            <IconButton
-              icon="arrow-back"
-              onPress={goBack}
-              color="#0342D1"
-              accessibilityLabel="Go back"
-            />
-            <Text style={styles.title}>{CORPORATE_VERIFICATION_SCREEN.title}</Text>
-          </View>
-        )}
+      <View style={styles.header}>
+        <View style={styles.headerSide}>
+          <IconButton
+            icon="arrow-back"
+            onPress={goBack}
+            color="#374BB1"
+            accessibilityLabel="Go back"
+          />
+        </View>
+        <Text style={styles.title} accessibilityRole="header" numberOfLines={1}>
+          {CORPORATE_VERIFICATION_SCREEN.title}
+        </Text>
+        <View style={styles.headerSide} />
       </View>
 
       <ScrollView
@@ -87,7 +73,7 @@ export const CorporateVerificationScreen = () => {
         {step === 'otp' ? (
           <View style={styles.otpCard}>
             <View style={styles.otpHero}>
-              <Ionicons name="mail-outline" size={40} color="#0342D1" />
+              <Ionicons name="mail-outline" size={40} color="#374BB1" />
             </View>
 
             <View style={styles.otpIntro}>
@@ -280,7 +266,7 @@ export const CorporateVerificationScreen = () => {
                       </View>
                       <View style={styles.previewFooter}>
                         <View style={styles.previewBadge} />
-                        <Ionicons name="shield-checkmark" size={18} color="#0342D1" />
+                        <Ionicons name="shield-checkmark" size={18} color="#374BB1" />
                       </View>
                     </>
                   )}

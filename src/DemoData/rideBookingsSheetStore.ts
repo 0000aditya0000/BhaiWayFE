@@ -5,7 +5,6 @@ import { createLocalListStore } from './localStore';
 import {
   RIDE_BOOKINGS_SHEET_HEADERS,
   RIDE_BOOKINGS_SHEET_ID_START,
-  rideBookingsSheetHeaderCsv,
   type RideBookingSheetPaymentStatus,
   type RideBookingSheetStatus,
   type RideBookingsSheetPatch,
@@ -218,36 +217,6 @@ export const rideBookingsSheetStore = {
       bookedAt: patch.bookedAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
-  },
-
-  toCsv: (): string => {
-    const header = rideBookingsSheetHeaderCsv();
-    const lines = store.getAll().map((row) => {
-      const normalized = normalizeStoredRow(row);
-      return [
-        String(normalized.bookingId),
-        normalized.rideId,
-        String(normalized.userId),
-        normalized.mobile,
-        normalized.origin,
-        normalized.destination,
-        normalized.departureLabel,
-        normalized.driverName,
-        normalized.vehicleLabel,
-        String(normalized.seatsBooked),
-        String(normalized.amount),
-        normalized.status,
-        normalized.paymentStatus,
-        String(normalized.originLat),
-        String(normalized.originLng),
-        String(normalized.destLat),
-        String(normalized.destLng),
-        normalized.bookedAt,
-      ]
-        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-        .join(',');
-    });
-    return [header, ...lines].join('\n');
   },
 
   headers: RIDE_BOOKINGS_SHEET_HEADERS,

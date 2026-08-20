@@ -40,7 +40,7 @@ const StarRow = ({
           <Ionicons
             name={filled ? 'star' : 'star-outline'}
             size={36}
-            color={filled ? '#0342D1' : '#C4C5D7'}
+            color={filled ? '#374BB1' : '#C4C5D7'}
           />
         </Pressable>
       );
@@ -161,7 +161,7 @@ export const TripReviewScreen = () => {
 
           <View style={styles.card}>
             <View style={styles.vehicleIconWrap}>
-              <Ionicons name="car" size={40} color="#0342D1" />
+              <Ionicons name="car" size={40} color="#374BB1" />
             </View>
             <Text style={styles.sectionLabel}>{TRIP_REVIEW_SCREEN.vehicleConditionLabel}</Text>
 

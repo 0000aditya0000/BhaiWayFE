@@ -4,8 +4,8 @@ import { colors } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const identityVerifiedTokens = {
-  PRIMARY: '#0342D1',
-  PRIMARY_CONTAINER: '#335EEA',
+  PRIMARY: '#374BB1',
+  PRIMARY_CONTAINER: '#4B61C4',
   ON_PRIMARY: '#FFFFFF',
   ON_PRIMARY_CONTAINER: '#EAEBFF',
   SURFACE: '#F8F9FA',
@@ -23,6 +23,7 @@ export const styles = StyleSheet.create({
     backgroundColor: identityVerifiedTokens.SURFACE,
   },
   header: {
+    position: 'relative',
     height: 64,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -32,6 +33,10 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: colors.shadow, opacity: 0.06, radius: 6, offsetY: 2, elevation: 2 }),
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     flex: 1,
     textAlign: 'center',
     fontSize: 22,
@@ -40,6 +45,7 @@ export const styles = StyleSheet.create({
     color: identityVerifiedTokens.PRIMARY,
   },
   headerSpacer: {
+    zIndex: 2,
     width: 40,
   },
   scroll: {
@@ -80,7 +86,7 @@ export const styles = StyleSheet.create({
     backgroundColor: identityVerifiedTokens.PRIMARY_CONTAINER,
     alignItems: 'center',
     justifyContent: 'center',
-    ...createShadow({ color: '#0342D1', opacity: 0.28, radius: 16, offsetY: 8, elevation: 8 }),
+    ...createShadow({ color: '#374BB1', opacity: 0.28, radius: 16, offsetY: 8, elevation: 8 }),
   },
   copyBlock: {
     alignItems: 'center',
@@ -152,7 +158,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(3, 66, 209, 0.1)',
+    backgroundColor: 'rgba(55, 75, 177, 0.1)',
   },
   statusBadgeLabel: {
     fontSize: 12,
@@ -177,7 +183,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    ...createShadow({ color: '#0342D1', opacity: 0.28, radius: 14, offsetY: 8, elevation: 8 }),
+    ...createShadow({ color: '#374BB1', opacity: 0.28, radius: 14, offsetY: 8, elevation: 8 }),
   },
   ctaLabel: {
     fontSize: 22,

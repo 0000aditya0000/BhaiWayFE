@@ -81,7 +81,7 @@ export const styles = StyleSheet.create({
     color: '#191C1D',
   },
   statusBadge: {
-    backgroundColor: '#335EEA',
+    backgroundColor: '#4B61C4',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
@@ -114,7 +114,7 @@ export const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#335EEA',
+    backgroundColor: '#4B61C4',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
@@ -217,7 +217,7 @@ export const styles = StyleSheet.create({
   },
   mapTint: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(3,66,209,0.08)',
+    backgroundColor: 'rgba(55, 75, 177,0.08)',
   },
   distanceBadge: {
     position: 'absolute',
@@ -259,7 +259,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   paymentOptionActive: {
-    borderColor: '#0342D1',
+    borderColor: '#374BB1',
     backgroundColor: '#F0F4FF',
   },
   paymentLeft: {
@@ -305,13 +305,13 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioOuterSelected: {
-    borderColor: '#0342D1',
+    borderColor: '#374BB1',
   },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#0342D1',
+    backgroundColor: '#374BB1',
   },
   dashedDivider: {
     marginVertical: 32,
@@ -360,10 +360,10 @@ export const styles = StyleSheet.create({
     width: '100%',
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#0342D1',
+    backgroundColor: '#374BB1',
     alignItems: 'center',
     justifyContent: 'center',
-    ...createShadow({ color: '#0342D1', opacity: 0.25, radius: 12, offsetY: 6, elevation: 6 }),
+    ...createShadow({ color: '#374BB1', opacity: 0.25, radius: 12, offsetY: 6, elevation: 6 }),
   },
   payLabel: {
     fontSize: 16,

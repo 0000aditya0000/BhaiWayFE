@@ -2,8 +2,12 @@ import { useCallback, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
-import { getSearchParam, showAppAlert, triggerLightHaptic } from '@/shared/utils';
-import { RIDER_REQUEST_ACCEPTED_SCREEN } from '../constants';
+import {
+  DRIVER_CHAT_SCREEN,
+  getDriverChatPath,
+} from '@/features/ride-search/constants';
+import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
+import { getRiderProfilePath } from '../constants';
 
 export interface RiderAcceptedSummary {
   rideId: string;
@@ -20,6 +24,7 @@ export interface UseRiderRequestAcceptedResult {
   rider: RiderAcceptedSummary;
   goToDashboard: () => void;
   messageRider: () => void;
+  openRiderProfile: () => void;
   goBack: () => void;
 }
 
@@ -59,11 +64,35 @@ export const useRiderRequestAccepted = (): UseRiderRequestAcceptedResult => {
 
   const messageRider = useCallback(() => {
     triggerLightHaptic();
-    showAppAlert(
-      RIDER_REQUEST_ACCEPTED_SCREEN.messageLabel(rider.name),
-      'Chat will be available soon.',
+    router.push(
+      getDriverChatPath({
+        driverName: rider.name,
+        carModel: rider.subtitle || `${rider.seatsBooked} seat(s)`,
+        threadId: `driver-${rider.rideId}-${rider.riderId}`,
+        perspective: 'driver',
+        routeLabel: DRIVER_CHAT_SCREEN.defaultRouteLabel,
+        tripTimeLabel: DRIVER_CHAT_SCREEN.defaultTripTimeLabel,
+        avatarUri: rider.avatarUri,
+      }),
     );
-  }, [rider.name]);
+  }, [rider.avatarUri, rider.name, rider.rideId, rider.riderId, rider.seatsBooked, rider.subtitle, router]);
+
+  const openRiderProfile = useCallback(() => {
+    triggerLightHaptic();
+    router.push(
+      getRiderProfilePath({
+        rideId: rider.rideId,
+        riderId: rider.riderId,
+        name: rider.name,
+        subtitle: rider.subtitle,
+        avatarUri: rider.avatarUri,
+        rating: rider.rating,
+        ridesCount: rider.ridesCount,
+        seatsBooked: rider.seatsBooked,
+        verified: true,
+      }),
+    );
+  }, [rider, router]);
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -77,6 +106,7 @@ export const useRiderRequestAccepted = (): UseRiderRequestAcceptedResult => {
     rider,
     goToDashboard,
     messageRider,
+    openRiderProfile,
     goBack,
   };
 };

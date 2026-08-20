@@ -4,8 +4,7 @@ export type ProfileMenuActionId =
   | 'refer'
   | 'safety'
   | 'support'
-  | 'legal'
-  | 'demoData';
+  | 'legal';
 
 export interface ProfileBadge {
   id: string;
@@ -24,8 +23,7 @@ export interface ProfileMenuItem {
     | 'gift-outline'
     | 'shield-outline'
     | 'headset-outline'
-    | 'document-text-outline'
-    | 'folder-open-outline';
+    | 'document-text-outline';
 }
 
 export interface DriverEarningBreakdown {

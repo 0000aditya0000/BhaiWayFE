@@ -1,6 +1,6 @@
 import type { UserDetailsSheetRole } from '../userDetailsSheet.types';
 
-/** Flexible Google Sheet row (headers may vary slightly). */
+/** Local UserDetails row shape used by validation / sync results. */
 export interface RemoteUserDetailsRow {
   userId: number;
   userName: string;

@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { colors, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
-const PRIMARY = '#0342D1';
+const PRIMARY = '#374BB1';
 const ON_SURFACE = '#191C1D';
 const SECONDARY = '#585E72';
 const OUTLINE_VARIANT = '#C4C5D7';
@@ -19,7 +19,9 @@ export const styles = StyleSheet.create({
     height: 64,
     paddingHorizontal: spacing.lg,
     backgroundColor: colors.white,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
     ...createShadow({
       color: colors.shadow,
       opacity: 0.06,
@@ -32,6 +34,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    flex: 1,
   },
   brandTitle: {
     fontSize: 28,
@@ -221,7 +224,7 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: 'rgba(3, 66, 209, 0.1)',
+    backgroundColor: 'rgba(55, 75, 177, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },

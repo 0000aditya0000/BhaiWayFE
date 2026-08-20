@@ -51,10 +51,11 @@ export const WithdrawScreen = () => {
             color={withdrawTokens.ON_SURFACE}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
+        </View>
+        <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
             {title}
           </Text>
-        </View>
+
         <IconButton
           icon="notifications-outline"
           onPress={handleNotifications}

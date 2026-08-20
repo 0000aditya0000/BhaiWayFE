@@ -8,6 +8,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -16,10 +17,14 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   title: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     ...typography.title,
     fontSize: 22,
     color: colors.primary,
-    flex: 1,
+    textAlign: 'center',
   },
   mapContainer: {
     flex: 1,

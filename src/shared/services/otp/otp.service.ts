@@ -57,7 +57,16 @@ const postMsg91 = async (
   label: 'send' | 'verify' | 'retry',
 ): Promise<Msg91ApiResponse> => {
   const url = `${MSG91_WIDGET_BASE}${path}`;
-  console.log(`[MSG91 OTP] ${label} request`, { url, body });
+  // Log request (tokenAuth redacted for safety in metro console dumps).
+  const { tokenAuth, ...safeBody } = body;
+  console.log(`[MSG91 OTP] ${label} request`, {
+    url,
+    method: 'POST',
+    body: {
+      ...safeBody,
+      tokenAuth: typeof tokenAuth === 'string' && tokenAuth.length > 0 ? '[set]' : '[missing]',
+    },
+  });
 
   const response = await fetch(url, {
     method: 'POST',
@@ -71,6 +80,7 @@ const postMsg91 = async (
   } catch {
     console.log(`[MSG91 OTP] ${label} response`, {
       httpStatus: response.status,
+      ok: response.ok,
       body: '<invalid json>',
     });
     throw asApiError('Invalid response from OTP provider.', 'OTP_PROVIDER_ERROR', 502);
@@ -78,6 +88,7 @@ const postMsg91 = async (
 
   console.log(`[MSG91 OTP] ${label} response`, {
     httpStatus: response.status,
+    ok: response.ok,
     body: json,
   });
   return json;

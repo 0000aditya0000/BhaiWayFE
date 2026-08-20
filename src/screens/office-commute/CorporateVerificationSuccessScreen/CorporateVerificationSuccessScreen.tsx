@@ -44,7 +44,7 @@ export const CorporateVerificationSuccessScreen = () => {
         <IconButton
           icon="arrow-back"
           onPress={goBack}
-          color="#0342D1"
+          color="#374BB1"
           accessibilityLabel="Go back"
         />
       </View>
@@ -69,7 +69,7 @@ export const CorporateVerificationSuccessScreen = () => {
                   <Text style={styles.metricValue}>{trustScore}%</Text>
                 </View>
                 <View style={styles.metricIcon}>
-                  <Ionicons name="shield-checkmark" size={24} color="#0342D1" />
+                  <Ionicons name="shield-checkmark" size={24} color="#374BB1" />
                 </View>
               </View>
 

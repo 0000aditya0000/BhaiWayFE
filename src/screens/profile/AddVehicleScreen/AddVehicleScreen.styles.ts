@@ -4,7 +4,7 @@ import { colors, layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const addVehicleTokens = {
-  PRIMARY: '#0342D1',
+  PRIMARY: '#374BB1',
   ON_SURFACE: '#191C1D',
   ON_SURFACE_VARIANT: '#45464D',
   OUTLINE: '#76777D',
@@ -15,7 +15,7 @@ export const addVehicleTokens = {
   PRIMARY_FIXED: '#DAE2FD',
   TERTIARY_FIXED: '#DADFF7',
   TERTIARY_ACCENT: '#DADFF7',
-  ON_TERTIARY_FIXED: '#0342D1',
+  ON_TERTIARY_FIXED: '#374BB1',
   SUCCESS: '#16A34A',
 } as const;
 
@@ -25,6 +25,7 @@ export const styles = StyleSheet.create({
     backgroundColor: addVehicleTokens.SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -34,11 +35,16 @@ export const styles = StyleSheet.create({
     backgroundColor: addVehicleTokens.SURFACE,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 20,
     lineHeight: 28,
     fontWeight: '600',
     color: addVehicleTokens.PRIMARY,
     flexShrink: 1,
+    textAlign: 'center',
   },
   body: {
     flex: 1,

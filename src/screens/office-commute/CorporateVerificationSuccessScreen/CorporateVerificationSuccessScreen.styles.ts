@@ -62,7 +62,7 @@ export const styles = StyleSheet.create({
     lineHeight: 40,
     fontWeight: '600',
     letterSpacing: -0.2,
-    color: '#0342D1',
+    color: '#374BB1',
   },
   statusRow: {
     flexDirection: 'row',
@@ -73,13 +73,13 @@ export const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#0342D1',
+    backgroundColor: '#374BB1',
   },
   statusValue: {
     fontSize: 16,
     lineHeight: 24,
     fontWeight: '600',
-    color: '#0342D1',
+    color: '#374BB1',
   },
   metricIcon: {
     width: 48,
@@ -93,11 +93,11 @@ export const styles = StyleSheet.create({
     width: '100%',
     minHeight: 56,
     borderRadius: 12,
-    backgroundColor: '#0342D1',
+    backgroundColor: '#374BB1',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 32,
-    ...createShadow({ color: '#0342D1', opacity: 0.25, radius: 12, offsetY: 6, elevation: 6 }),
+    ...createShadow({ color: '#374BB1', opacity: 0.25, radius: 12, offsetY: 6, elevation: 6 }),
   },
   ctaLabel: {
     fontSize: 12,

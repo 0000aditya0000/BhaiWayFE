@@ -6,7 +6,7 @@ export const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(3, 66, 209, 0.28)',
+    backgroundColor: 'rgba(55, 75, 177, 0.28)',
   },
   sheet: {
     backgroundColor: '#F8F9FA',
@@ -15,7 +15,7 @@ export const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingHorizontal: spacing.screenHorizontal,
     ...createShadow({
-      color: '#0342D1',
+      color: '#374BB1',
       opacity: 0.14,
       radius: 20,
       offsetY: -4,
@@ -40,10 +40,10 @@ export const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#335EEA',
+    backgroundColor: '#4B61C4',
     alignItems: 'center',
     justifyContent: 'center',
-    ...createShadow({ color: '#335EEA', opacity: 0.28, radius: 8, offsetY: 3, elevation: 4 }),
+    ...createShadow({ color: '#4B61C4', opacity: 0.28, radius: 8, offsetY: 3, elevation: 4 }),
   },
   headerText: {
     flex: 1,
@@ -80,8 +80,8 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: colors.shadow, opacity: 0.04, radius: 8, offsetY: 2, elevation: 2 }),
   },
   optionPressed: {
-    borderColor: '#0342D1',
-    backgroundColor: 'rgba(3, 66, 209, 0.04)',
+    borderColor: '#374BB1',
+    backgroundColor: 'rgba(55, 75, 177, 0.04)',
   },
   optionIcon: {
     width: 48,

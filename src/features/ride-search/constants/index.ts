@@ -115,7 +115,9 @@ export {
 export {
   DRIVER_CHAT_SCREEN,
   DRIVER_CHAT_QUICK_REPLIES,
+  RIDER_CHAT_QUICK_REPLIES_FROM_DRIVER,
   getDriverChatMock,
   getDriverChatPath,
   formatChatTime,
 } from './driver-chat.constants';
+export type { RideChatPerspective } from './driver-chat.constants';

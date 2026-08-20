@@ -228,7 +228,7 @@ export const OngoingTripScreen = () => {
             </Marker>
             <Polyline
               coordinates={polyline}
-              strokeColor="#0342D1"
+              strokeColor="#374BB1"
               strokeWidth={6}
               lineDashPattern={[1, 12]}
             />

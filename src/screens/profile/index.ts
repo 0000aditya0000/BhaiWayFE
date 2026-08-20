@@ -1,6 +1,5 @@
 export { MasterProfileScreen } from './MasterProfileScreen';
 export { LegalPoliciesScreen } from './LegalPoliciesScreen';
-export { DemoDataScreen } from './DemoDataScreen';
 export { DeleteAccountScreen } from './DeleteAccountScreen';
 export { AccountDeletedScreen } from './AccountDeletedScreen';
 export { HelpSupportScreen } from './HelpSupportScreen';

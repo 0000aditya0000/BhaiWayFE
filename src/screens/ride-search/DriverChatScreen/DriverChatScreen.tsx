@@ -1,10 +1,16 @@
 import React, { useCallback } from 'react';
-import { FlatList, Pressable, ScrollView, View } from 'react-native';
+import { FlatList, Pressable, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppFooter, Avatar, IconButton, AppText as Text, AppTextInput as TextInput } from '@/shared/components';
+import {
+  AppFooter,
+  Avatar,
+  IconButton,
+  AppText as Text,
+  AppTextInput as TextInput,
+} from '@/shared/components';
 import { colors } from '@/shared/theme';
 import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { DRIVER_CHAT_SCREEN } from '@/features/ride-search/constants';
@@ -12,21 +18,27 @@ import { useDriverChat } from '@/features/ride-search/hooks';
 import type { ChatMessage } from '@/features/ride-search/types';
 import { styles } from './DriverChatScreen.styles';
 
-const MessageBubble = ({ item }: { item: ChatMessage }) => {
-  const isUser = item.sender === 'user';
+const MessageBubble = ({
+  item,
+  selfSender,
+}: {
+  item: ChatMessage;
+  selfSender: 'user' | 'driver';
+}) => {
+  const isSelf = item.sender === selfSender;
 
   return (
-    <View style={isUser ? styles.messageBlockRight : styles.messageBlockLeft}>
-      <View style={isUser ? styles.bubbleRight : styles.bubbleLeft}>
-        <Text style={isUser ? styles.messageTextRight : styles.messageTextLeft}>{item.text}</Text>
+    <View style={isSelf ? styles.messageBlockRight : styles.messageBlockLeft}>
+      <View style={isSelf ? styles.bubbleRight : styles.bubbleLeft}>
+        <Text style={isSelf ? styles.messageTextRight : styles.messageTextLeft}>{item.text}</Text>
       </View>
-      {isUser ? (
+      {isSelf ? (
         <View style={styles.metaRight}>
           <Text style={styles.metaRightText}>{item.timeLabel}</Text>
           <Ionicons
             name={item.status === 'read' ? 'checkmark-done' : 'checkmark'}
             size={14}
-            color="#0342D1"
+            color="#374BB1"
           />
         </View>
       ) : (
@@ -41,14 +53,22 @@ export const DriverChatScreen = () => {
     driverName?: string;
     carModel?: string;
     threadId?: string;
+    perspective?: string;
+    routeLabel?: string;
+    tripTimeLabel?: string;
+    avatarUri?: string;
   }>();
 
+  const perspectiveParam = getSearchParam(params.perspective);
   const {
     profile,
     messages,
     draft,
     quickReplies,
     listRef,
+    perspective,
+    selfSender,
+    callLabel,
     setDraft,
     sendMessage,
     goBack,
@@ -59,7 +79,14 @@ export const DriverChatScreen = () => {
     driverName: getSearchParam(params.driverName),
     carModel: getSearchParam(params.carModel),
     threadId: getSearchParam(params.threadId),
+    perspective: perspectiveParam === 'driver' ? 'driver' : 'rider',
+    routeLabel: getSearchParam(params.routeLabel),
+    tripTimeLabel: getSearchParam(params.tripTimeLabel),
+    avatarUri: getSearchParam(params.avatarUri),
   });
+
+  const isDriverView = perspective === 'driver';
+  const hasDraft = draft.trim().length > 0;
 
   const handleBack = useCallback(() => {
     triggerLightHaptic();
@@ -80,8 +107,10 @@ export const DriverChatScreen = () => {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: ChatMessage }) => <MessageBubble item={item} />,
-    [],
+    ({ item }: { item: ChatMessage }) => (
+      <MessageBubble item={item} selfSender={selfSender} />
+    ),
+    [selfSender],
   );
 
   return (
@@ -101,14 +130,26 @@ export const DriverChatScreen = () => {
                 uri={profile.avatarUri}
                 accessibilityLabel={`${profile.name} photo`}
               />
-              {profile.isOnline ? <View style={styles.onlineDot} /> : null}
             </View>
-            <View>
-              <Text style={styles.driverName}>{profile.name}</Text>
-              <View style={styles.statusRow}>
-                <Text style={styles.onlineLabel}>{DRIVER_CHAT_SCREEN.onlineLabel}</Text>
-                <Text style={styles.vehicleLabel}>• {profile.vehicleLabel}</Text>
+            <View style={{ flexShrink: 1 }}>
+              <View style={styles.peerNameRow}>
+                <Text style={styles.peerName} numberOfLines={1}>
+                  {profile.name}
+                </Text>
+                {profile.verified ? (
+                  <Ionicons name="checkmark-circle" size={16} color="#4B61C4" />
+                ) : null}
               </View>
+              {isDriverView ? (
+                <Text style={styles.roleLabel}>
+                  {profile.roleLabel || DRIVER_CHAT_SCREEN.riderRoleLabel}
+                </Text>
+              ) : (
+                <View style={styles.statusRow}>
+                  <Text style={styles.onlineLabel}>{DRIVER_CHAT_SCREEN.onlineLabel}</Text>
+                  <Text style={styles.vehicleLabel}>• {profile.vehicleLabel}</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -116,8 +157,8 @@ export const DriverChatScreen = () => {
           <IconButton
             icon="call-outline"
             onPress={callDriver}
-            color={colors.primary}
-            accessibilityLabel="Call driver"
+            color="#434655"
+            accessibilityLabel={callLabel}
           />
           <IconButton
             icon="ellipsis-vertical"
@@ -127,6 +168,20 @@ export const DriverChatScreen = () => {
           />
         </View>
       </View>
+
+      {profile.routeLabel ? (
+        <View style={styles.tripBanner}>
+          <View style={styles.tripBannerLeft}>
+            <Ionicons name="navigate-outline" size={18} color="#374BB1" />
+            <Text style={styles.tripRoute} numberOfLines={1}>
+              {profile.routeLabel}
+            </Text>
+          </View>
+          {profile.tripTimeLabel ? (
+            <Text style={styles.tripTime}>{profile.tripTimeLabel}</Text>
+          ) : null}
+        </View>
+      ) : null}
 
       <FlatList
         ref={listRef}
@@ -140,25 +195,20 @@ export const DriverChatScreen = () => {
             </View>
           </View>
         }
-        ItemSeparatorComponent={() => <View style={{ height: 16 }} />}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
         keyboardShouldPersistTaps="handled"
       />
 
-      <View style={styles.composer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.quickRow}
-        >
+      <View style={styles.quickWrap}>
+        <View style={styles.quickRow}>
           {quickReplies.map((reply) => (
             <Pressable
               key={reply}
               style={({ pressed }) => [
                 styles.quickChip,
-                pressed && { backgroundColor: '#E7E8E9', transform: [{ scale: 0.97 }] },
+                pressed && { backgroundColor: 'rgba(55, 75, 177, 0.05)', transform: [{ scale: 0.97 }] },
               ]}
               onPress={() => handleQuickReply(reply)}
               accessibilityRole="button"
@@ -167,29 +217,35 @@ export const DriverChatScreen = () => {
               <Text style={styles.quickLabel}>{reply}</Text>
             </Pressable>
           ))}
-        </ScrollView>
+        </View>
+      </View>
 
+      <View style={styles.composer}>
         <View style={styles.inputRow}>
           <Pressable
+            style={({ pressed }) => [styles.addButton, pressed && { transform: [{ scale: 0.9 }] }]}
             onPress={attachFile}
             accessibilityRole="button"
             accessibilityLabel="Attach file"
           >
-            <Ionicons name="attach" size={22} color="#434655" />
+            <Ionicons name="add" size={22} color="#434655" />
           </Pressable>
-          <TextInput
-            style={styles.input}
-            value={draft}
-            onChangeText={setDraft}
-            placeholder={DRIVER_CHAT_SCREEN.inputPlaceholder}
-            placeholderTextColor="rgba(67,70,85,0.5)"
-            returnKeyType="send"
-            onSubmitEditing={handleSend}
-            accessibilityLabel="Message input"
-          />
+          <View style={styles.inputShell}>
+            <TextInput
+              style={styles.input}
+              value={draft}
+              onChangeText={setDraft}
+              placeholder={DRIVER_CHAT_SCREEN.inputPlaceholder}
+              placeholderTextColor="rgba(67,70,85,0.5)"
+              returnKeyType="send"
+              onSubmitEditing={handleSend}
+              accessibilityLabel="Message input"
+            />
+          </View>
           <Pressable
             style={({ pressed }) => [
               styles.sendButton,
+              hasDraft && styles.sendButtonActive,
               pressed && { transform: [{ scale: 0.92 }] },
             ]}
             onPress={handleSend}
@@ -201,7 +257,7 @@ export const DriverChatScreen = () => {
         </View>
       </View>
 
-      <AppFooter activeTab="inbox" />
+      <AppFooter activeTab={isDriverView ? 'rides' : 'inbox'} />
     </SafeAreaView>
   );
 };

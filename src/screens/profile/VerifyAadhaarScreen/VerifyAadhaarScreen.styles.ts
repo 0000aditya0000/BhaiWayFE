@@ -4,8 +4,8 @@ import { layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const verifyAadhaarTokens = {
-  PRIMARY: '#0342D1',
-  PRIMARY_CONTAINER: '#335EEA',
+  PRIMARY: '#374BB1',
+  PRIMARY_CONTAINER: '#4B61C4',
   PRIMARY_FIXED: '#DDE1FF',
   ON_PRIMARY: '#FFFFFF',
   ON_PRIMARY_CONTAINER: '#EAEBFF',
@@ -26,6 +26,7 @@ export const styles = StyleSheet.create({
     backgroundColor: verifyAadhaarTokens.SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
@@ -36,11 +37,16 @@ export const styles = StyleSheet.create({
     borderBottomColor: verifyAadhaarTokens.OUTLINE_VARIANT,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     flex: 1,
     fontSize: 20,
     lineHeight: 28,
     fontWeight: '700',
     color: verifyAadhaarTokens.PRIMARY,
+    textAlign: 'center',
   },
   scroll: {
     flex: 1,

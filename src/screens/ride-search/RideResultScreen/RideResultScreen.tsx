@@ -27,6 +27,7 @@ export const RideResultScreen = () => {
   const params = useLocalSearchParams<{
     origin?: string;
     destination?: string;
+    date?: string;
     dateLabel?: string;
     passengers?: string;
     originLat?: string;
@@ -54,6 +55,7 @@ export const RideResultScreen = () => {
   } = useRideResult({
     origin: getSearchParam(params.origin),
     destination: getSearchParam(params.destination),
+    date: getSearchParam(params.date),
     dateLabel: getSearchParam(params.dateLabel),
     passengers: getSearchParam(params.passengers),
   });

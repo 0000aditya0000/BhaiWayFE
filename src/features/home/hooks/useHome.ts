@@ -76,7 +76,10 @@ export const useHome = (): UseHomeResult => {
   const refresh = useCallback(() => loadDashboard('refresh'), [loadDashboard]);
   const retry = useCallback(() => loadDashboard('initial'), [loadDashboard]);
 
-  const firstName = useMemo(() => getFirstName(user?.fullName), [user?.fullName]);
+  const firstName = useMemo(
+    () => user?.firstName?.trim() || getFirstName(user?.fullName),
+    [user?.firstName, user?.fullName],
+  );
 
   return {
     loading,

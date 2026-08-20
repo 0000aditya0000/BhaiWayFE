@@ -43,7 +43,7 @@ export const UpcomingRideCard = React.memo(
               <Text style={styles.rideTitle}>{ride.title}</Text>
               {ride.assured ? (
                 <View style={styles.assuredBadge}>
-                  <Ionicons name="checkmark-circle" size={14} color="#0342D1" />
+                  <Ionicons name="checkmark-circle" size={14} color="#374BB1" />
                   <Text style={styles.assuredText}>{MY_RIDES_SCREEN.assuredLabel}</Text>
                 </View>
               ) : null}
@@ -58,7 +58,7 @@ export const UpcomingRideCard = React.memo(
                 accessibilityRole="button"
                 accessibilityLabel={modifyLabel}
               >
-                <Ionicons name="create-outline" size={14} color="#0342D1" />
+                <Ionicons name="create-outline" size={14} color="#374BB1" />
                 <Text style={styles.modifyChipLabel}>{modifyLabel}</Text>
               </Pressable>
             ) : showOtp ? (
@@ -92,7 +92,7 @@ export const UpcomingRideCard = React.memo(
               </View>
               <View style={styles.stopRow}>
                 <View style={styles.stopDot}>
-                  <Ionicons name="business" size={12} color="#0342D1" />
+                  <Ionicons name="business" size={12} color="#374BB1" />
                 </View>
                 <Text style={styles.stopLabel}>{MY_RIDES_SCREEN.dropoffLabel}</Text>
                 <Text style={styles.stopValue}>{ride.dropoffLabel}</Text>

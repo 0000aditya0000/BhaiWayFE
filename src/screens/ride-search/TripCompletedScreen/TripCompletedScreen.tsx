@@ -62,7 +62,7 @@ const paymentIconStyle = (id: TripCompletedPaymentId) => {
 
 const paymentIconColor = (id: TripCompletedPaymentId) => {
   if (id === 'wallet') {
-    return '#335EEA';
+    return '#4B61C4';
   }
   if (id === 'upi') {
     return '#585E72';
@@ -248,7 +248,7 @@ export const TripCompletedScreen = () => {
             >
               <Marker coordinate={trip.pickup} pinColor={colors.primary} tracksViewChanges={false} />
               <Marker coordinate={trip.dropoff} pinColor="#585E72" tracksViewChanges={false} />
-              <Polyline coordinates={polyline} strokeColor="#0342D1" strokeWidth={4} />
+              <Polyline coordinates={polyline} strokeColor="#374BB1" strokeWidth={4} />
             </MapView>
           )}
           <View style={styles.mapTint} pointerEvents="none" />

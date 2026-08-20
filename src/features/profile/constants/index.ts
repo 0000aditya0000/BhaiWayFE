@@ -3,9 +3,6 @@ export {
   DEFAULT_PROFILE_AVATAR,
   DEFAULT_MASTER_PROFILE,
   PROFILE_MENU_ITEMS,
-  DEMO_DATA_TESTER_PHONE,
-  canAccessLocalDemoData,
-  normalizeDemoTesterPhone,
 } from './profile.constants';
 export { LEGAL_SCREEN, LEGAL_POLICY_ITEMS } from './legal.constants';
 export { DELETE_ACCOUNT_SCREEN, DELETE_ACCOUNT_REASONS } from './delete-account.constants';
@@ -33,6 +30,7 @@ export {
   MY_GARAGE_SCREEN,
   GARAGE_VEHICLES,
   VEHICLE_RC_STATUS_LABEL,
+  VEHICLE_ACTIVE_LABEL,
   GARAGE_WHY_IMAGE,
 } from './my-garage.constants';
 export { ADD_VEHICLE_SCREEN, VEHICLE_CATEGORIES } from './add-vehicle.constants';

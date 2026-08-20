@@ -4,11 +4,7 @@ import { Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { APP_CONFIG, ROUTES } from '@/config';
-import {
-  applySheetProfileToSession,
-  assertSheetUserForLogin,
-  hydrateSessionFromSheet,
-} from '@/DemoData';
+import { applySheetProfileToSession, hydrateSessionFromSheet } from '@/DemoData';
 import { useCountdown } from '@/shared/hooks';
 import {
   getErrorMessage,
@@ -17,11 +13,12 @@ import {
   triggerErrorHaptic,
   triggerLightHaptic,
 } from '@/shared/utils';
-import { authSession, showAppAlert } from '@/store';
+import { showAppAlert } from '@/store';
 import { MORPHING_OTP_TIMING, type MorphingOtpStatus } from '../components/MorphingOTPInput';
 import { AUTH_CONSTANTS } from '../constants';
 import { authService } from '../services';
 import type { AuthFlow } from '../types';
+import { getPostAuthRoute } from '../utils';
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -84,10 +81,6 @@ export const useOtpVerification = (): UseOtpVerificationResult => {
     const verifyStartedAt = Date.now();
 
     try {
-      if (flow === 'login') {
-        await assertSheetUserForLogin(phoneNumber);
-      }
-
       const session = await authService.verifyOtp({ verificationId, code, phoneNumber });
 
       const elapsed = Date.now() - verifyStartedAt;
@@ -98,32 +91,16 @@ export const useOtpVerification = (): UseOtpVerificationResult => {
 
       setStatus('success');
 
-      authSession.setSession(session.token, {
-        id: session.userId,
-        fullName: '',
-        email: null,
-        avatarUri: null,
-        phone: phoneNumber,
+      await authService.establishAuthSession(session, phoneNumber, {
+        hydrateFromSheet: async () => {
+          await hydrateSessionFromSheet();
+          applySheetProfileToSession();
+        },
       });
-
-      const sheetRow = await hydrateSessionFromSheet();
-      applySheetProfileToSession();
 
       await wait(MORPHING_OTP_TIMING.successHoldMs - MORPHING_OTP_TIMING.spinnerMinMs);
 
-      if (flow === 'login') {
-        if (!sheetRow?.userName?.trim() && !(sheetRow && sheetRow.userId > 0)) {
-          authSession.clear();
-          throw Object.assign(
-            new Error('No account found for this number. Please sign up first.'),
-            { code: 'SHEET_USER_NOT_FOUND' },
-          );
-        }
-        router.replace(ROUTES.home);
-        return;
-      }
-
-      if (sheetRow?.userName?.trim()) {
+      if (getPostAuthRoute(Boolean(session.profileCompleted)) === 'home') {
         router.replace(ROUTES.home);
         return;
       }
@@ -131,22 +108,6 @@ export const useOtpVerification = (): UseOtpVerificationResult => {
       router.push(ROUTES.completeProfile);
     } catch (verifyError) {
       const message = getErrorMessage(verifyError);
-      if ((verifyError as { code?: string })?.code === 'SHEET_USER_NOT_FOUND') {
-        authSession.clear();
-        setStatus('error');
-        setLoading(false);
-        verifyingRef.current = false;
-        showAppAlert('Account not found', message, [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Sign up',
-            onPress: () => {
-              router.replace(ROUTES.phone);
-            },
-          },
-        ]);
-        return;
-      }
       setStatus('error');
       setError(message);
       triggerErrorHaptic();

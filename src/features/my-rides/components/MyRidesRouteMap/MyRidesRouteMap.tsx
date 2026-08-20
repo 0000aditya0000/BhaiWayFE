@@ -147,7 +147,7 @@ export const MyRidesRouteMap = React.memo(
               accessibilityRole="button"
               accessibilityLabel="Open live map"
             >
-              <Ionicons name="expand-outline" size={16} color="#0342D1" />
+              <Ionicons name="expand-outline" size={16} color="#374BB1" />
             </Pressable>
           ) : null}
         </View>
@@ -182,7 +182,7 @@ export const MyRidesRouteMap = React.memo(
             tracksViewChanges={false}
             title={dropoffLabel}
           />
-          <Polyline coordinates={polyline} strokeColor="#0342D1" strokeWidth={4} />
+          <Polyline coordinates={polyline} strokeColor="#374BB1" strokeWidth={4} />
         </MapView>
 
         {routeMeta.distanceLabel ? (
@@ -201,7 +201,7 @@ export const MyRidesRouteMap = React.memo(
             accessibilityRole="button"
             accessibilityLabel="Open live map"
           >
-            <Ionicons name="expand-outline" size={16} color="#0342D1" />
+            <Ionicons name="expand-outline" size={16} color="#374BB1" />
           </Pressable>
         ) : null}
       </View>

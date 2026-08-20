@@ -59,7 +59,6 @@ export const MasterProfileScreen = () => {
   const {
     profile,
     menuItems,
-    showDemoDataSettings,
     uploadSheetVisible,
     avatarUploading,
     logoutVisible,
@@ -67,7 +66,6 @@ export const MasterProfileScreen = () => {
     closeCameraSheet,
     applyAvatar,
     goBack,
-    openSettings,
     openAddRedeem,
     openPaymentMethods,
     onMenuPress,
@@ -90,18 +88,7 @@ export const MasterProfileScreen = () => {
         <Text style={styles.headerTitle} accessibilityRole="header">
           {PROFILE_SCREEN.title}
         </Text>
-        {showDemoDataSettings ? (
-          <Pressable
-            style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.7 }]}
-            onPress={openSettings}
-            accessibilityRole="button"
-            accessibilityLabel="Open local demo data"
-          >
-            <Ionicons name="settings-outline" size={24} color={profileTokens.PRIMARY} />
-          </Pressable>
-        ) : (
-          <View style={styles.iconButton} />
-        )}
+        <View style={styles.iconButton} />
       </View>
 
       <ScrollView
@@ -133,7 +120,7 @@ export const MasterProfileScreen = () => {
                     bottom: 0,
                     left: 0,
                     borderRadius: 999,
-                    backgroundColor: 'rgba(3, 66, 209, 0.45)',
+                    backgroundColor: 'rgba(55, 75, 177, 0.45)',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}

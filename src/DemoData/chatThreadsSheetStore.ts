@@ -5,7 +5,6 @@ import { createLocalListStore } from './localStore';
 import {
   CHAT_THREADS_SHEET_HEADERS,
   CHAT_THREADS_SHEET_ID_START,
-  chatThreadsSheetHeaderCsv,
   type ChatThreadSheetRideType,
   type ChatThreadSheetRole,
   type ChatThreadsSheetPatch,
@@ -216,32 +215,6 @@ export const chatThreadsSheetStore = {
       avatarUri: patch.avatarUri?.trim() || '',
       updated_at: new Date().toISOString(),
     });
-  },
-
-  toCsv: (): string => {
-    const header = chatThreadsSheetHeaderCsv();
-    const lines = store.getAll().map((row) => {
-      const normalized = normalizeStoredRow(row);
-      return [
-        String(normalized.threadId),
-        normalized.threadKey,
-        String(normalized.userId),
-        normalized.mobile,
-        normalized.role,
-        normalized.rideType,
-        normalized.peerName,
-        normalized.peerSubtitle,
-        normalized.routeLabel,
-        normalized.lastMessage,
-        normalized.timeLabel,
-        String(normalized.unreadCount),
-        normalized.isOnline ? 'TRUE' : 'FALSE',
-        normalized.avatarUri,
-      ]
-        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-        .join(',');
-    });
-    return [header, ...lines].join('\n');
   },
 
   headers: CHAT_THREADS_SHEET_HEADERS,

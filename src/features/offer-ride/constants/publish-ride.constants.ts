@@ -53,7 +53,7 @@ export const SELECT_LOCATION_SCREEN = {
 
 export const PUBLISH_SEAT_LIMITS = {
   min: 1,
-  max: 6,
+  max: 8,
 } as const;
 
 export const getPublishRidePath = (rideType: OutstationRideTypeId) => ({

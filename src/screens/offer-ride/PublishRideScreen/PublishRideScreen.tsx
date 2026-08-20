@@ -13,7 +13,7 @@ import {
   PublishRouteFields,
   SeatStepper,
 } from '@/features/offer-ride/components';
-import { PUBLISH_RIDE_SCREEN } from '@/features/offer-ride/constants';
+import { PUBLISH_RIDE_SCREEN, PUBLISH_SEAT_LIMITS } from '@/features/offer-ride/constants';
 import { usePublishRide } from '@/features/offer-ride/hooks';
 import { styles } from './PublishRideScreen.styles';
 
@@ -143,6 +143,8 @@ export const PublishRideScreen = () => {
 
           <SeatStepper
             value={draft.availableSeats}
+            min={PUBLISH_SEAT_LIMITS.min}
+            max={PUBLISH_SEAT_LIMITS.max}
             onChange={(availableSeats) => updateDraft({ availableSeats })}
           />
 

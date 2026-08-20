@@ -34,6 +34,7 @@ export const RidePreferencesScreen = () => {
     vehicles,
     notesLength,
     canPublish,
+    publishing,
     refundableAmountLabel,
     totalToPayLabel,
     primaryCtaLabel,
@@ -69,6 +70,7 @@ export const RidePreferencesScreen = () => {
               label={primaryCtaLabel}
               onPress={publish}
               disabled={!canPublish}
+              loading={publishing}
               accessibilityLabel={primaryCtaLabel}
             />
           </View>

@@ -35,7 +35,7 @@ export const styles = StyleSheet.create({
     right: 8,
     top: 8,
     bottom: 8,
-    backgroundColor: '#0342D1',
+    backgroundColor: '#374BB1',
     borderRadius: 8,
     paddingHorizontal: 24,
     alignItems: 'center',

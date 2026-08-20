@@ -56,7 +56,7 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',
-    color: '#0342D1',
+    color: '#374BB1',
   },
   priceCol: {
     alignItems: 'flex-end',

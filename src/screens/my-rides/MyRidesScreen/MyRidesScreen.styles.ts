@@ -3,8 +3,8 @@ import { StyleSheet } from 'react-native';
 import { colors, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
-const PRIMARY = '#0342D1';
-const PRIMARY_CONTAINER = '#335EEA';
+const PRIMARY = '#374BB1';
+const PRIMARY_CONTAINER = '#4B61C4';
 const ON_SURFACE = '#191C1D';
 const ON_SURFACE_VARIANT = '#434655';
 const OUTLINE = '#747686';

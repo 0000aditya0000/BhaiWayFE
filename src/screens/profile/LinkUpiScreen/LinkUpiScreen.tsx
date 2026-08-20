@@ -64,10 +64,11 @@ export const LinkUpiScreen = () => {
             color={linkUpiTokens.ON_SURFACE}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
+        </View>
+        <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
             {LINK_UPI_SCREEN.title}
           </Text>
-        </View>
+
         <Pressable
           style={styles.avatarButton}
           onPress={openProfile}

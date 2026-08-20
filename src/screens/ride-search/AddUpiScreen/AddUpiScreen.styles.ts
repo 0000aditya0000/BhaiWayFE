@@ -68,7 +68,7 @@ export const styles = StyleSheet.create({
     ...androidTextInputFix,
   },
   inputFocused: {
-    borderColor: '#0342D1',
+    borderColor: '#374BB1',
     borderWidth: 2,
   },
   hint: {
@@ -108,7 +108,7 @@ export const styles = StyleSheet.create({
     width: '100%',
     height: layout.buttonHeight,
     borderRadius: 12,
-    backgroundColor: '#0342D1',
+    backgroundColor: '#374BB1',
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',

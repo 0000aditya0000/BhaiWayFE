@@ -52,10 +52,11 @@ export const WalletScreen = () => {
             color={walletTokens.PRIMARY}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
-            {WALLET_SCREEN.brandTitle}
-          </Text>
         </View>
+        <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
+          {WALLET_SCREEN.brandTitle}
+        </Text>
+
         <IconButton
           icon="notifications-outline"
           onPress={openNotifications}
@@ -170,7 +171,7 @@ export const WalletScreen = () => {
                     key={tx.id}
                     style={({ pressed }) => [
                       styles.transactionCard,
-                      pressed && { opacity: 0.92, borderColor: 'rgba(3, 66, 209, 0.3)' },
+                      pressed && { opacity: 0.92, borderColor: 'rgba(55, 75, 177, 0.3)' },
                     ]}
                     onPress={() => openTransaction(tx)}
                     accessibilityRole="button"

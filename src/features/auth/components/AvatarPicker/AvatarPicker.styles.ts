@@ -37,7 +37,7 @@ export const styles = StyleSheet.create({
   },
   uploadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(3, 66, 209, 0.55)',
+    backgroundColor: 'rgba(55, 75, 177, 0.55)',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -70,6 +70,6 @@ export const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   officeSearchButton: {
-    backgroundColor: '#335EEA',
+    backgroundColor: '#4B61C4',
   },
 });

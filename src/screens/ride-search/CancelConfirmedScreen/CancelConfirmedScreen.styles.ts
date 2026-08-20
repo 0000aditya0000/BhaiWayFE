@@ -8,6 +8,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -18,12 +19,18 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#EDEEEF',
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 18,
     lineHeight: 24,
     fontWeight: '600',
     color: colors.primary,
+    textAlign: 'center',
   },
   headerSpacer: {
+    zIndex: 2,
     width: 40,
   },
   content: {
@@ -97,12 +104,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bookButton: {
-    backgroundColor: '#335EEA',
+    backgroundColor: '#4B61C4',
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 24,
     ...createShadow({
-      color: '#335EEA',
+      color: '#4B61C4',
       opacity: 0.2,
       radius: 12,
       offsetY: 6,

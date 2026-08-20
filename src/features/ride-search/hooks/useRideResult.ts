@@ -1,11 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'expo-router';
 
-import { publishedRidesSheetStore, publishedRidesSheetSync } from '@/DemoData';
-import { useSearchRidesQuery } from '@/services/api';
+import { ROUTES } from '@/config';
+import { authSession } from '@/store';
+import { getErrorMessage, showAppAlert } from '@/shared/utils';
 
 import type { RideTypeTabId } from '../components/ResultFilterChips';
+import { searchRides } from '../api';
 import { departureTimeToMinutes, getPassengerLabel } from '../constants';
 import type { RideResultItem, RideResultSortId, RideSearchSummary } from '../types';
+import {
+  mapRideSearchItemsToResults,
+  mapSearchRidesError,
+  resolveSearchDateParam,
+  toCivilDateFromDate,
+} from '../utils';
 
 const shortPlaceName = (value: string): string => {
   const segment = value.split(',')[0]?.trim();
@@ -32,9 +41,16 @@ const sortRides = (rides: RideResultItem[], sortId: RideResultSortId): RideResul
   }
 };
 
+const isApiError = (error: unknown): error is { status: number; message?: string } =>
+  typeof error === 'object' &&
+  error !== null &&
+  'status' in error &&
+  typeof (error as { status?: unknown }).status === 'number';
+
 export interface UseRideResultParams {
   origin?: string;
   destination?: string;
+  date?: string;
   dateLabel?: string;
   passengers?: string | number;
 }
@@ -53,12 +69,15 @@ export interface UseRideResultResult {
 }
 
 export const useRideResult = (params: UseRideResultParams): UseRideResultResult => {
+  const router = useRouter();
   const passengers = Math.max(1, Number(params.passengers) || 1);
+  const searchDate =
+    resolveSearchDateParam(params.date) ?? toCivilDateFromDate(new Date());
 
   const summary = useMemo<RideSearchSummary>(
     () => ({
-      originCity: shortPlaceName(params.origin || 'Bengaluru'),
-      destinationCity: shortPlaceName(params.destination || 'Mumbai'),
+      originCity: shortPlaceName(params.origin || 'Origin'),
+      destinationCity: shortPlaceName(params.destination || 'Destination'),
       dateLabel: params.dateLabel || 'Today',
       passengers,
       passengerLabel: getPassengerLabel(passengers),
@@ -66,26 +85,95 @@ export const useRideResult = (params: UseRideResultParams): UseRideResultResult 
     [params.dateLabel, params.destination, params.origin, passengers],
   );
 
+  const [sourceRides, setSourceRides] = useState<RideResultItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<RideTypeTabId>('regular');
   const [sortId, setSortId] = useState<RideResultSortId>('price-asc');
+  const searchGenerationRef = useRef(0);
+  const searchingRef = useRef(false);
 
-  const { data, isLoading, isFetching, refetch } = useSearchRidesQuery({
-    from: params.origin,
-    destination: params.destination,
-    date: params.dateLabel,
-    passengers,
-  });
+  const loadRides = useCallback(
+    async (mode: 'initial' | 'refresh') => {
+      const source = params.origin?.trim() ?? '';
+      const destination = params.destination?.trim() ?? '';
 
-  useEffect(
-    () =>
-      publishedRidesSheetStore.subscribe(() => {
-        void refetch();
-      }),
-    [refetch],
+      if (!source || !destination) {
+        setSourceRides([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      if (searchingRef.current) {
+        return;
+      }
+
+      if (!authSession.getToken()) {
+        setSourceRides([]);
+        setLoading(false);
+        setRefreshing(false);
+        showAppAlert('Session expired', 'Please sign in again to search rides.');
+        router.replace(ROUTES.welcome);
+        return;
+      }
+
+      const generation = ++searchGenerationRef.current;
+      searchingRef.current = true;
+
+      if (mode === 'refresh') {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      try {
+        const response = await searchRides({
+          source,
+          destination,
+          date: searchDate,
+          seats: passengers,
+          rideType: 'REGULAR',
+          page: 1,
+          limit: 20,
+        });
+
+        if (generation !== searchGenerationRef.current) {
+          return;
+        }
+
+        setSourceRides(mapRideSearchItemsToResults(response.items ?? []));
+      } catch (error) {
+        if (generation !== searchGenerationRef.current) {
+          return;
+        }
+
+        console.log('[Ride search] GET /rides/search failed', getErrorMessage(error));
+
+        if (isApiError(error) && error.status === 401) {
+          authSession.clear();
+          showAppAlert('Session expired', mapSearchRidesError(error));
+          router.replace(ROUTES.welcome);
+          setSourceRides([]);
+          return;
+        }
+
+        showAppAlert('Unable to search rides', mapSearchRidesError(error));
+        setSourceRides([]);
+      } finally {
+        if (generation === searchGenerationRef.current) {
+          searchingRef.current = false;
+          setLoading(false);
+          setRefreshing(false);
+        }
+      }
+    },
+    [params.destination, params.origin, passengers, router, searchDate],
   );
 
-  const sourceRides = data?.rides ?? [];
+  useEffect(() => {
+    void loadRides('initial');
+  }, [loadRides]);
 
   const rides = useMemo(() => {
     const filtered = sourceRides.filter((ride) => ride.rideType === activeFilter);
@@ -93,30 +181,15 @@ export const useRideResult = (params: UseRideResultParams): UseRideResultResult 
   }, [activeFilter, sortId, sourceRides]);
 
   const refresh = useCallback(() => {
-    setRefreshing(true);
-    void (async () => {
-      try {
-        await publishedRidesSheetSync.pullIntoLocal();
-      } catch (error) {
-        console.log('[Ride search] published rides pull skipped', error);
-      }
-      await refetch();
-      setRefreshing(false);
-    })();
-  }, [refetch]);
-
-  useEffect(() => {
-    if (!isFetching) {
-      setRefreshing(false);
-    }
-  }, [isFetching]);
+    void loadRides('refresh');
+  }, [loadRides]);
 
   return {
     summary,
     rides,
     totalCount: rides.length,
-    loading: isLoading && !data,
-    refreshing: refreshing || (isFetching && !!data),
+    loading,
+    refreshing,
     activeFilter,
     setActiveFilter,
     sortId,

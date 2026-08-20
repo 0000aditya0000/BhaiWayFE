@@ -13,7 +13,7 @@ export const styles = StyleSheet.create({
   },
   cardVerified: {
     borderLeftWidth: 4,
-    borderLeftColor: '#0342D1',
+    borderLeftColor: '#374BB1',
   },
   body: {
     padding: 16,
@@ -63,7 +63,7 @@ export const styles = StyleSheet.create({
     lineHeight: 16,
     fontWeight: '500',
     letterSpacing: 0.2,
-    color: '#0342D1',
+    color: '#374BB1',
   },
   vehicle: {
     fontSize: 14,

@@ -200,8 +200,9 @@ export const LiveTrackingScreen = () => {
             color={liveTrackingTokens.PRIMARY}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle}>{LIVE_TRACKING_SCREEN.title}</Text>
         </View>
+        <Text style={styles.headerTitle}>{LIVE_TRACKING_SCREEN.title}</Text>
+
         <IconButton
           icon="notifications-outline"
           onPress={openNotifications}
@@ -242,10 +243,10 @@ export const LiveTrackingScreen = () => {
                 >
                   <Polyline
                     coordinates={polyline}
-                    strokeColor="rgba(3, 66, 209, 0.2)"
+                    strokeColor="rgba(55, 75, 177, 0.2)"
                     strokeWidth={6}
                   />
-                  <Polyline coordinates={polyline} strokeColor="#0342D1" strokeWidth={4} />
+                  <Polyline coordinates={polyline} strokeColor="#374BB1" strokeWidth={4} />
 
                   <Marker
                     coordinate={tracking.dropoff}
@@ -268,7 +269,7 @@ export const LiveTrackingScreen = () => {
                     <View style={styles.carMarkerWrap}>
                       <Animated.View style={[styles.carPulse, carPulseStyle]} />
                       <View style={styles.carMarker}>
-                        <Ionicons name="car" size={22} color="#0342D1" />
+                        <Ionicons name="car" size={22} color="#374BB1" />
                       </View>
                     </View>
                   </Marker>
@@ -333,7 +334,7 @@ export const LiveTrackingScreen = () => {
           ) : (
             <View style={styles.waitingMap} accessibilityRole="text">
               <View style={styles.waitingIconWrap}>
-                <Ionicons name="map-outline" size={36} color="#0342D1" />
+                <Ionicons name="map-outline" size={36} color="#374BB1" />
               </View>
               <View style={styles.waitingBadge}>
                 <Text style={styles.waitingBadgeText}>{LIVE_TRACKING_SCREEN.waitingBadge}</Text>
@@ -415,7 +416,7 @@ export const LiveTrackingScreen = () => {
               accessibilityRole="button"
               accessibilityLabel={LIVE_TRACKING_SCREEN.whyOtpLabel}
             >
-              <Ionicons name="information-circle-outline" size={14} color="#0342D1" />
+              <Ionicons name="information-circle-outline" size={14} color="#374BB1" />
               <Text style={styles.whyOtpLabel}>{LIVE_TRACKING_SCREEN.whyOtpLabel}</Text>
             </Pressable>
           </View>

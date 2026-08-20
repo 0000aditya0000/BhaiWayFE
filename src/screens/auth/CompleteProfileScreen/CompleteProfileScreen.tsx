@@ -173,7 +173,7 @@ export const CompleteProfileScreen = () => {
         <Button
           label="Save and Continue"
           onPress={submit}
-          disabled={!isValid}
+          disabled={!isValid || loading}
           loading={loading}
           accessibilityLabel="Save profile and continue"
         />

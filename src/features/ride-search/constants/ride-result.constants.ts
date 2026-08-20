@@ -210,6 +210,7 @@ export const formatRidePrice = (value: number): string =>
 export const getRideResultPath = (params: {
   origin: string;
   destination: string;
+  date: string;
   dateLabel: string;
   passengers: number;
   originLat?: number;
@@ -221,6 +222,7 @@ export const getRideResultPath = (params: {
   params: {
     origin: params.origin,
     destination: params.destination,
+    date: params.date,
     dateLabel: params.dateLabel,
     passengers: String(params.passengers),
     originLat: params.originLat != null ? String(params.originLat) : '',

@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { colors } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
-const PRIMARY = '#0342D1';
+const PRIMARY = '#374BB1';
 const ON_SURFACE = '#191C1D';
 const ON_SURFACE_VARIANT = '#434655';
 const OUTLINE_VARIANT = '#C4C5D7';
@@ -129,7 +129,7 @@ export const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(3, 66, 209, 0.2)',
+    backgroundColor: 'rgba(55, 75, 177, 0.2)',
   },
   carIcon: {
     alignItems: 'center',
@@ -198,7 +198,7 @@ export const styles = StyleSheet.create({
   avatarRing: {
     borderRadius: 28,
     borderWidth: 2,
-    borderColor: 'rgba(3, 66, 209, 0.1)',
+    borderColor: 'rgba(55, 75, 177, 0.1)',
     overflow: 'hidden',
   },
   verifiedBadge: {

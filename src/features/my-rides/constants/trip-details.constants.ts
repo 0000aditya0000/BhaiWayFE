@@ -23,7 +23,7 @@ export const TRIP_DETAILS_SCREEN = {
   totalLabel: 'Total Earnings',
   downloadInvoiceLabel: 'Download Invoice',
   downloadInvoiceTitle: 'Download Invoice',
-  downloadInvoiceMessage: 'Invoice download will be available soon.',
+  downloadInvoiceMessage: 'Share or save your trip invoice.',
 } as const;
 
 const DRIVER_AVATAR =

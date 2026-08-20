@@ -40,10 +40,10 @@ export const RatingsSubmittedScreen = () => {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <IconButton
-          icon="close"
+          icon="arrow-back"
           onPress={handleClose}
           color={colors.primary}
-          accessibilityLabel="Close"
+          accessibilityLabel="Go back"
         />
         <Text style={styles.headerTitle}>{RATINGS_SUBMITTED_SCREEN.headerTitle}</Text>
         <View style={styles.headerSpacer} />

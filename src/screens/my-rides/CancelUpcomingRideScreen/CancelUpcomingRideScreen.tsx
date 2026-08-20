@@ -147,7 +147,7 @@ export const CancelUpcomingRideScreen = () => {
             <Ionicons
               name={summary.assured && !isDriving ? 'warning' : 'information-circle'}
               size={22}
-              color={summary.assured && !isDriving ? '#BA1A1A' : '#0342D1'}
+              color={summary.assured && !isDriving ? '#BA1A1A' : '#374BB1'}
             />
             <View style={styles.policyCopy}>
               <Text

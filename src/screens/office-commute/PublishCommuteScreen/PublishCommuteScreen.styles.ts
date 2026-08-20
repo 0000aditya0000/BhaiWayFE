@@ -111,7 +111,7 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     fontWeight: '600',
-    color: '#335EEA',
+    color: '#4B61C4',
   },
   seatRow: {
     flexDirection: 'row',
@@ -130,7 +130,7 @@ export const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 28,
     fontWeight: '600',
-    color: '#335EEA',
+    color: '#4B61C4',
   },
   recurringHeader: {
     flexDirection: 'row',
@@ -148,7 +148,7 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',
-    color: '#0342D1',
+    color: '#374BB1',
   },
   daysRow: {
     flexDirection: 'row',
@@ -166,8 +166,8 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   dayChipSelected: {
-    backgroundColor: '#335EEA',
-    borderColor: '#335EEA',
+    backgroundColor: '#4B61C4',
+    borderColor: '#4B61C4',
   },
   dayLabel: {
     fontSize: 14,
@@ -201,8 +201,8 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   checkboxChecked: {
-    backgroundColor: '#335EEA',
-    borderColor: '#335EEA',
+    backgroundColor: '#4B61C4',
+    borderColor: '#4B61C4',
   },
   returningLabel: {
     fontSize: 16,
@@ -230,13 +230,13 @@ export const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 32,
     fontWeight: '700',
-    color: '#335EEA',
+    color: '#4B61C4',
   },
   priceInput: {
     fontSize: 24,
     lineHeight: 32,
     fontWeight: '700',
-    color: '#335EEA',
+    color: '#4B61C4',
     minWidth: 100,
     marginLeft: 8,
     padding: 0,
@@ -254,7 +254,7 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '500',
-    color: '#0342D1',
+    color: '#374BB1',
   },
   earningsBox: {
     marginTop: 16,
@@ -272,18 +272,18 @@ export const styles = StyleSheet.create({
   },
   earningsValue: {
     fontWeight: '700',
-    color: '#335EEA',
+    color: '#4B61C4',
   },
   nextButton: {
     marginTop: 8,
     height: 56,
     borderRadius: 12,
-    backgroundColor: '#335EEA',
+    backgroundColor: '#4B61C4',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    ...createShadow({ color: '#335EEA', opacity: 0.28, radius: 12, offsetY: 6, elevation: 6 }),
+    ...createShadow({ color: '#4B61C4', opacity: 0.28, radius: 12, offsetY: 6, elevation: 6 }),
   },
   nextLabel: {
     fontSize: 20,

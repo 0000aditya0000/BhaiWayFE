@@ -25,7 +25,7 @@ const initialsFor = (name: string): string => {
 
 const AVATAR_TONES = [
   { backgroundColor: '#DADFF7', color: '#5C6276' },
-  { backgroundColor: '#335EEA', color: '#EAEBFF' },
+  { backgroundColor: '#4B61C4', color: '#EAEBFF' },
 ] as const;
 
 export const RideDetailsCoPassengers = React.memo(

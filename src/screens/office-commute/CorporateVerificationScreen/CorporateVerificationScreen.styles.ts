@@ -9,6 +9,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   header: {
+    position: 'relative',
     minHeight: 48,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -25,30 +26,23 @@ export const styles = StyleSheet.create({
       elevation: 4,
     }),
   },
-  headerCentered: {
-    justifyContent: 'center',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
   headerSide: {
     width: 40,
     alignItems: 'flex-start',
     justifyContent: 'center',
+    zIndex: 2,
   },
   title: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '700',
     letterSpacing: 0.4,
-    color: '#335EEA',
+    color: '#4B61C4',
     textTransform: 'uppercase',
-  },
-  titleCentered: {
-    flex: 1,
     textAlign: 'center',
   },
   scrollContent: {
@@ -75,7 +69,7 @@ export const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   labelFocused: {
-    color: '#0342D1',
+    color: '#374BB1',
   },
   input: {
     width: '100%',
@@ -92,7 +86,7 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: colors.shadow, opacity: 0.04, radius: 4, offsetY: 1, elevation: 1 }),
   },
   inputFocused: {
-    borderColor: '#0342D1',
+    borderColor: '#374BB1',
     borderWidth: 2,
   },
   inputError: {
@@ -139,7 +133,7 @@ export const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: 'rgba(3, 66, 209, 0.05)',
+    backgroundColor: 'rgba(55, 75, 177, 0.05)',
   },
   previewTop: {
     flexDirection: 'row',
@@ -186,7 +180,7 @@ export const styles = StyleSheet.create({
     height: 16,
     width: 48,
     borderRadius: 4,
-    backgroundColor: 'rgba(3, 66, 209, 0.2)',
+    backgroundColor: 'rgba(55, 75, 177, 0.2)',
   },
   previewOptional: {
     width: 256,
@@ -213,12 +207,12 @@ export const styles = StyleSheet.create({
     width: '100%',
     minHeight: 64,
     borderRadius: 12,
-    backgroundColor: '#0342D1',
+    backgroundColor: '#374BB1',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    ...createShadow({ color: '#0342D1', opacity: 0.25, radius: 12, offsetY: 6, elevation: 6 }),
+    ...createShadow({ color: '#374BB1', opacity: 0.25, radius: 12, offsetY: 6, elevation: 6 }),
   },
   submitButtonDisabled: {
     opacity: 0.7,
@@ -252,7 +246,7 @@ export const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '700',
-    color: '#0342D1',
+    color: '#374BB1',
     textAlign: 'center',
   },
   otpSubtitle: {
@@ -290,7 +284,7 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     fontWeight: '700',
-    color: '#0342D1',
+    color: '#374BB1',
   },
   otpLinkMuted: {
     fontSize: 14,

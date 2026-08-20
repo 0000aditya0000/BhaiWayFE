@@ -66,10 +66,11 @@ export const AddBankAccountScreen = () => {
             color={addBankTokens.PRIMARY}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
+        </View>
+        <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
             {ADD_BANK_ACCOUNT_SCREEN.brandTitle}
           </Text>
-        </View>
+
         <Pressable
           style={({ pressed }) => [styles.avatarButton, pressed && { opacity: 0.88 }]}
           onPress={openProfile}

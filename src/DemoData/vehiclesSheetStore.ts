@@ -5,7 +5,6 @@ import { createLocalListStore } from './localStore';
 import {
   VEHICLES_SHEET_HEADERS,
   VEHICLES_SHEET_VEHICLE_ID_START,
-  vehiclesSheetHeaderCsv,
   type VehiclesSheetPatch,
   type VehiclesSheetRow,
 } from './vehiclesSheet.types';
@@ -178,26 +177,6 @@ export const vehiclesSheetStore = {
       rc: patch.rc?.trim() || '',
       updated_at: new Date().toISOString(),
     });
-  },
-
-  toCsv: (): string => {
-    const header = vehiclesSheetHeaderCsv();
-    const lines = store.getAll().map((row) => {
-      const normalized = normalizeStoredRow(row);
-      return [
-        String(normalized.vehicleId),
-        String(normalized.userId),
-        normalized.mobile,
-        normalized.vehicleModel,
-        normalized.vehicleColor,
-        normalized.vehicleType,
-        normalized.vehicleNumberPlate,
-        normalized.rc,
-      ]
-        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-        .join(',');
-    });
-    return [header, ...lines].join('\n');
   },
 
   headers: VEHICLES_SHEET_HEADERS,

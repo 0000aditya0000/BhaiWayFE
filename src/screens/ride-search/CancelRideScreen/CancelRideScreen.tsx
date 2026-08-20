@@ -131,7 +131,7 @@ export const CancelRideScreen = () => {
             <Ionicons
               name={isAssured ? 'warning' : 'information-circle'}
               size={22}
-              color={isAssured ? '#BA1A1A' : '#0342D1'}
+              color={isAssured ? '#BA1A1A' : '#374BB1'}
             />
             <View style={styles.policyCopy}>
               <Text style={isAssured ? styles.policyTitleAssured : styles.policyTitleRegular}>

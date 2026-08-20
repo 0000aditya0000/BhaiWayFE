@@ -8,7 +8,7 @@ const ON_SURFACE_VARIANT = '#45464D';
 const OUTLINE_VARIANT = '#C6C6CD';
 const SURFACE_CONTAINER_HIGH = '#DCE9FF';
 const PRIMARY_CONTAINER = '#131B2E';
-const TRACK_BLUE = '#335EEA';
+const TRACK_BLUE = '#4B61C4';
 const RADIUS_XL = 12;
 
 export const styles = StyleSheet.create({

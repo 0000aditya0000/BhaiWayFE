@@ -1,7 +1,6 @@
 export {
   MasterProfileScreen,
   LegalPoliciesScreen,
-  DemoDataScreen,
   DeleteAccountScreen,
   AccountDeletedScreen,
   HelpSupportScreen,
@@ -50,6 +49,7 @@ export {
   useEditContact,
   useVerifyAadhaar,
   useIdentityVerifiedSuccess,
+  useMyVerification,
 } from './hooks';
 export type {
   UseMasterProfileResult,
@@ -77,6 +77,7 @@ export type {
   UseEditContactResult,
   UseVerifyAadhaarResult,
   UseIdentityVerifiedSuccessResult,
+  UseMyVerificationResult,
 } from './hooks';
 export { LogoutConfirmationModal, AadhaarOtpResentModal } from './components';
 export type {
@@ -211,4 +212,4 @@ export {
   VERIFY_AADHAAR_SCREEN,
   IDENTITY_VERIFIED_SUCCESS_SCREEN,
 } from './constants';
-export { trustedContactsStore, aadhaarVerificationStore } from './store';
+export { trustedContactsStore, aadhaarVerificationStore, verificationStore } from './store';

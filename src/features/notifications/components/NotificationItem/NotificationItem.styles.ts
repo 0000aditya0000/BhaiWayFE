@@ -22,7 +22,7 @@ export const styles = StyleSheet.create({
     }),
   },
   cardUnread: {
-    borderColor: 'rgba(3, 66, 209, 0.22)',
+    borderColor: 'rgba(55, 75, 177, 0.22)',
     backgroundColor: colors.surfaceMuted,
   },
   cardPressed: {

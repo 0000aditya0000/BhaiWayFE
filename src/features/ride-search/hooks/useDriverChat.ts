@@ -15,8 +15,10 @@ import {
 import {
   DRIVER_CHAT_QUICK_REPLIES,
   DRIVER_CHAT_SCREEN,
+  RIDER_CHAT_QUICK_REPLIES_FROM_DRIVER,
   formatChatTime,
   getDriverChatMock,
+  type RideChatPerspective,
 } from '../constants';
 import type { ChatMessage, DriverChatProfile } from '../types';
 
@@ -24,14 +26,21 @@ export interface UseDriverChatParams {
   driverName?: string;
   carModel?: string;
   threadId?: string;
+  perspective?: RideChatPerspective;
+  routeLabel?: string;
+  tripTimeLabel?: string;
+  avatarUri?: string;
 }
 
 export interface UseDriverChatResult {
   profile: DriverChatProfile;
   messages: ChatMessage[];
   draft: string;
-  quickReplies: typeof DRIVER_CHAT_QUICK_REPLIES;
+  quickReplies: readonly string[];
   listRef: RefObject<FlatList<ChatMessage> | null>;
+  perspective: RideChatPerspective;
+  selfSender: 'user' | 'driver';
+  callLabel: string;
   setDraft: (value: string) => void;
   sendMessage: (text?: string) => void;
   goBack: () => void;
@@ -51,17 +60,31 @@ const mapRow = (row: ChatMessagesSheetRow): ChatMessage => ({
 export const useDriverChat = (params: UseDriverChatParams): UseDriverChatResult => {
   const router = useRouter();
   const listRef = useRef<FlatList<ChatMessage> | null>(null);
+  const perspective: RideChatPerspective =
+    params.perspective === 'driver' ? 'driver' : 'rider';
+  const selfSender: 'user' | 'driver' = perspective === 'driver' ? 'driver' : 'user';
   const threadKey =
     params.threadId?.trim() ||
-    `thread-${(params.driverName || 'driver').trim().toLowerCase().replace(/\s+/g, '-')}`;
+    `thread-${perspective}-${(params.driverName || 'peer').trim().toLowerCase().replace(/\s+/g, '-')}`;
 
   const mock = useMemo(
     () =>
       getDriverChatMock({
         driverName: params.driverName,
         carModel: params.carModel,
+        perspective,
+        routeLabel: params.routeLabel,
+        tripTimeLabel: params.tripTimeLabel,
+        avatarUri: params.avatarUri,
       }),
-    [params.carModel, params.driverName],
+    [
+      params.avatarUri,
+      params.carModel,
+      params.driverName,
+      params.routeLabel,
+      params.tripTimeLabel,
+      perspective,
+    ],
   );
 
   const getSnapshot = useCallback(
@@ -95,14 +118,15 @@ export const useDriverChat = (params: UseDriverChatParams): UseDriverChatResult 
             await chatSheetSync.upsertThreadAndSync({
               threadKey,
               peerName: mock.profile.name,
-              peerSubtitle: mock.profile.vehicleLabel,
-              routeLabel: '',
-              role: 'rider',
+              peerSubtitle: mock.profile.roleLabel || mock.profile.vehicleLabel,
+              routeLabel: mock.profile.routeLabel || '',
+              role: perspective === 'driver' ? 'driver' : 'rider',
               rideType: 'outstation',
               lastMessage: mock.messages[mock.messages.length - 1]?.text || '',
               timeLabel: mock.messages[mock.messages.length - 1]?.timeLabel || '',
               unreadCount: 0,
               isOnline: mock.profile.isOnline,
+              avatarUri: mock.profile.avatarUri || '',
             });
           }
           if (chatMessagesSheetStore.getForCurrentUserThread(threadKey).length === 0) {
@@ -123,11 +147,12 @@ export const useDriverChat = (params: UseDriverChatParams): UseDriverChatResult 
       return () => {
         active = false;
       };
-    }, [mock.messages, mock.profile, threadKey]),
+    }, [mock.messages, mock.profile, perspective, threadKey]),
   );
 
   const messages = useMemo(
     () => chatMessagesSheetStore.getForCurrentUserThread(threadKey).map(mapRow),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [sheetSnapshot, threadKey],
   );
 
@@ -138,7 +163,12 @@ export const useDriverChat = (params: UseDriverChatParams): UseDriverChatResult 
       vehicleLabel: thread?.peerSubtitle || mock.profile.vehicleLabel,
       isOnline: thread?.isOnline ?? mock.profile.isOnline,
       avatarUri: thread?.avatarUri || mock.profile.avatarUri,
+      roleLabel: mock.profile.roleLabel,
+      verified: mock.profile.verified,
+      routeLabel: thread?.routeLabel || mock.profile.routeLabel,
+      tripTimeLabel: mock.profile.tripTimeLabel,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mock.profile, sheetSnapshot, threadKey]);
 
   const scrollToEnd = useCallback(() => {
@@ -161,7 +191,7 @@ export const useDriverChat = (params: UseDriverChatParams): UseDriverChatResult 
       void (async () => {
         const result = await chatSheetSync.upsertMessageAndSync({
           threadKey,
-          sender: 'user',
+          sender: selfSender,
           text: content,
           timeLabel,
           status: 'sent',
@@ -171,7 +201,7 @@ export const useDriverChat = (params: UseDriverChatParams): UseDriverChatResult 
           void chatSheetSync.upsertMessageAndSync({
             messageId: result.id,
             threadKey,
-            sender: 'user',
+            sender: selfSender,
             text: content,
             timeLabel,
             status: 'read',
@@ -179,7 +209,7 @@ export const useDriverChat = (params: UseDriverChatParams): UseDriverChatResult 
         }, 1500);
       })();
     },
-    [draft, scrollToEnd, threadKey],
+    [draft, scrollToEnd, selfSender, threadKey],
   );
 
   const goBack = useCallback(() => {
@@ -187,8 +217,8 @@ export const useDriverChat = (params: UseDriverChatParams): UseDriverChatResult 
       router.back();
       return;
     }
-    router.replace(ROUTES.inbox);
-  }, [router]);
+    router.replace(perspective === 'driver' ? ROUTES.myRides : ROUTES.inbox);
+  }, [perspective, router]);
 
   const callDriver = useCallback(() => {
     Linking.openURL('tel:+919999999999').catch(() => {
@@ -208,8 +238,12 @@ export const useDriverChat = (params: UseDriverChatParams): UseDriverChatResult 
     profile,
     messages,
     draft,
-    quickReplies: DRIVER_CHAT_QUICK_REPLIES,
+    quickReplies:
+      perspective === 'driver' ? RIDER_CHAT_QUICK_REPLIES_FROM_DRIVER : DRIVER_CHAT_QUICK_REPLIES,
     listRef,
+    perspective,
+    selfSender,
+    callLabel: perspective === 'driver' ? 'Call rider' : 'Call driver',
     setDraft,
     sendMessage,
     goBack,

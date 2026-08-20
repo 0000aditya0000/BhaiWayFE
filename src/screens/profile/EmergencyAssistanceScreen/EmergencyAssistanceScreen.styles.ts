@@ -4,8 +4,8 @@ import { colors, layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const emergencyTokens = {
-  PRIMARY: '#0342D1',
-  PRIMARY_CONTAINER: '#335EEA',
+  PRIMARY: '#374BB1',
+  PRIMARY_CONTAINER: '#4B61C4',
   ON_PRIMARY_CONTAINER: '#EAEBFF',
   ON_SURFACE: '#191C1D',
   ON_SURFACE_VARIANT: '#434655',
@@ -26,6 +26,7 @@ export const styles = StyleSheet.create({
     backgroundColor: emergencyTokens.SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -43,6 +44,10 @@ export const styles = StyleSheet.create({
     }),
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 18,
     lineHeight: 24,
     fontWeight: '700',
@@ -151,8 +156,8 @@ export const styles = StyleSheet.create({
   },
   holdRingFill: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    left: 56,
+    right: 56,
     bottom: 0,
     backgroundColor: emergencyTokens.ERROR,
   },

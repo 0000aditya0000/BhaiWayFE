@@ -8,6 +8,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F8F9FF',
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -22,13 +23,18 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    flex: 1,
+    zIndex: 2,
   },
   title: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 20,
     lineHeight: 28,
     fontWeight: '600',
     color: colors.primary,
+    textAlign: 'center',
   },
   scrollContent: {
     paddingBottom: 24,
@@ -90,7 +96,7 @@ export const styles = StyleSheet.create({
     borderWidth: 4,
   },
   routeDotPickup: {
-    borderColor: '#335EEA',
+    borderColor: '#4B61C4',
   },
   routeDotDrop: {
     borderColor: '#BA1A1A',
@@ -157,7 +163,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#E0E3E5',
   },
   dayChipSelected: {
-    backgroundColor: '#335EEA',
+    backgroundColor: '#4B61C4',
   },
   dayLabel: {
     fontSize: 12,
@@ -194,7 +200,7 @@ export const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 28,
     fontWeight: '600',
-    color: '#335EEA',
+    color: '#4B61C4',
   },
   earningsCard: {
     backgroundColor: '#131B2E',
@@ -230,7 +236,7 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '700',
-    color: '#335EEA',
+    color: '#4B61C4',
     textAlign: 'right',
     marginTop: 2,
   },
@@ -255,7 +261,7 @@ export const styles = StyleSheet.create({
   verifiedCard: {
     backgroundColor: '#EEF2FF',
     borderLeftWidth: 4,
-    borderLeftColor: '#0342D1',
+    borderLeftColor: '#374BB1',
     borderRadius: 8,
     padding: 16,
     flexDirection: 'row',
@@ -267,7 +273,7 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '600',
-    color: '#0342D1',
+    color: '#374BB1',
   },
   verifyButton: {
     flexDirection: 'row',
@@ -277,7 +283,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#335EEA',
+    borderColor: '#4B61C4',
   },
   verifyLabel: {
     fontSize: 14,
@@ -285,7 +291,7 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    color: '#335EEA',
+    color: '#4B61C4',
   },
   stickyFooter: {
     backgroundColor: '#FFFFFF',
@@ -297,12 +303,12 @@ export const styles = StyleSheet.create({
   publishButton: {
     height: 56,
     borderRadius: 12,
-    backgroundColor: '#335EEA',
+    backgroundColor: '#4B61C4',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    ...createShadow({ color: '#335EEA', opacity: 0.25, radius: 10, offsetY: 4, elevation: 4 }),
+    ...createShadow({ color: '#4B61C4', opacity: 0.25, radius: 10, offsetY: 4, elevation: 4 }),
   },
   publishLabel: {
     fontSize: 14,

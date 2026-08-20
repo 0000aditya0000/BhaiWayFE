@@ -4,8 +4,8 @@ import { colors, layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const missingLocationTokens = {
-  PRIMARY: '#0342D1',
-  PRIMARY_CONTAINER: '#335EEA',
+  PRIMARY: '#374BB1',
+  PRIMARY_CONTAINER: '#4B61C4',
   PRIMARY_FIXED: '#DDE1FF',
   ON_PRIMARY: '#FFFFFF',
   ON_PRIMARY_CONTAINER: '#EAEBFF',

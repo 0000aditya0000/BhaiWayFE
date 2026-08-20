@@ -4,7 +4,7 @@ import { colors, layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const helpTokens = {
-  PRIMARY: '#0342D1',
+  PRIMARY: '#374BB1',
   ON_SURFACE: '#191C1D',
   ON_SURFACE_VARIANT: '#434655',
   OUTLINE: '#747686',
@@ -25,6 +25,7 @@ export const styles = StyleSheet.create({
     backgroundColor: helpTokens.SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
@@ -36,11 +37,16 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#C4C5D7',
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '600',
     color: helpTokens.PRIMARY,
     flexShrink: 1,
+    textAlign: 'center',
   },
   scroll: {
     flex: 1,
@@ -114,7 +120,7 @@ export const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(3, 66, 209, 0.1)',
+    backgroundColor: 'rgba(55, 75, 177, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,

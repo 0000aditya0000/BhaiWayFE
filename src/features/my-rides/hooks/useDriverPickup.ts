@@ -12,11 +12,14 @@ import type { DriverPickupStop } from '../types';
 import { tripStartedStore } from '@/features/ride-search/store';
 import { useDriverRideKind } from './useDriverRideKind';
 
+/** Fraction of the swipe track that opens rider OTP (60%). */
+export const DRIVER_PICKUP_OTP_SWIPE_THRESHOLD = 0.6;
+
 export interface UseDriverPickupResult {
   stop: DriverPickupStop;
   stopTitle: string;
   confirming: boolean;
-  /** Assured rides require OTP after swipe; regular rides skip OTP. */
+  /** Rider OTP is required for every ride before start. */
   requiresOtp: boolean;
   otpVisible: boolean;
   otpValue: string;
@@ -24,7 +27,10 @@ export interface UseDriverPickupResult {
   otpVerifying: boolean;
   confirmedVisible: boolean;
   isLastStop: boolean;
-  confirmArrival: () => void;
+  /** Remount key so canceling OTP resets the swipe handle. */
+  swipeResetKey: string;
+  /** Opens rider OTP once the driver slides past the threshold. */
+  requestRiderOtp: () => void;
   setOtpValue: (value: string) => void;
   verifyOtp: () => void;
   closeOtp: () => void;
@@ -45,6 +51,7 @@ export const useDriverPickup = (): UseDriverPickupResult => {
   const [otpError, setOtpError] = useState<string | null>(null);
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [confirmedVisible, setConfirmedVisible] = useState(false);
+  const [swipeEpoch, setSwipeEpoch] = useState(0);
 
   const stop = useMemo(
     () => DEFAULT_DRIVER_PICKUP_STOPS[currentIndex] ?? DEFAULT_DRIVER_PICKUP_STOPS[0],
@@ -53,6 +60,7 @@ export const useDriverPickup = (): UseDriverPickupResult => {
 
   const isLastStop = currentIndex >= DEFAULT_DRIVER_PICKUP_STOPS.length - 1;
   const stopTitle = DRIVER_PICKUP_SCREEN.pickupTitle(stop.index, stop.total);
+  const swipeResetKey = `${stop.id}-${confirming ? 'done' : 'ready'}-${swipeEpoch}`;
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -77,27 +85,19 @@ export const useDriverPickup = (): UseDriverPickupResult => {
     setOtpError(null);
   }, []);
 
-  const confirmArrival = useCallback(() => {
-    if (confirming) {
+  const requestRiderOtp = useCallback(() => {
+    if (confirming || otpVisible) {
       return;
     }
-    setConfirming(true);
-
-    // Regular rides: swipe only — no OTP gate.
-    if (!requiresOtp) {
-      tripStartedStore.markStarted(stop.id);
-      setConfirmedVisible(true);
-      return;
-    }
-
     resetOtp();
     setOtpVisible(true);
-  }, [confirming, requiresOtp, resetOtp, stop.id]);
+  }, [confirming, otpVisible, resetOtp]);
 
   const closeOtp = useCallback(() => {
     setOtpVisible(false);
     setConfirming(false);
     resetOtp();
+    setSwipeEpoch((prev) => prev + 1);
   }, [resetOtp]);
 
   const continueAfterConfirmed = useCallback(() => {
@@ -111,6 +111,7 @@ export const useDriverPickup = (): UseDriverPickupResult => {
     setCurrentIndex((prev) => prev + 1);
     setConfirming(false);
     resetOtp();
+    setSwipeEpoch((prev) => prev + 1);
   }, [isLastStop, resetOtp, rideType, router]);
 
   const verifyOtp = useCallback(() => {
@@ -125,7 +126,6 @@ export const useDriverPickup = (): UseDriverPickupResult => {
 
     setOtpVerifying(true);
 
-    // Mock verification delay for UX.
     setTimeout(() => {
       if (otpValue !== stop.otp) {
         setOtpError(DRIVER_PICKUP_SCREEN.otpInvalidMessage);
@@ -133,11 +133,12 @@ export const useDriverPickup = (): UseDriverPickupResult => {
         return;
       }
 
-      // First successful start OTP → ride is in progress (unlocks rider live map).
+      // Successful rider OTP → ride start unlocked for this pickup.
       tripStartedStore.markStarted(stop.id);
 
       setOtpVisible(false);
       setOtpVerifying(false);
+      setConfirming(true);
       setConfirmedVisible(true);
     }, 400);
   }, [otpValue, otpVerifying, stop.id, stop.otp]);
@@ -153,7 +154,8 @@ export const useDriverPickup = (): UseDriverPickupResult => {
     otpVerifying,
     confirmedVisible,
     isLastStop,
-    confirmArrival,
+    swipeResetKey,
+    requestRiderOtp,
     setOtpValue,
     verifyOtp,
     closeOtp,

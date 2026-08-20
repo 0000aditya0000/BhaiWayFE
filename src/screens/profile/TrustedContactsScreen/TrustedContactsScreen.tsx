@@ -42,10 +42,11 @@ export const TrustedContactsScreen = () => {
             color={trustedContactsTokens.PRIMARY}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
+        </View>
+        <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
             {TRUSTED_CONTACTS_SCREEN.title}
           </Text>
-        </View>
+
         <IconButton
           icon="notifications-outline"
           onPress={handleNotifications}

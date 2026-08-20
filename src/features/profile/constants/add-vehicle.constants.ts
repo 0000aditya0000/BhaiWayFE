@@ -2,6 +2,7 @@ import type { VehicleCategoryOption } from '../types';
 
 export const ADD_VEHICLE_SCREEN = {
   title: 'Add Vehicle',
+  editTitle: 'Edit Vehicle',
   heroHint: 'Setup your profile to start earning',
   categoryHeading: 'Vehicle Category',
   modelLabel: 'Car Model',
@@ -17,12 +18,17 @@ export const ADD_VEHICLE_SCREEN = {
   optionalLabel: 'Optional',
   documentUploadedLabel: 'Document attached',
   submitLabel: 'Add Vehicle',
-  submittingLabel: 'Processing...',
+  saveLabel: 'Save Changes',
+  submittingLabel: 'Submitting vehicle verification...',
+  savingLabel: 'Saving changes…',
   successLabel: 'Vehicle Added!',
+  savedLabel: 'Changes Saved!',
   validationTitle: 'Missing details',
   validationMessage: 'Please enter car model and license plate to continue.',
   uploadTitle: 'Vehicle RC',
   uploadSubtitle: 'Take a photo or choose a document image from your gallery.',
+  uploadingDocumentLabel: 'Submitting vehicle verification...',
+  loadFailedTitle: 'Unable to load vehicle',
 } as const;
 
 export const VEHICLE_CATEGORIES: readonly VehicleCategoryOption[] = [

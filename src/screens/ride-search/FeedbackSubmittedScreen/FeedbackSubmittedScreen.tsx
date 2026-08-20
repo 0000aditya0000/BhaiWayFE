@@ -156,7 +156,7 @@ export const FeedbackSubmittedScreen = () => {
                       key={`star-${index}`}
                       name={index < rating ? 'star' : 'star-outline'}
                       size={16}
-                      color="#0342D1"
+                      color="#374BB1"
                     />
                   ))}
                 </View>

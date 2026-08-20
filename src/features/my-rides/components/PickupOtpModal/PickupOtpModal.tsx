@@ -43,7 +43,7 @@ export const PickupOtpModal = ({
         >
           <View style={styles.header}>
             <View style={styles.iconWrap}>
-              <Ionicons name="keypad-outline" size={28} color="#335EEA" />
+              <Ionicons name="keypad-outline" size={28} color="#4B61C4" />
             </View>
             <Text style={styles.title}>{DRIVER_PICKUP_SCREEN.otpTitle}</Text>
             <Text style={styles.subtitle}>

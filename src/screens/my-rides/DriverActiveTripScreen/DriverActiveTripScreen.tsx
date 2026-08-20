@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { AppFooter, Avatar, AppText as Text } from '@/shared/components';
+import { AppFooter, Avatar, AppText as Text, IconButton } from '@/shared/components';
 import { triggerLightHaptic } from '@/shared/utils';
 import { SwipeToComplete } from '@/features/my-rides/components';
 import { DRIVER_ACTIVE_TRIP_SCREEN } from '@/features/my-rides/constants';
@@ -62,13 +62,19 @@ export const DriverActiveTripScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
+        <IconButton
+          icon="arrow-back"
+          onPress={handleBack}
+          color="#374BB1"
+          accessibilityLabel="Go back"
+        />
         <Pressable
           style={styles.brandRow}
           onPress={handleBack}
           accessibilityRole="button"
           accessibilityLabel="Back to My Rides"
         >
-          <Ionicons name="car" size={28} color="#0342D1" />
+          <Ionicons name="car" size={28} color="#374BB1" />
           <Text style={styles.brandTitle}>{DRIVER_ACTIVE_TRIP_SCREEN.brandName}</Text>
         </Pressable>
       </View>
@@ -132,7 +138,7 @@ export const DriverActiveTripScreen = () => {
           <View style={styles.mapOverlay}>
             <View style={styles.navRow}>
               <View style={styles.navIcon}>
-                <Ionicons name={trip.navStep.icon} size={22} color="#0342D1" />
+                <Ionicons name={trip.navStep.icon} size={22} color="#374BB1" />
               </View>
               <View style={styles.navText}>
                 <Text style={styles.navInstruction}>{trip.navStep.instruction}</Text>

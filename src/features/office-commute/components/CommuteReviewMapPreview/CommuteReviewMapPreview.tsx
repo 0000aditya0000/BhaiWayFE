@@ -102,11 +102,11 @@ export const CommuteReviewMapPreview = ({
           liteMode={Platform.OS === 'android'}
           pointerEvents="none"
         >
-          <Marker coordinate={pickup} pinColor="#335EEA" tracksViewChanges={false} />
+          <Marker coordinate={pickup} pinColor="#4B61C4" tracksViewChanges={false} />
           <Marker coordinate={dropoff} pinColor="#BA1A1A" tracksViewChanges={false} />
           <Polyline
             coordinates={polylineCoordinates}
-            strokeColor="#335EEA"
+            strokeColor="#4B61C4"
             strokeWidth={4}
             lineJoin="round"
             lineCap="round"
@@ -121,11 +121,11 @@ export const CommuteReviewMapPreview = ({
       />
 
       <View style={styles.distanceBadge} pointerEvents="none">
-        <Ionicons name="navigate" size={20} color="#335EEA" />
+        <Ionicons name="navigate" size={20} color="#4B61C4" />
         <View>
           <Text style={styles.distanceCaption}>{distanceCaption}</Text>
           {loading ? (
-            <ActivityIndicator size="small" color="#335EEA" style={{ alignSelf: 'flex-start' }} />
+            <ActivityIndicator size="small" color="#4B61C4" style={{ alignSelf: 'flex-start' }} />
           ) : (
             <Text style={styles.distanceValue}>
               {distanceLabel}

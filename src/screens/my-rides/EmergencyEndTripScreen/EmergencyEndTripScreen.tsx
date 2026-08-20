@@ -20,7 +20,7 @@ const iconColorForTone = (tone: EmergencyEndIssueOption['iconTone']): string => 
     case 'neutral':
       return '#191C1D';
     default:
-      return '#0342D1';
+      return '#374BB1';
   }
 };
 
@@ -76,15 +76,16 @@ export const EmergencyEndTripScreen = () => {
           <IconButton
             icon="arrow-back"
             onPress={handleBack}
-            color="#0342D1"
+            color="#374BB1"
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle}>{EMERGENCY_END_TRIP_SCREEN.title}</Text>
         </View>
+        <Text style={styles.headerTitle}>{EMERGENCY_END_TRIP_SCREEN.title}</Text>
+
         <IconButton
           icon="headset-outline"
           onPress={handleSupport}
-          color="#0342D1"
+          color="#374BB1"
           accessibilityLabel={EMERGENCY_END_TRIP_SCREEN.supportLabel}
         />
       </View>
@@ -136,7 +137,7 @@ export const EmergencyEndTripScreen = () => {
               accessibilityRole="button"
               accessibilityLabel={EMERGENCY_END_TRIP_SCREEN.captureLabel}
             >
-              <Ionicons name="camera-outline" size={28} color="#0342D1" />
+              <Ionicons name="camera-outline" size={28} color="#374BB1" />
               <Text style={styles.captureLabel}>{EMERGENCY_END_TRIP_SCREEN.captureLabel}</Text>
             </Pressable>
 

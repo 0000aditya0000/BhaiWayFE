@@ -1,44 +1,89 @@
 import { ENDPOINTS, httpClient } from '@/network';
-import { env } from '@/config';
-import { logger } from '@/shared/utils/logger';
-import type { VehicleCategoryId } from '../types';
 
-/** Payload sent to backend after Cloudinary RC upload succeeds. */
-export interface CreateVehicleRequest {
-  category: VehicleCategoryId;
-  model: string;
-  color: string;
-  plateNumber: string;
-  /** Cloudinary HTTPS URL for the RC / verification image. */
-  rcDocumentUrl: string | null;
-  /** Cloudinary public_id for the RC asset (optional delete/replace later). */
-  rcDocumentPublicId: string | null;
-}
+/** Swagger: VehicleType */
+export type ApiVehicleType = 'CAR' | 'BIKE';
 
-export interface CreateVehicleResponse {
+/**
+ * Swagger: VehicleResponseDto
+ * Docs: GET /vehicles, POST /vehicles (201)
+ */
+export interface VehicleResponse {
   id: string;
-  rcDocumentUrl: string | null;
-  status?: string;
+  vehicleType: ApiVehicleType;
+  make: string;
+  model: string;
+  variant?: string | null;
+  registrationNumber: string;
+  registrationYear?: number | null;
+  color?: string | null;
+  seatingCapacity: number;
+  isActive: boolean;
 }
 
 /**
- * Registers a vehicle with the backend.
- * Backend must store `rcDocumentUrl` (Cloudinary secure_url) — never re-upload the file.
+ * Swagger: CreateVehicleDto
+ * Docs: POST /vehicles — Bearer JWT (ownership from token, never send userId)
  */
-export const createVehicle = async (
-  payload: CreateVehicleRequest,
-): Promise<CreateVehicleResponse> => {
-  if (env.useMocks) {
-    logger.info('Mock create vehicle (Cloudinary URL for backend)', {
-      ...payload,
-      rcDocumentUrl: payload.rcDocumentUrl,
-    });
-    return {
-      id: `mock_vehicle_${Date.now()}`,
-      rcDocumentUrl: payload.rcDocumentUrl,
-      status: 'pending',
-    };
-  }
+export interface CreateVehicleDto {
+  vehicleType: ApiVehicleType;
+  make: string;
+  model: string;
+  variant?: string | null;
+  registrationNumber: string;
+  registrationYear?: number | null;
+  color?: string | null;
+  seatingCapacity: number;
+  documentUrl?: string | null;
+  documentType?: string | null;
+  documentReference?: string | null;
+}
 
-  return httpClient.post<CreateVehicleResponse>(ENDPOINTS.vehicles.create, payload);
+/** Swagger: UpdateVehicleDto — PATCH /vehicles/:id */
+export interface UpdateVehicleDto {
+  vehicleType?: ApiVehicleType;
+  make?: string;
+  model?: string;
+  variant?: string | null;
+  registrationNumber?: string;
+  registrationYear?: number | null;
+  color?: string | null;
+  seatingCapacity?: number;
+  documentUrl?: string | null;
+  documentType?: string | null;
+  documentReference?: string | null;
+}
+
+/**
+ * Lists vehicles owned by the authenticated user.
+ * Docs: GET /vehicles — Authorization: Bearer <BHAIWAY_JWT>
+ */
+export const listVehicles = async (): Promise<VehicleResponse[]> => {
+  const rows = await httpClient.get<VehicleResponse[]>(ENDPOINTS.vehicles.list);
+  return Array.isArray(rows) ? rows : [];
 };
+
+/**
+ * Creates a vehicle for the authenticated user.
+ * Docs: POST /vehicles — 201 VehicleResponseDto
+ */
+export const createVehicle = (payload: CreateVehicleDto): Promise<VehicleResponse> =>
+  httpClient.post<VehicleResponse>(ENDPOINTS.vehicles.create, payload);
+
+/** Docs: GET /vehicles/:id */
+export const getVehicleById = (id: string): Promise<VehicleResponse> =>
+  httpClient.get<VehicleResponse>(ENDPOINTS.vehicles.byId(id));
+
+/** Docs: PATCH /vehicles/:id */
+export const updateVehicle = (
+  id: string,
+  payload: UpdateVehicleDto,
+): Promise<VehicleResponse> =>
+  httpClient.patch<VehicleResponse>(ENDPOINTS.vehicles.byId(id), payload);
+
+/** Docs: DELETE /vehicles/:id — soft delete */
+export const deleteVehicleById = (id: string): Promise<void> =>
+  httpClient.delete<void>(ENDPOINTS.vehicles.byId(id));
+
+/** Docs: POST /vehicles/:id/activate */
+export const activateVehicle = (id: string): Promise<VehicleResponse> =>
+  httpClient.post<VehicleResponse>(ENDPOINTS.vehicles.activate(id));

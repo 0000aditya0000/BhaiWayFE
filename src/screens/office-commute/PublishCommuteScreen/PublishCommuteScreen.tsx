@@ -111,7 +111,7 @@ export const PublishCommuteScreen = () => {
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="git-branch-outline" size={20} color="#0342D1" />
+            <Ionicons name="git-branch-outline" size={20} color="#374BB1" />
             <Text style={styles.cardHeaderLabel}>{PUBLISH_COMMUTE_SCREEN.routeLabel}</Text>
           </View>
           <View style={styles.routeBlock}>
@@ -124,7 +124,7 @@ export const PublishCommuteScreen = () => {
                 accessibilityRole="button"
                 accessibilityLabel="Start location"
               >
-                <Ionicons name="locate-outline" size={20} color="#335EEA" />
+                <Ionicons name="locate-outline" size={20} color="#4B61C4" />
                 <Text
                   style={[
                     styles.textInput,
@@ -144,7 +144,7 @@ export const PublishCommuteScreen = () => {
                 accessibilityRole="button"
                 accessibilityLabel="Office location"
               >
-                <Ionicons name="location" size={20} color="#335EEA" />
+                <Ionicons name="location" size={20} color="#4B61C4" />
                 <Text
                   style={[
                     styles.textInput,
@@ -168,7 +168,7 @@ export const PublishCommuteScreen = () => {
               accessibilityRole="button"
               accessibilityLabel="Select departure time"
             >
-              <Ionicons name="time-outline" size={22} color="#335EEA" />
+              <Ionicons name="time-outline" size={22} color="#4B61C4" />
               <Text style={styles.timeValue}>{draft.departureTime}</Text>
             </Pressable>
           </View>
@@ -267,7 +267,7 @@ export const PublishCommuteScreen = () => {
               </View>
             </View>
             <View style={styles.recommendedBadge}>
-              <Ionicons name="flash" size={14} color="#0342D1" />
+              <Ionicons name="flash" size={14} color="#374BB1" />
               <Text style={styles.recommendedText}>
                 {PUBLISH_COMMUTE_SCREEN.recommendedBadge}
               </Text>

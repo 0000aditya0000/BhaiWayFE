@@ -1,26 +1,34 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
-import { vehiclesSheetStore, vehiclesSheetSync } from '@/DemoData';
+import { listVehicles } from '@/features/profile/api';
 import {
   formatBhaiWayCoins,
+  getErrorMessage,
   showAppAlert,
   triggerLightHaptic,
   triggerSuccessHaptic,
 } from '@/shared/utils';
+import { authSession } from '@/store';
+import { createRide } from '../api';
 import {
   RIDE_PREFERENCE_OPTIONS,
   RIDE_PREFERENCES_SCREEN,
 } from '../constants';
-import { publishRideDraft } from '../store';
+import { publishRideDraft, publishedRideStore } from '../store';
 import type {
   PublishRideDraft,
   PublishRideVehicleOption,
   RidePreferenceId,
 } from '../types';
-import { commitPublishedFromDraft, mapGarageVehicleToOption } from '../utils';
+import {
+  mapCreateRideError,
+  mapDraftToCreateRideDto,
+  mapRideResponseToPublishedSummary,
+  mapVehicleResponseToPublishOption,
+} from '../utils';
 
 export interface UseRidePreferencesResult {
   draft: PublishRideDraft;
@@ -29,6 +37,7 @@ export interface UseRidePreferencesResult {
   vehicles: readonly PublishRideVehicleOption[];
   notesLength: number;
   canPublish: boolean;
+  publishing: boolean;
   refundableAmountLabel: string;
   totalToPayLabel: string;
   primaryCtaLabel: string;
@@ -42,55 +51,63 @@ export interface UseRidePreferencesResult {
   goBack: () => void;
 }
 
-const getGarageSnapshot = (): string =>
-  vehiclesSheetStore
-    .getForCurrentUser()
-    .map(
-      (row) =>
-        `${row.row_id}:${row.vehicleId}:${row.vehicleModel}:${row.vehicleColor}:${row.vehicleNumberPlate}`,
-    )
-    .join('|');
-
-const subscribeGarage = (onStoreChange: () => void): (() => void) =>
-  vehiclesSheetStore.subscribe(() => onStoreChange());
+const isApiError = (
+  value: unknown,
+): value is { status: number; code: string; message: string } =>
+  typeof value === 'object' &&
+  value !== null &&
+  'status' in value &&
+  'code' in value &&
+  'message' in value;
 
 export const useRidePreferences = (): UseRidePreferencesResult => {
   const router = useRouter();
   const [draft, setDraft] = useState<PublishRideDraft>(() => publishRideDraft.get());
-  const garageSnapshot = useSyncExternalStore(subscribeGarage, getGarageSnapshot);
+  const [vehicles, setVehicles] = useState<PublishRideVehicleOption[]>([]);
+  const [publishing, setPublishing] = useState(false);
+  const publishingRef = useRef(false);
 
   useEffect(() => publishRideDraft.subscribe(setDraft), []);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
+
       void (async () => {
-        try {
-          await vehiclesSheetSync.pullIntoLocal();
-        } catch {
-          // keep local garage rows
-        }
-        if (!active) {
+        if (!authSession.getToken()) {
           return;
         }
-        const options = vehiclesSheetStore.getForCurrentUser().map(mapGarageVehicleToOption);
-        const current = publishRideDraft.get();
-        const stillValid = options.some((item) => item.id === current.selectedVehicleId);
-        if (!stillValid) {
-          publishRideDraft.update({
-            selectedVehicleId: options[0]?.id ?? null,
-          });
+
+        try {
+          const rows = await listVehicles();
+          if (!active) {
+            return;
+          }
+          const options = rows
+            .filter((row) => row.isActive)
+            .map(mapVehicleResponseToPublishOption);
+          setVehicles(options);
+          const current = publishRideDraft.get();
+          const stillValid = options.some((item) => item.id === current.selectedVehicleId);
+          if (!stillValid) {
+            publishRideDraft.update({
+              selectedVehicleId: options[0]?.id ?? null,
+            });
+          }
+        } catch (error) {
+          console.log('[Publish Ride] GET /vehicles failed', getErrorMessage(error));
+          if (isApiError(error) && error.status === 401) {
+            authSession.clear();
+            showAppAlert('Session expired', 'Please sign in again to publish a ride.');
+            router.replace(ROUTES.welcome);
+          }
         }
       })();
+
       return () => {
         active = false;
       };
-    }, []),
-  );
-
-  const vehicles = useMemo(
-    () => vehiclesSheetStore.getForCurrentUser().map(mapGarageVehicleToOption),
-    [garageSnapshot],
+    }, [router]),
   );
 
   const isAssured = draft.rideType === 'assured';
@@ -176,19 +193,67 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
       return;
     }
 
-    // Assured: collect payment method next, then confirm publish.
     if (current.rideType === 'assured') {
       triggerLightHaptic();
       router.push(ROUTES.offerRidePayment);
       return;
     }
 
-    triggerSuccessHaptic();
+    if (publishingRef.current) {
+      return;
+    }
+
+    const mapped = mapDraftToCreateRideDto(current);
+    if (!mapped.ok) {
+      showAppAlert('Check ride details', mapped.message);
+      return;
+    }
+
+    publishingRef.current = true;
+    setPublishing(true);
+    triggerLightHaptic();
+
     void (async () => {
-      await commitPublishedFromDraft();
-      router.replace(ROUTES.offerRidePublished);
+      try {
+        if (!authSession.getToken()) {
+          showAppAlert('Session expired', 'Please sign in again to publish a ride.');
+          return;
+        }
+
+        const created = await createRide(mapped.payload);
+        console.log('[Publish Ride] POST /rides response', created);
+        const vehicle =
+          vehicles.find((item) => item.id === created.vehicleId) ??
+          vehicles.find((item) => item.id === current.selectedVehicleId) ??
+          null;
+
+        publishedRideStore.set(
+          mapRideResponseToPublishedSummary(created, vehicle, {
+            music: current.preferences.music,
+            notes: current.notes,
+          }),
+        );
+        publishRideDraft.reset(current.rideType);
+        triggerSuccessHaptic();
+        router.replace(ROUTES.offerRidePublished);
+      } catch (error) {
+        if (isApiError(error) && error.status === 401) {
+          authSession.clear();
+          showAppAlert('Session expired', mapCreateRideError(error));
+          router.replace(ROUTES.welcome);
+          return;
+        }
+
+        const title = isApiError(error) && error.status === 403
+          ? 'Unable to publish'
+          : 'Unable to publish ride';
+        showAppAlert(title, mapCreateRideError(error));
+      } finally {
+        publishingRef.current = false;
+        setPublishing(false);
+      }
     })();
-  }, [router]);
+  }, [router, vehicles]);
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -204,7 +269,8 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
     preferenceOptions: RIDE_PREFERENCE_OPTIONS,
     vehicles,
     notesLength: draft.notes.length,
-    canPublish: Boolean(draft.selectedVehicleId) && vehicles.length > 0,
+    canPublish: Boolean(draft.selectedVehicleId) && vehicles.length > 0 && !publishing,
+    publishing,
     refundableAmountLabel,
     totalToPayLabel,
     primaryCtaLabel,

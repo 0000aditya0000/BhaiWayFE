@@ -5,7 +5,6 @@ import { createLocalListStore } from './localStore';
 import {
   WALLET_TRANSACTIONS_SHEET_HEADERS,
   WALLET_TRANSACTIONS_SHEET_ID_START,
-  walletTransactionsSheetHeaderCsv,
   type WalletTransactionSheetIcon,
   type WalletTransactionSheetType,
   type WalletTransactionsSheetPatch,
@@ -174,28 +173,6 @@ export const walletTransactionsSheetStore = {
       createdAt: patch.createdAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
-  },
-
-  toCsv: (): string => {
-    const header = walletTransactionsSheetHeaderCsv();
-    const lines = store.getAll().map((row) => {
-      const normalized = normalizeStoredRow(row);
-      return [
-        String(normalized.transactionId),
-        String(normalized.userId),
-        normalized.mobile,
-        normalized.title,
-        String(normalized.amount),
-        normalized.type,
-        normalized.icon,
-        normalized.dateLabel,
-        normalized.reference,
-        normalized.createdAt,
-      ]
-        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-        .join(',');
-    });
-    return [header, ...lines].join('\n');
   },
 
   headers: WALLET_TRANSACTIONS_SHEET_HEADERS,

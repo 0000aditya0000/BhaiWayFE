@@ -229,7 +229,7 @@ export const UploadDocumentSheet = ({
                 accessibilityLabel={cameraLabel}
               >
                 <View style={styles.optionIcon}>
-                  <Ionicons name="camera-outline" size={24} color="#0342D1" />
+                  <Ionicons name="camera-outline" size={24} color="#374BB1" />
                 </View>
                 <View style={styles.optionText}>
                   <Text style={styles.optionLabel}>{cameraLabel}</Text>
@@ -248,7 +248,7 @@ export const UploadDocumentSheet = ({
                 accessibilityLabel={galleryLabel}
               >
                 <View style={styles.optionIcon}>
-                  <Ionicons name="images-outline" size={24} color="#0342D1" />
+                  <Ionicons name="images-outline" size={24} color="#374BB1" />
                 </View>
                 <View style={styles.optionText}>
                   <Text style={styles.optionLabel}>{galleryLabel}</Text>

@@ -1,18 +1,8 @@
 /**
  * Local DemoData — persists user-entered data on device (AsyncStorage).
- * Shared constants / CSV templates: `src/DemoData/files`.
  */
 
 export {
-  DEMO_GOOGLE_SHEET_ID,
-  DEMO_VEHICLES_SHEET_GID,
-  DEMO_NOTIFICATIONS_SHEET_GID,
-  DEMO_CHAT_THREADS_SHEET_GID,
-  DEMO_CHAT_MESSAGES_SHEET_GID,
-  DEMO_WALLET_TRANSACTIONS_SHEET_GID,
-  DEMO_PUBLISHED_RIDES_SHEET_GID,
-  DEMO_RIDE_BOOKINGS_SHEET_GID,
-  DEMO_BANK_ACCOUNTS_SHEET_GID,
   DEMO_USER_DETAILS_TAB_NAME,
   DEMO_VEHICLES_TAB_NAME,
   DEMO_NOTIFICATIONS_TAB_NAME,
@@ -24,7 +14,6 @@ export {
   DEMO_BANK_ACCOUNTS_TAB_NAME,
   DEMO_STORAGE_KEYS,
   DEMO_USER_ROLES,
-  DEMO_SHEET_LINKS,
 } from './files';
 
 export type {
@@ -181,7 +170,6 @@ export {
   publishedRidesSheetSync,
   rideBookingsSheetSync,
   bankAccountsSheetSync,
-  USER_DETAILS_SHEET_APPS_SCRIPT,
 } from './sheet';
 export {
   findCurrentUserSheetRow,
@@ -194,9 +182,6 @@ export {
   recordWalletTransaction,
   applySheetProfileToSession,
   hydrateSessionFromSheet,
-  shareUserDetailsSheetCsv,
-  shareVehiclesSheetCsv,
-  pushAllLocalRowsToSheet,
 } from './walletFromSheet';
 export {
   findDemoUserForSession,
@@ -206,8 +191,6 @@ export {
   resolveDemoOwnerId,
   splitVehicleModel,
 } from './mappers';
-export { useDemoDataViewer } from './useDemoDataViewer';
-export type { DemoDataTabId, UseDemoDataViewerResult } from './useDemoDataViewer';
 
 import { demoUsersStore } from './usersStore';
 import { demoVehiclesStore } from './vehiclesStore';
@@ -221,19 +204,10 @@ import { walletTransactionsSheetStore } from './walletTransactionsSheetStore';
 import { publishedRidesSheetStore } from './publishedRidesSheetStore';
 import { rideBookingsSheetStore } from './rideBookingsSheetStore';
 import { bankAccountsSheetStore } from './bankAccountsSheetStore';
-import {
-  userDetailsSheetSync,
-  vehiclesSheetSync,
-  notificationsSheetSync,
-  chatSheetSync,
-  walletTransactionsSheetSync,
-  publishedRidesSheetSync,
-  rideBookingsSheetSync,
-  bankAccountsSheetSync,
-} from './sheet';
+import { vehiclesSheetSync } from './sheet';
 import { applySheetProfileToSession } from './walletFromSheet';
 
-/** Load all DemoData collections from device storage (+ pull Google Sheet). */
+/** Load all DemoData collections from device storage. */
 export const hydrateDemoData = async () => {
   await Promise.all([
     demoUsersStore.hydrate(),
@@ -250,52 +224,11 @@ export const hydrateDemoData = async () => {
     bankAccountsSheetStore.hydrate(),
   ]);
 
-  try {
-    await userDetailsSheetSync.pullIntoLocal();
-  } catch (error) {
-    console.log('[DemoData] sheet pull skipped', error);
-  }
-
+  // Local-only legacy migrate (UserDetails vehicle columns → Vehicles store).
   try {
     await vehiclesSheetSync.pullIntoLocal();
-  } catch (error) {
-    console.log('[DemoData] vehicles sheet pull skipped', error);
-  }
-
-  try {
-    await notificationsSheetSync.pullIntoLocal();
-  } catch (error) {
-    console.log('[DemoData] notifications sheet pull skipped', error);
-  }
-
-  try {
-    await chatSheetSync.pullIntoLocal();
-  } catch (error) {
-    console.log('[DemoData] chat sheet pull skipped', error);
-  }
-
-  try {
-    await walletTransactionsSheetSync.pullIntoLocal();
-  } catch (error) {
-    console.log('[DemoData] wallet transactions sheet pull skipped', error);
-  }
-
-  try {
-    await publishedRidesSheetSync.pullIntoLocal();
-  } catch (error) {
-    console.log('[DemoData] published rides sheet pull skipped', error);
-  }
-
-  try {
-    await rideBookingsSheetSync.pullIntoLocal();
-  } catch (error) {
-    console.log('[DemoData] ride bookings sheet pull skipped', error);
-  }
-
-  try {
-    await bankAccountsSheetSync.pullIntoLocal();
-  } catch (error) {
-    console.log('[DemoData] bank accounts sheet pull skipped', error);
+  } catch {
+    // ignore
   }
 
   applySheetProfileToSession();

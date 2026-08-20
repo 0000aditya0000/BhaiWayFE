@@ -4,8 +4,8 @@ import { layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const withdrawTokens = {
-  PRIMARY: '#0342D1',
-  PRIMARY_CONTAINER: '#335EEA',
+  PRIMARY: '#374BB1',
+  PRIMARY_CONTAINER: '#4B61C4',
   ON_PRIMARY: '#FFFFFF',
   ON_PRIMARY_CONTAINER: '#EAEBFF',
   ON_SURFACE: '#191C1D',
@@ -34,17 +34,23 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: '#000000', opacity: 0.05, radius: 20, offsetY: 4, elevation: 3 }),
   },
   headerLeft: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
     flex: 1,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '700',
     color: withdrawTokens.PRIMARY,
     flexShrink: 1,
+    textAlign: 'center',
   },
   avatarButton: {
     width: 40,

@@ -1,6 +1,12 @@
 import { ENDPOINTS, httpClient } from '@/network';
 import { env } from '@/config';
 import { userDetailsSheetSync } from '@/DemoData';
+import {
+  DRIVING_LICENSE_DOCUMENT_TYPE,
+  VEHICLE_DOCUMENT_TYPE,
+  submitDrivingLicenseVerification,
+  submitVehicleVerification,
+} from '@/features/profile/api';
 import { logger } from '@/shared/utils/logger';
 import { authSession } from '@/store';
 import type { CloudinaryUploadResponse, UploadKind } from '@/types/cloudinary';
@@ -83,10 +89,33 @@ export const saveDrivingLicenseUrl = async (
     format: result.format,
     bytes: result.bytes,
   });
+
+  // Docs: POST /verification/driving-license — Bearer JWT + SubmitVerificationDto
+  try {
+    await submitDrivingLicenseVerification({
+      documentUrl: saved.secureUrl,
+      documentType: DRIVING_LICENSE_DOCUMENT_TYPE,
+      documentReference: saved.publicId,
+    });
+  } catch (error) {
+    // 409 = active DL verification already exists — treat as success for save flow.
+    const status =
+      typeof error === 'object' && error !== null && 'status' in error
+        ? Number((error as { status?: unknown }).status)
+        : undefined;
+    if (status === 409) {
+      logger.info('Driving license verification already submitted (409)', {
+        publicId: saved.publicId,
+      });
+      return saved.secureUrl;
+    }
+    throw error;
+  }
+
   return saved.secureUrl;
 };
 
-/** Persist RC Cloudinary URL to backend + UserDetails sheet (same as profile picture). */
+/** Persist RC Cloudinary URL to backend + UserDetails sheet, then submit vehicle verification. */
 export const saveVehicleRcUrl = async (
   result: CloudinaryUploadResponse,
 ): Promise<string> => {
@@ -98,6 +127,29 @@ export const saveVehicleRcUrl = async (
     bytes: result.bytes,
   });
   await syncUserDetailsMedia({ rc: saved.secureUrl });
+
+  // Docs: POST /verification/vehicle — Bearer JWT + SubmitVerificationDto
+  try {
+    await submitVehicleVerification({
+      documentUrl: saved.secureUrl,
+      documentType: VEHICLE_DOCUMENT_TYPE,
+      documentReference: saved.publicId,
+    });
+  } catch (error) {
+    // 409 = active vehicle verification already exists — treat as success for save flow.
+    const status =
+      typeof error === 'object' && error !== null && 'status' in error
+        ? Number((error as { status?: unknown }).status)
+        : undefined;
+    if (status === 409) {
+      logger.info('Vehicle verification already submitted (409)', {
+        publicId: saved.publicId,
+      });
+      return saved.secureUrl;
+    }
+    throw error;
+  }
+
   return saved.secureUrl;
 };
 

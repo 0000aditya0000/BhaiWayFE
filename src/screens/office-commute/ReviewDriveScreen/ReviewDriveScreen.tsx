@@ -52,8 +52,10 @@ export const ReviewDriveScreen = () => {
             color={colors.primary}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.title}>{REVIEW_DRIVE_SCREEN.title}</Text>
         </View>
+        <Text style={styles.title} accessibilityRole="header" numberOfLines={1}>
+          {REVIEW_DRIVE_SCREEN.title}
+        </Text>
         <IconButton
           icon="ellipsis-vertical"
           onPress={() => undefined}
@@ -103,7 +105,7 @@ export const ReviewDriveScreen = () => {
                 <View>
                   <Text style={styles.fieldCaption}>{REVIEW_DRIVE_SCREEN.departureLabel}</Text>
                   <View style={styles.timeRow}>
-                    <Ionicons name="time-outline" size={22} color="#335EEA" />
+                    <Ionicons name="time-outline" size={22} color="#4B61C4" />
                     <Text style={styles.timeValue}>{departureLabel}</Text>
                   </View>
                 </View>
@@ -137,7 +139,7 @@ export const ReviewDriveScreen = () => {
             <View style={[styles.card, styles.halfCard]}>
               <Text style={styles.fieldCaption}>{REVIEW_DRIVE_SCREEN.seatsLabel}</Text>
               <View style={styles.metricRow}>
-                <Ionicons name="car-sport-outline" size={22} color="#335EEA" />
+                <Ionicons name="car-sport-outline" size={22} color="#4B61C4" />
                 <Text style={styles.metricValue}>{draft.seats}</Text>
               </View>
             </View>
@@ -165,7 +167,7 @@ export const ReviewDriveScreen = () => {
           <View>
             {isCorporateVerified ? (
               <View style={styles.verifiedCard}>
-                <Ionicons name="shield-checkmark" size={22} color="#0342D1" />
+                <Ionicons name="shield-checkmark" size={22} color="#374BB1" />
                 <Text style={styles.verifiedText}>{REVIEW_DRIVE_SCREEN.verifiedLabel}</Text>
               </View>
             ) : (
@@ -187,7 +189,7 @@ export const ReviewDriveScreen = () => {
                   accessibilityRole="button"
                   accessibilityLabel={REVIEW_DRIVE_SCREEN.verifyLabel}
                 >
-                  <Ionicons name="shield-checkmark-outline" size={20} color="#335EEA" />
+                  <Ionicons name="shield-checkmark-outline" size={20} color="#4B61C4" />
                   <Text style={styles.verifyLabel}>{REVIEW_DRIVE_SCREEN.verifyLabel}</Text>
                 </Pressable>
               </>

@@ -1,9 +1,10 @@
 import React, { useCallback } from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, Switch, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppFooter, IconButton, AppText as Text } from '@/shared/components';
+import { AppFooter, IconButton, UploadDocumentSheet, AppText as Text } from '@/shared/components';
+import { colors } from '@/shared/theme';
 import { triggerLightHaptic } from '@/shared/utils';
 import {
   GARAGE_WHY_IMAGE,
@@ -32,7 +33,21 @@ const rcStatusUi = (status: VehicleRcStatus) => {
 };
 
 export const MyGarageScreen = () => {
-  const { vehicles, goBack, deleteVehicle, addVehicle } = useMyGarage();
+  const {
+    vehicles,
+    loading,
+    verifySheetVisible,
+    verifyUploading,
+    togglingVehicleId,
+    goBack,
+    deleteVehicle,
+    addVehicle,
+    editVehicle,
+    toggleVehicleActive,
+    openVerifyVehicle,
+    closeVerifySheet,
+    applyVerifyDocument,
+  } = useMyGarage();
 
   const handleBack = useCallback(() => {
     triggerLightHaptic();
@@ -71,7 +86,13 @@ export const MyGarageScreen = () => {
           </View>
 
           <View style={styles.vehicleList}>
-            {vehicles.length === 0 ? (
+            {loading ? (
+              <View style={styles.vehicleCard}>
+                <ActivityIndicator size="small" color={garageTokens.PRIMARY} />
+              </View>
+            ) : null}
+
+            {!loading && vehicles.length === 0 ? (
               <View style={styles.vehicleCard}>
                 <View style={styles.vehicleMeta}>
                   <Text style={styles.vehicleName}>{MY_GARAGE_SCREEN.emptyTitle}</Text>
@@ -80,40 +101,127 @@ export const MyGarageScreen = () => {
               </View>
             ) : null}
 
-            {vehicles.map((vehicle) => {
+            {!loading
+              ? vehicles.map((vehicle) => {
               const status = rcStatusUi(vehicle.rcStatus);
+              const isTogglingActive = togglingVehicleId === vehicle.id;
               return (
                 <View key={vehicle.id} style={styles.vehicleCard}>
-                  <View style={styles.vehicleLeft}>
-                    <View style={styles.vehicleIcon}>
-                      <Ionicons name="car" size={28} color={garageTokens.PRIMARY} />
-                    </View>
-                    <View style={styles.vehicleMeta}>
-                      <Text style={styles.vehicleName}>{vehicle.name}</Text>
-                      <Text style={styles.vehiclePlate}>{vehicle.plateNumber}</Text>
-                      <View style={[styles.statusBadge, status.badge]}>
-                        <Ionicons name={status.icon} size={14} color={status.color} />
-                        <Text style={[styles.statusLabel, status.label]}>
-                          {VEHICLE_RC_STATUS_LABEL[vehicle.rcStatus]}
-                        </Text>
+                  <View style={styles.vehicleMain}>
+                    <View style={styles.vehicleLeft}>
+                      <View style={styles.vehicleIcon}>
+                        <Ionicons name="car" size={28} color={garageTokens.PRIMARY} />
+                      </View>
+                      <View style={styles.vehicleMeta}>
+                        <Text style={styles.vehicleName}>{vehicle.name}</Text>
+                        {vehicle.color ? (
+                          <Text style={styles.vehicleDetail}>
+                            {MY_GARAGE_SCREEN.colorLabel}: {vehicle.color}
+                          </Text>
+                        ) : null}
+                        <Text style={styles.vehiclePlate}>{vehicle.plateNumber}</Text>
+                        {vehicle.variant ? (
+                          <Text style={styles.vehicleDetail}>{vehicle.variant}</Text>
+                        ) : null}
+                        <View style={styles.statusRow}>
+                          <View style={[styles.statusBadge, status.badge]}>
+                            <Ionicons name={status.icon} size={14} color={status.color} />
+                            <Text style={[styles.statusLabel, status.label]}>
+                              {VEHICLE_RC_STATUS_LABEL[vehicle.rcStatus]}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={styles.activeToggleRow}>
+                          <Text style={styles.activeToggleLabel}>
+                            {MY_GARAGE_SCREEN.activeVehicleToggleLabel}
+                          </Text>
+                          {isTogglingActive ? (
+                            <ActivityIndicator size="small" color={garageTokens.PRIMARY} />
+                          ) : (
+                            <Switch
+                              value={vehicle.isActive}
+                              onValueChange={(nextActive) =>
+                                toggleVehicleActive(vehicle, nextActive)
+                              }
+                              trackColor={{
+                                false: garageTokens.SURFACE_CONTAINER,
+                                true: garageTokens.PRIMARY_CONTAINER,
+                              }}
+                              thumbColor={colors.white}
+                              ios_backgroundColor={garageTokens.SURFACE_CONTAINER}
+                              accessibilityLabel={`${MY_GARAGE_SCREEN.activeVehicleToggleLabel} ${vehicle.name}`}
+                            />
+                          )}
+                        </View>
                       </View>
                     </View>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.moreButton,
+                        pressed && { backgroundColor: 'rgba(220, 38, 38, 0.08)' },
+                      ]}
+                      onPress={() => deleteVehicle(vehicle)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Delete ${vehicle.name}`}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="trash-outline" size={22} color="#DC2626" />
+                    </Pressable>
                   </View>
-                  <Pressable
-                    style={({ pressed }) => [
-                      styles.moreButton,
-                      pressed && { backgroundColor: 'rgba(220, 38, 38, 0.08)' },
-                    ]}
-                    onPress={() => deleteVehicle(vehicle)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Delete ${vehicle.name}`}
-                    hitSlop={8}
-                  >
-                    <Ionicons name="trash-outline" size={22} color="#DC2626" />
-                  </Pressable>
+
+                  <View style={styles.cardActions}>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.actionButton,
+                        styles.actionButtonSecondary,
+                        pressed && styles.actionButtonPressed,
+                      ]}
+                      onPress={() => editVehicle(vehicle)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${MY_GARAGE_SCREEN.editVehicleLabel} ${vehicle.name}`}
+                    >
+                      <Ionicons
+                        name="create-outline"
+                        size={16}
+                        color={garageTokens.PRIMARY}
+                      />
+                      <Text style={styles.actionButtonSecondaryLabel}>
+                        {MY_GARAGE_SCREEN.editVehicleLabel}
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.actionButton,
+                        styles.actionButtonPrimary,
+                        (verifyUploading || vehicle.rcStatus === 'approved') &&
+                          styles.actionButtonDisabled,
+                        pressed &&
+                          !verifyUploading &&
+                          vehicle.rcStatus !== 'approved' &&
+                          styles.actionButtonPressed,
+                      ]}
+                      onPress={() => openVerifyVehicle(vehicle)}
+                      disabled={verifyUploading || vehicle.rcStatus === 'approved'}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${MY_GARAGE_SCREEN.verifyVehicleLabel} ${vehicle.name}`}
+                    >
+                      <Ionicons
+                        name="shield-checkmark-outline"
+                        size={16}
+                        color={garageTokens.ON_PRIMARY_CONTAINER}
+                      />
+                      <Text style={styles.actionButtonPrimaryLabel}>
+                        {verifyUploading
+                          ? MY_GARAGE_SCREEN.verifyingVehicleLabel
+                          : MY_GARAGE_SCREEN.verifyVehicleLabel}
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
               );
-            })}
+            })
+              : null}
 
             <View style={styles.whyCard}>
               <View style={styles.whyContent}>
@@ -149,6 +257,14 @@ export const MyGarageScreen = () => {
       </View>
 
       <AppFooter activeTab="profile" />
+
+      <UploadDocumentSheet
+        visible={verifySheetVisible}
+        onClose={closeVerifySheet}
+        onPicked={applyVerifyDocument}
+        title={MY_GARAGE_SCREEN.verifyUploadTitle}
+        subtitle={MY_GARAGE_SCREEN.verifyUploadSubtitle}
+      />
     </SafeAreaView>
   );
 };

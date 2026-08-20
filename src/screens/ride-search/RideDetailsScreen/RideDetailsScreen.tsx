@@ -119,8 +119,9 @@ export const RideDetailsScreen = () => {
             color={colors.primary}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle}>{RIDE_DETAILS_SCREEN.title}</Text>
         </View>
+        <Text style={styles.headerTitle}>{RIDE_DETAILS_SCREEN.title}</Text>
+
         <IconButton
           icon="ellipsis-vertical"
           onPress={openMore}

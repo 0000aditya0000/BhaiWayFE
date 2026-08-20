@@ -66,12 +66,6 @@ export const ROOT_SCREENS = {
     path: '/profile',
     title: 'Profile',
   },
-  demoData: {
-    id: 'demo-data',
-    segment: 'demo-data',
-    path: '/demo-data',
-    title: 'Local Demo Data',
-  },
   legalPolicies: {
     id: 'legal-policies',
     segment: 'legal',
@@ -447,6 +441,12 @@ export const MY_RIDES_SCREENS = {
     path: '/my-rides/rider-accepted',
     title: 'Rider Request Accepted',
   },
+  riderProfile: {
+    id: 'my-rides-rider-profile',
+    segment: 'rider-profile',
+    path: '/my-rides/rider-profile',
+    title: 'Rider Profile',
+  },
   declineRider: {
     id: 'my-rides-decline-rider',
     segment: 'decline-rider',
@@ -663,7 +663,6 @@ export const ROUTES = {
   authVerifyAadhaar: AUTH_SCREENS.verifyAadhaar.path,
   authVerifyAadhaarSuccess: AUTH_SCREENS.verifyAadhaarSuccess.path,
   profile: ROOT_SCREENS.masterProfile.path,
-  demoData: ROOT_SCREENS.demoData.path,
   home: ROOT_SCREENS.home.path,
   rideSearch: ROOT_SCREENS.rideSearch.path,
   rideSearchDestination: RIDE_SEARCH_SCREENS.destination.path,
@@ -715,6 +714,7 @@ export const ROUTES = {
   myRidesTripCompleted: MY_RIDES_SCREENS.tripCompleted.path,
   myRidesTrack: MY_RIDES_SCREENS.track.path,
   myRidesRiderAccepted: MY_RIDES_SCREENS.riderAccepted.path,
+  myRidesRiderProfile: MY_RIDES_SCREENS.riderProfile.path,
   myRidesDeclineRider: MY_RIDES_SCREENS.declineRider.path,
   myRidesRequestDeclined: MY_RIDES_SCREENS.requestDeclined.path,
   myRidesModifyRide: MY_RIDES_SCREENS.modifyRide.path,

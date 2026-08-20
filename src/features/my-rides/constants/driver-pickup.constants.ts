@@ -58,8 +58,6 @@ export const DEFAULT_DRIVER_PICKUP_STOPS: readonly DriverPickupStop[] = [
   },
 ] as const;
 
-import type { DriverRideKind } from '../types';
-
 export const getDriverPickupPath = (rideType: DriverRideKind = 'assured') => ({
   pathname: ROUTES.myRidesPickup,
   params: { rideType },

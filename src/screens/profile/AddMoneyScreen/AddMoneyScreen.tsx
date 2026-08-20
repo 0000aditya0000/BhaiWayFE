@@ -49,10 +49,11 @@ export const AddMoneyScreen = () => {
             color={addMoneyTokens.PRIMARY}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
+        </View>
+        <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
             {ADD_MONEY_SCREEN.brandTitle}
           </Text>
-        </View>
+
         <IconButton
           icon="notifications-outline"
           onPress={handleNotifications}

@@ -122,7 +122,7 @@ export const CommuteBookingMapHero = React.memo(
             />
             <Polyline
               coordinates={polylineCoordinates}
-              strokeColor="#335EEA"
+              strokeColor="#4B61C4"
               strokeWidth={4}
             />
           </MapView>

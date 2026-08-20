@@ -46,3 +46,5 @@ export { useVerifyAadhaar } from './useVerifyAadhaar';
 export type { UseVerifyAadhaarResult } from './useVerifyAadhaar';
 export { useIdentityVerifiedSuccess } from './useIdentityVerifiedSuccess';
 export type { UseIdentityVerifiedSuccessResult } from './useIdentityVerifiedSuccess';
+export { useMyVerification } from './useMyVerification';
+export type { UseMyVerificationResult } from './useMyVerification';

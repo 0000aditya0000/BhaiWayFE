@@ -9,6 +9,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -19,12 +20,18 @@ export const styles = StyleSheet.create({
     borderBottomColor: '#EDEEEF',
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 18,
     lineHeight: 24,
     fontWeight: '600',
     color: colors.primary,
+    textAlign: 'center',
   },
   headerSpacer: {
+    zIndex: 2,
     width: 40,
   },
   content: {
@@ -93,7 +100,7 @@ export const styles = StyleSheet.create({
   backButton: {
     height: 56,
     borderRadius: layout.radiusXl,
-    backgroundColor: '#335EEA',
+    backgroundColor: '#4B61C4',
     alignItems: 'center',
     justifyContent: 'center',
   },

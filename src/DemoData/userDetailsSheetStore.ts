@@ -6,7 +6,6 @@ import {
   USER_DETAILS_SHEET_HEADERS,
   USER_DETAILS_USER_ID_START,
   normalizeSheetRole,
-  userDetailsSheetHeaderCsv,
   type UserDetailsSheetPatch,
   type UserDetailsSheetRow,
 } from './userDetailsSheet.types';
@@ -135,8 +134,8 @@ const normalizeStoredRow = (row: Partial<UserDetailsSheetRow> & { row_id: number
 });
 
 /**
- * Local mirror of the Google Sheet columns.
- * Only stores values the user entered in the app / pulled from the sheet.
+ * Local UserDetails store (device AsyncStorage).
+ * Only stores values the user entered in the app.
  */
 export const userDetailsSheetStore = {
   hydrate: async () => {
@@ -235,33 +234,6 @@ export const userDetailsSheetStore = {
 
     const base = emptyRow(store.nextId(), mobile, userId);
     return store.save(mergeRow(base, patch, mobile));
-  },
-
-  /** CSV with exact sheet headers (CorporateID appears twice — text then Cloudinary URL). */
-  toCsv: (): string => {
-    const header = userDetailsSheetHeaderCsv();
-    const lines = store.getAll().map((row) =>
-      [
-        String(row.userId),
-        row.userName,
-        row.email,
-        row.aadharNumber,
-        row.corporateId,
-        row.vehicleModel,
-        row.vehicleColor,
-        row.vehicleType,
-        row.vehicleNumberPlate,
-        String(row.bhaiWayWallet),
-        row.mobile,
-        row.profilePicture,
-        row.rc,
-        row.corporateIdUrl,
-        row.role || 'Both',
-      ]
-        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-        .join(','),
-    );
-    return [header, ...lines].join('\n');
   },
 
   /** Expected header labels (for debugging / UI). */

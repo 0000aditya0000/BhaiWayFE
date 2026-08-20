@@ -99,7 +99,7 @@ export const CommuteRideBookedScreen = () => {
           accessibilityRole="button"
           accessibilityLabel="Notifications"
         >
-          <Ionicons name="notifications-outline" size={22} color="#0342D1" />
+          <Ionicons name="notifications-outline" size={22} color="#374BB1" />
         </Pressable>
       </View>
 
@@ -147,7 +147,7 @@ export const CommuteRideBookedScreen = () => {
                 accessibilityRole="button"
                 accessibilityLabel="Message driver"
               >
-                <Ionicons name="chatbubble-outline" size={14} color="#0342D1" />
+                <Ionicons name="chatbubble-outline" size={14} color="#374BB1" />
                 <Text style={styles.contactLabel}>{COMMUTE_RIDE_BOOKED_SCREEN.messageLabel}</Text>
               </Pressable>
               <Pressable
@@ -156,7 +156,7 @@ export const CommuteRideBookedScreen = () => {
                 accessibilityRole="button"
                 accessibilityLabel="Call driver"
               >
-                <Ionicons name="call-outline" size={14} color="#0342D1" />
+                <Ionicons name="call-outline" size={14} color="#374BB1" />
                 <Text style={styles.contactLabel}>{COMMUTE_RIDE_BOOKED_SCREEN.callLabel}</Text>
               </Pressable>
             </View>

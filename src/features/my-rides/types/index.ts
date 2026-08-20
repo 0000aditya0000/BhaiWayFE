@@ -31,12 +31,17 @@ export type {
   DriverTripCompletedFareLine,
   DriverTripCompletedCoordinate,
   DriverTripCompletedSummary,
+  DriverPassengerReviewDraft,
 } from './driver-trip-completed.types';
 export type {
   DriverTrackConfirmedPassenger,
   DriverTrackPendingRequest,
   DriverTrackRideSummary,
 } from './driver-track-ride.types';
+export type {
+  RiderProfileMutualConnection,
+  RiderProfileSummary,
+} from './rider-profile.types';
 export type {
   TripDetailsEarningsLine,
   TripDetailsVehicle,

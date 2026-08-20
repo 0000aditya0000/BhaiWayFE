@@ -81,19 +81,4 @@ export const PROFILE_MENU_ITEMS: readonly ProfileMenuItem[] = [
     subtitle: 'Terms, Privacy, Policies',
     icon: 'document-text-outline',
   },
-  {
-    id: 'demoData',
-    title: 'Local Demo Data',
-    subtitle: 'View users, vehicles & bookings saved on this device',
-    icon: 'folder-open-outline',
-  },
 ] as const;
-
-/** Only this phone can open Local Demo Data while BhaiWay is in testing. */
-export const DEMO_DATA_TESTER_PHONE = '9911224906';
-
-export const normalizeDemoTesterPhone = (value?: string | null): string =>
-  (value ?? '').replace(/\D/g, '').slice(-10);
-
-export const canAccessLocalDemoData = (phone?: string | null): boolean =>
-  normalizeDemoTesterPhone(phone) === DEMO_DATA_TESTER_PHONE;

@@ -9,6 +9,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -16,13 +17,19 @@ export const styles = StyleSheet.create({
     height: 64,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     ...typography.title,
     fontSize: 22,
     lineHeight: 28,
     fontWeight: '600',
     color: colors.textPrimary,
+    textAlign: 'center',
   },
   headerSpacer: {
+    zIndex: 2,
     width: 40,
   },
   scroll: {

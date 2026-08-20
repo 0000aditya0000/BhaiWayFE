@@ -7,7 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 
-import { ROOT_SCREEN_INDEX } from '@/config';
+import { ROOT_SCREEN_INDEX, env } from '@/config';
 import {
   applySheetProfileToSession,
   hydrateDemoData,
@@ -15,6 +15,7 @@ import {
 } from '@/DemoData';
 import { setAuthTokenProvider } from '@/network';
 import { authSession, ReduxProvider } from '@/store';
+import { authService } from '@/features/auth/services';
 import { AppAlertModal } from '@/shared/components';
 import { colors, useBhaiWayFonts } from '@/shared/theme';
 import {
@@ -41,11 +42,20 @@ export default function RootLayout() {
     void (async () => {
       await authSession.hydrate();
       if (authSession.isAuthenticated()) {
-        try {
-          await hydrateSessionFromSheet();
-          applySheetProfileToSession();
-        } catch (error) {
-          console.log('[auth] sheet rehydrate skipped', error);
+        const useSheetProfile = env.useMocks && !env.useMsg91Otp;
+        if (useSheetProfile) {
+          try {
+            await hydrateSessionFromSheet();
+            applySheetProfileToSession();
+          } catch (error) {
+            console.log('[auth] sheet rehydrate skipped', error);
+          }
+        } else {
+          try {
+            await authService.hydrateAuthenticatedUser();
+          } catch (error) {
+            console.log('[auth] GET /users/me rehydrate skipped', error);
+          }
         }
       }
       if (!cancelled) {

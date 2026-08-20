@@ -8,6 +8,7 @@ export { EmergencyRequestRaisedScreen } from './EmergencyRequestRaisedScreen';
 export { DriverTripCompletedScreen } from './DriverTripCompletedScreen';
 export { DriverTrackRideScreen } from './DriverTrackRideScreen';
 export { RiderRequestAcceptedScreen } from './RiderRequestAcceptedScreen';
+export { RiderProfileScreen } from './RiderProfileScreen';
 export { DeclineRiderRequestScreen } from './DeclineRiderRequestScreen';
 export { RequestDeclinedScreen } from './RequestDeclinedScreen';
 export { ModifyRideScreen } from './ModifyRideScreen';

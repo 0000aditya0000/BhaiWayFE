@@ -21,6 +21,12 @@ export const styles = StyleSheet.create({
       elevation: 2,
     }),
   },
+  profilePress: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   meta: {
     flex: 1,
     gap: 2,

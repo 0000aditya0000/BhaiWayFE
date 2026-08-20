@@ -1,10 +1,11 @@
-import { Share } from 'react-native';
-
+/**
+ * Local-store helpers for the current user's profile and wallet.
+ * All reads/writes go through device AsyncStorage-backed stores (no remote sheet).
+ */
 import { authSession } from '@/store';
 import { formatBhaiWayCoins } from '@/shared/utils';
 
 import { userDetailsSheetStore } from './userDetailsSheetStore';
-import { vehiclesSheetStore } from './vehiclesSheetStore';
 import { userDetailsSheetSync, walletTransactionsSheetSync } from './sheet';
 import type { UserDetailsSheetRow } from './userDetailsSheet.types';
 import type {
@@ -19,7 +20,7 @@ const normalizeMobile = (mobile?: string | null): string =>
 const normalizeKey = (value?: string | null): string =>
   (value ?? '').trim().toLowerCase();
 
-/** Find the current session user's sheet row (mobile → email → name). */
+/** Find the current session user's local profile row (mobile → email → name). */
 export const findCurrentUserSheetRow = (): UserDetailsSheetRow | undefined => {
   const user = authSession.getUser();
   const rows = userDetailsSheetStore.getAll();
@@ -54,7 +55,7 @@ export const findCurrentUserSheetRow = (): UserDetailsSheetRow | undefined => {
   return undefined;
 };
 
-/** Find a registered user in local + Google Sheet by mobile number. */
+/** Find a registered user in the local store by mobile number. */
 export const findSheetUserByMobile = async (
   phone?: string | null,
 ): Promise<UserDetailsSheetRow | undefined> => {
@@ -65,12 +66,6 @@ export const findSheetUserByMobile = async (
 
   await userDetailsSheetStore.hydrate();
 
-  try {
-    await userDetailsSheetSync.pullIntoLocal();
-  } catch (error) {
-    console.log('[Sheet Sync] findSheetUserByMobile pull skipped', error);
-  }
-
   const local = userDetailsSheetStore
     .getAll()
     .find((row) => normalizeMobile(row.mobile) === mobile);
@@ -78,38 +73,12 @@ export const findSheetUserByMobile = async (
     return local;
   }
 
-  try {
-    const remote = (await userDetailsSheetSync.fetchRemoteRows()).find(
-      (row) => normalizeMobile(row.mobile) === mobile,
-    );
-    if (remote && (remote.userName?.trim() || remote.userId > 0)) {
-      return userDetailsSheetStore.upsertFromApp({
-        userId: remote.userId > 0 ? remote.userId : undefined,
-        mobile: remote.mobile || mobile,
-        userName: remote.userName,
-        email: remote.email,
-        aadharNumber: remote.aadharNumber,
-        corporateId: remote.corporateId,
-        vehicleModel: remote.vehicleModel,
-        vehicleColor: remote.vehicleColor,
-        vehicleType: remote.vehicleType,
-        vehicleNumberPlate: remote.vehicleNumberPlate,
-        bhaiWayWallet: remote.bhaiWayWallet,
-        profilePicture: remote.profilePicture,
-        rc: remote.rc,
-        corporateIdUrl: remote.corporateIdUrl,
-      });
-    }
-  } catch (error) {
-    console.log('[Sheet Sync] findSheetUserByMobile remote lookup failed', error);
-  }
-
   return undefined;
 };
 
 /**
- * Login is allowed only when this mobile already exists in the sheet.
- * Signup creates the first sheet row via complete profile.
+ * Login is allowed only when this mobile already exists locally.
+ * Signup creates the first row via complete profile.
  */
 export const assertSheetUserForLogin = async (phone?: string | null): Promise<UserDetailsSheetRow> => {
   const row = await findSheetUserByMobile(phone);
@@ -122,7 +91,7 @@ export const assertSheetUserForLogin = async (phone?: string | null): Promise<Us
   return row;
 };
 
-/** BhaiWayWallet amount for the logged-in user (from sheet/local store). */
+/** BhaiWayWallet amount for the logged-in user (from local store). */
 export const getBhaiWayWalletBalance = (): number => {
   const row = findCurrentUserSheetRow();
   const amount = row?.bhaiWayWallet ?? 0;
@@ -141,9 +110,7 @@ export const subscribeBhaiWayWallet = (onStoreChange: () => void): (() => void) 
   };
 };
 
-/**
- * Set/add wallet amount on the current user's sheet row and sync remotely when possible.
- */
+/** Set/add wallet amount on the current user's local profile row. */
 export const updateBhaiWayWalletBalance = async (
   nextAmount: number,
   options?: { mode?: 'set' | 'add' },
@@ -176,7 +143,7 @@ export const updateBhaiWayWalletBalance = async (
   return safeAmount;
 };
 
-/** Append one wallet credit/debit row (local + WalletTransactions sheet). */
+/** Append one wallet credit/debit row locally. */
 export const recordWalletTransaction = async (input: {
   title: string;
   amount: number;
@@ -195,8 +162,8 @@ export const recordWalletTransaction = async (input: {
   });
 
 /**
- * Apply sheet row (name, phone, Cloudinary profile picture) onto the auth session.
- * Call after login / pull so returning users see the same photo.
+ * Apply local profile row (name, phone, Cloudinary profile picture) onto the auth session.
+ * Call after login / hydrate so returning users see the same photo.
  */
 export const applySheetProfileToSession = (): UserDetailsSheetRow | undefined => {
   const row = findCurrentUserSheetRow();
@@ -209,77 +176,21 @@ export const applySheetProfileToSession = (): UserDetailsSheetRow | undefined =>
   authSession.setSession(token, {
     ...user,
     fullName: row.userName?.trim() || user.fullName,
+    firstName: user.firstName ?? (row.userName?.trim().split(/\s+/)[0] ?? null),
     email: row.email?.trim() || user.email,
     avatarUri: row.profilePicture?.trim() || user.avatarUri,
     phone: row.mobile?.trim() || user.phone,
-  });
+  }, null, authSession.getProfileCompleted());
 
   return row;
 };
 
-/**
- * Pull Google Sheet into local store, then restore session profile fields.
- */
+/** Hydrate local profile store, then restore session profile fields. */
 export const hydrateSessionFromSheet = async (): Promise<UserDetailsSheetRow | undefined> => {
   try {
-    await userDetailsSheetSync.pullIntoLocal();
-  } catch (error) {
-    console.log('[Sheet Sync] hydrateSessionFromSheet pull skipped', error);
+    await userDetailsSheetStore.hydrate();
+  } catch {
+    // ignore
   }
   return applySheetProfileToSession();
-};
-
-/** Share CSV so it can be pasted into Google Sheets (needed when webhook is not set). */
-export const shareUserDetailsSheetCsv = async (): Promise<void> => {
-  const csv = userDetailsSheetStore.toCsv();
-  console.log('[UserDetails Sheet CSV]\n' + csv);
-  await Share.share({
-    message: csv,
-    title: 'BhaiWay UserDetails CSV',
-  });
-};
-
-/** Share Vehicles tab CSV (header + remaining local rows) for paste into Google Sheets. */
-export const shareVehiclesSheetCsv = async (): Promise<void> => {
-  const csv = vehiclesSheetStore.toCsv();
-  console.log('[Vehicles Sheet CSV]\n' + csv);
-  await Share.share({
-    message: csv,
-    title: 'BhaiWay Vehicles CSV',
-  });
-};
-
-/** Push every local sheet row to Google Sheet via webhook. */
-export const pushAllLocalRowsToSheet = async (): Promise<{
-  attempted: number;
-  synced: number;
-}> => {
-  const rows = userDetailsSheetStore.getAll();
-  let synced = 0;
-  for (const row of rows) {
-    const ok = await userDetailsSheetSync.pushRemote(
-      {
-        userId: row.userId,
-        userName: row.userName,
-        email: row.email,
-        aadharNumber: row.aadharNumber,
-        corporateId: row.corporateId,
-        vehicleModel: row.vehicleModel,
-        vehicleColor: row.vehicleColor,
-        vehicleType: row.vehicleType,
-        vehicleNumberPlate: row.vehicleNumberPlate,
-        bhaiWayWallet: row.bhaiWayWallet,
-        mobile: row.mobile,
-        profilePicture: row.profilePicture,
-        rc: row.rc,
-        corporateIdUrl: row.corporateIdUrl,
-        role: row.role,
-      },
-      'update',
-    );
-    if (ok) {
-      synced += 1;
-    }
-  }
-  return { attempted: rows.length, synced };
 };

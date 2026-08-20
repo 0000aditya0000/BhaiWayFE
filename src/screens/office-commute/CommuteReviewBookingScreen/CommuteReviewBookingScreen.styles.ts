@@ -8,6 +8,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F8F9FF',
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -17,17 +18,23 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: colors.shadow, opacity: 0.06, radius: 8, offsetY: 2, elevation: 3 }),
   },
   headerLeft: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
     flex: 1,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 24,
     lineHeight: 32,
     fontWeight: '600',
     letterSpacing: -0.2,
     color: colors.primary,
+    textAlign: 'center',
   },
   scrollContent: {
     flexGrow: 1,
@@ -56,7 +63,7 @@ export const styles = StyleSheet.create({
   confirmButton: {
     width: '100%',
     height: layout.buttonHeight,
-    backgroundColor: '#0342D1',
+    backgroundColor: '#374BB1',
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',

@@ -3,11 +3,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
 import { getSearchParam, showAppAlert, triggerLightHaptic, triggerSuccessHaptic } from '@/shared/utils';
+import { getDriverChatPath } from '@/features/ride-search/constants';
 import {
   DEFAULT_DRIVER_TRACK_RIDE,
   DEFAULT_PENDING_REQUESTS,
   DRIVER_TRACK_RIDE_SCREEN,
   getDeclineRiderPath,
+  getRiderProfilePath,
   getRiderRequestAcceptedPath,
 } from '../constants';
 import { regularRideRidersStore } from '../store';
@@ -25,7 +27,21 @@ export interface UseDriverTrackRideResult {
   fillPercent: number;
   goBack: () => void;
   callPassenger: (name: string) => void;
-  chatPassenger: (name: string) => void;
+  chatPassenger: (passenger: {
+    id: string;
+    name: string;
+    avatarUri?: string;
+  }) => void;
+  openRiderProfile: (passenger: {
+    id: string;
+    name: string;
+    subtitle?: string;
+    avatarUri?: string;
+    rating?: number;
+    ridesCount?: number;
+    seatsBooked?: number;
+    verified?: boolean;
+  }) => void;
   acceptRequest: (id: string) => void;
   declineRequest: (id: string) => void;
 }
@@ -115,13 +131,52 @@ export const useDriverTrackRide = (): UseDriverTrackRideResult => {
     );
   }, []);
 
-  const chatPassenger = useCallback((name: string) => {
-    triggerLightHaptic();
-    showAppAlert(
-      DRIVER_TRACK_RIDE_SCREEN.chatAlertTitle,
-      DRIVER_TRACK_RIDE_SCREEN.chatAlertMessage(name),
-    );
-  }, []);
+  const chatPassenger = useCallback(
+    (passenger: { id: string; name: string; avatarUri?: string }) => {
+      triggerLightHaptic();
+      router.push(
+        getDriverChatPath({
+          driverName: passenger.name,
+          carModel: 'Confirmed rider',
+          threadId: `driver-${rideId}-${passenger.id}`,
+          perspective: 'driver',
+          routeLabel: ride.routeTitle,
+          tripTimeLabel: ride.dateLabel,
+          avatarUri: passenger.avatarUri,
+        }),
+      );
+    },
+    [ride.dateLabel, ride.routeTitle, rideId, router],
+  );
+
+  const openRiderProfile = useCallback(
+    (passenger: {
+      id: string;
+      name: string;
+      subtitle?: string;
+      avatarUri?: string;
+      rating?: number;
+      ridesCount?: number;
+      seatsBooked?: number;
+      verified?: boolean;
+    }) => {
+      triggerLightHaptic();
+      router.push(
+        getRiderProfilePath({
+          rideId,
+          riderId: passenger.id,
+          name: passenger.name,
+          subtitle: passenger.subtitle,
+          avatarUri: passenger.avatarUri,
+          rating: passenger.rating,
+          ridesCount: passenger.ridesCount,
+          seatsBooked: passenger.seatsBooked,
+          verified: passenger.verified,
+        }),
+      );
+    },
+    [rideId, router],
+  );
 
   const acceptRequest = useCallback(
     (id: string) => {
@@ -181,6 +236,7 @@ export const useDriverTrackRide = (): UseDriverTrackRideResult => {
     goBack,
     callPassenger,
     chatPassenger,
+    openRiderProfile,
     acceptRequest,
     declineRequest,
   };

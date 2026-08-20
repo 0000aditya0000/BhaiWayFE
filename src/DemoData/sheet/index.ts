@@ -46,4 +46,3 @@ export {
 export { publishedRidesSheetSync } from './publishedRidesSheetSync';
 export { rideBookingsSheetSync } from './rideBookingsSheetSync';
 export { bankAccountsSheetSync } from './bankAccountsSheetSync';
-export { USER_DETAILS_SHEET_APPS_SCRIPT } from './appsScriptTemplate';

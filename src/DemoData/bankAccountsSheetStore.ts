@@ -5,7 +5,6 @@ import { createLocalListStore } from './localStore';
 import {
   BANK_ACCOUNTS_SHEET_HEADERS,
   BANK_ACCOUNTS_SHEET_ID_START,
-  bankAccountsSheetHeaderCsv,
   type BankAccountSheetStatus,
   type BankAccountsSheetPatch,
   type BankAccountsSheetRow,
@@ -175,29 +174,6 @@ export const bankAccountsSheetStore = {
       createdAt: patch.createdAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
-  },
-
-  toCsv: (): string => {
-    const header = bankAccountsSheetHeaderCsv();
-    const lines = store.getAll().map((row) => {
-      const normalized = normalizeStoredRow(row);
-      return [
-        String(normalized.bankAccountId),
-        String(normalized.userId),
-        normalized.mobile,
-        normalized.holderName,
-        normalized.bankName,
-        normalized.accountNumber,
-        normalized.accountLast4,
-        normalized.ifsc,
-        normalized.accountType,
-        normalized.status,
-        normalized.createdAt,
-      ]
-        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-        .join(',');
-    });
-    return [header, ...lines].join('\n');
   },
 
   headers: BANK_ACCOUNTS_SHEET_HEADERS,

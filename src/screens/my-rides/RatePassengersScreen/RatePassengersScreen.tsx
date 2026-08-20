@@ -82,15 +82,14 @@ export const RatePassengersScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable
+        <IconButton
+          icon="arrow-back"
           onPress={handleBack}
-          style={styles.headerLeft}
-          accessibilityRole="button"
+          color={colors.primary}
           accessibilityLabel="Go back"
-        >
-          <Ionicons name="car" size={28} color={colors.primary} />
-          <Text style={styles.brandName}>{APP_CONFIG.name}</Text>
-        </Pressable>
+        />
+        <Text style={styles.brandName}>{APP_CONFIG.name}</Text>
+        <View style={{ flex: 1 }} />
         <IconButton
           icon="notifications-outline"
           onPress={handleNotifications}

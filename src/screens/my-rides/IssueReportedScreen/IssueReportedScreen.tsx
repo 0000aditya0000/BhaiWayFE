@@ -28,8 +28,9 @@ export const IssueReportedScreen = () => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="car" size={28} color={colors.primary} />
-          <Text style={styles.headerTitle}>{ISSUE_REPORTED_SCREEN.headerTitle}</Text>
         </View>
+        <Text style={styles.headerTitle}>{ISSUE_REPORTED_SCREEN.headerTitle}</Text>
+
         <IconButton
           icon="close"
           onPress={handleClose}
@@ -42,7 +43,7 @@ export const IssueReportedScreen = () => {
         <View style={styles.content}>
           <View style={styles.iconOuter}>
             <View style={styles.iconInner}>
-              <Ionicons name="checkmark-circle" size={48} color="#335EEA" />
+              <Ionicons name="checkmark-circle" size={48} color="#4B61C4" />
             </View>
           </View>
 

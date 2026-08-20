@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { colors, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
-const PRIMARY = '#0342D1';
+const PRIMARY = '#374BB1';
 const ON_SURFACE = '#191C1D';
 const ON_SURFACE_VARIANT = '#434655';
 const SECONDARY = '#585E72';
@@ -79,7 +79,7 @@ export const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: 'rgba(218, 223, 247, 0.45)',
     borderWidth: 1,
-    borderColor: 'rgba(3, 66, 209, 0.12)',
+    borderColor: 'rgba(55, 75, 177, 0.12)',
   },
   statusChipText: {
     fontSize: 12,
@@ -260,7 +260,7 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(3, 66, 209, 0.1)',
+    backgroundColor: 'rgba(55, 75, 177, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },

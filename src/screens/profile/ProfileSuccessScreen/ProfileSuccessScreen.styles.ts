@@ -4,8 +4,8 @@ import { layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const successTokens = {
-  PRIMARY: '#0342D1',
-  PRIMARY_CONTAINER: '#335EEA',
+  PRIMARY: '#374BB1',
+  PRIMARY_CONTAINER: '#4B61C4',
   PRIMARY_FIXED: '#DDE1FF',
   PRIMARY_FIXED_DIM: '#B7C4FF',
   ON_PRIMARY: '#FFFFFF',
@@ -27,6 +27,7 @@ export const styles = StyleSheet.create({
     backgroundColor: successTokens.SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -36,17 +37,23 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: '#000000', opacity: 0.05, radius: 20, offsetY: 4, elevation: 3 }),
   },
   headerLeft: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
     flex: 1,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '700',
     color: successTokens.PRIMARY,
     flexShrink: 1,
+    textAlign: 'center',
   },
   avatarButton: {
     width: 40,
@@ -80,7 +87,7 @@ export const styles = StyleSheet.create({
     width: 320,
     height: 320,
     borderRadius: 160,
-    backgroundColor: 'rgba(3, 66, 209, 0.08)',
+    backgroundColor: 'rgba(55, 75, 177, 0.08)',
   },
   card: {
     backgroundColor: successTokens.SURFACE_LOWEST,
@@ -101,7 +108,7 @@ export const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: 'rgba(3, 66, 209, 0.2)',
+    backgroundColor: 'rgba(55, 75, 177, 0.2)',
   },
   checkCircle: {
     width: 96,

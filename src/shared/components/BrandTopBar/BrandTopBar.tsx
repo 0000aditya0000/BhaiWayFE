@@ -23,7 +23,13 @@ export const BrandTopBar = ({ onMenuPress, right }: BrandTopBarProps) => (
       />
     }
     center={
-      <Text style={[typography.title, { color: colors.primary }]} accessibilityRole="header">
+      <Text
+        style={[
+          typography.title,
+          { color: colors.primary, textAlign: 'center', width: '100%' },
+        ]}
+        accessibilityRole="header"
+      >
         {APP_CONFIG.name}
       </Text>
     }

@@ -7,7 +7,8 @@ import {
   isProfileSetupDraftComplete,
   profileSetupDraft,
 } from '@/features/auth/store';
-import { getErrorMessage, triggerLightHaptic, triggerSuccessHaptic } from '@/shared/utils';
+import { mapCompleteProfileError } from '@/features/auth/utils';
+import { triggerLightHaptic, triggerSuccessHaptic } from '@/shared/utils';
 import { authSession, showAppAlert } from '@/store';
 import { IDENTITY_VERIFIED_SUCCESS_SCREEN } from '../constants';
 
@@ -74,7 +75,7 @@ export const useIdentityVerifiedSuccess = (): UseIdentityVerifiedSuccessResult =
       profileSetupDraft.clear();
       router.replace(ROUTES.home);
     } catch (error) {
-      showAppAlert('Unable to save profile', getErrorMessage(error));
+      showAppAlert('Unable to save profile', mapCompleteProfileError(error));
       router.replace(ROUTES.completeProfile);
     } finally {
       setContinuing(false);

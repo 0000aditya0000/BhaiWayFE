@@ -1,10 +1,11 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
 import { getSearchParam, showAppAlert, triggerLightHaptic } from '@/shared/utils';
 import { TRIP_DETAILS_SCREEN, getTripDetailsMock } from '../constants';
 import type { TripDetailsSummary } from '../types';
+import { buildDriverTripInvoiceText, shareInvoiceDocument } from '../utils';
 import { useDriverRideKind } from './useDriverRideKind';
 
 export interface UseTripDetailsResult {
@@ -21,6 +22,7 @@ export const useTripDetails = (): UseTripDetailsResult => {
     destination?: string;
   }>();
   const rideType = useDriverRideKind();
+  const [sharing, setSharing] = useState(false);
 
   const trip = useMemo(
     () =>
@@ -34,12 +36,29 @@ export const useTripDetails = (): UseTripDetailsResult => {
   );
 
   const downloadInvoice = useCallback(() => {
+    if (sharing) {
+      return;
+    }
     triggerLightHaptic();
-    showAppAlert(
-      TRIP_DETAILS_SCREEN.downloadInvoiceTitle,
-      TRIP_DETAILS_SCREEN.downloadInvoiceMessage,
-    );
-  }, []);
+    setSharing(true);
+    void (async () => {
+      try {
+        const body = buildDriverTripInvoiceText(trip);
+        await shareInvoiceDocument({
+          fileBaseName: `bhaiway-driver-invoice-${trip.rideId || trip.rideType}`,
+          body,
+          dialogTitle: TRIP_DETAILS_SCREEN.downloadInvoiceTitle,
+        });
+      } catch {
+        showAppAlert(
+          TRIP_DETAILS_SCREEN.downloadInvoiceTitle,
+          'Unable to share the invoice right now. Please try again.',
+        );
+      } finally {
+        setSharing(false);
+      }
+    })();
+  }, [sharing, trip]);
 
   const goBack = useCallback(() => {
     triggerLightHaptic();

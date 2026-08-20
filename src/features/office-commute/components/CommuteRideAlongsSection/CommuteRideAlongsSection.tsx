@@ -39,7 +39,7 @@ export const CommuteRideAlongsSection = React.memo(
                 ) : null}
               </View>
               <View style={styles.ratingRow}>
-                <Ionicons name="star" size={14} color="#335EEA" />
+                <Ionicons name="star" size={14} color="#4B61C4" />
                 <Text style={styles.ratingText}>
                   {passenger.rating.toFixed(1)} • {passenger.verificationLabel}
                 </Text>

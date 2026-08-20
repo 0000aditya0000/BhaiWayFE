@@ -3,8 +3,8 @@ import { StyleSheet } from 'react-native';
 import { colors, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
-const PRIMARY = '#0342D1';
-const PRIMARY_CONTAINER = '#335EEA';
+const PRIMARY = '#374BB1';
+const PRIMARY_CONTAINER = '#4B61C4';
 const ON_SURFACE = '#191C1D';
 const ON_SURFACE_VARIANT = '#434655';
 const SECONDARY = '#585E72';
@@ -17,6 +17,7 @@ export const styles = StyleSheet.create({
     backgroundColor: SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -26,16 +27,22 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: colors.shadow, opacity: 0.05, radius: 20, offsetY: 4, elevation: 3 }),
   },
   headerLeft: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     flex: 1,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '700',
     color: PRIMARY,
+    textAlign: 'center',
   },
   body: {
     flex: 1,

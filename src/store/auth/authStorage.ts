@@ -7,6 +7,7 @@ export interface PersistedAuthSession {
   user: {
     id: string;
     fullName: string;
+    firstName?: string | null;
     email: string | null;
     avatarUri: string | null;
     phone: string | null;
@@ -39,6 +40,7 @@ export const authStorage = {
         user: {
           id: parsed.user.id,
           fullName: parsed.user.fullName ?? '',
+          firstName: parsed.user.firstName ?? null,
           email: parsed.user.email ?? null,
           avatarUri: parsed.user.avatarUri ?? null,
           phone: parsed.user.phone ?? null,

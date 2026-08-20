@@ -19,7 +19,7 @@ export const RIDE_INVOICE_SCREEN = {
   downloadPdfLabel: 'Download PDF',
   reportIssueLabel: 'Report Issue',
   downloadTitle: 'Download PDF',
-  downloadMessage: 'Invoice PDF download will be available soon.',
+  downloadMessage: 'Share or save your ride invoice.',
   reportTitle: 'Report Issue',
   reportMessage: 'Issue reporting will be available soon.',
 } as const;

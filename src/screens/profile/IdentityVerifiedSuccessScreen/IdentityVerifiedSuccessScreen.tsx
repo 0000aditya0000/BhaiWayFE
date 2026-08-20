@@ -18,7 +18,7 @@ import { IDENTITY_VERIFIED_SUCCESS_SCREEN } from '@/features/profile/constants';
 import { useIdentityVerifiedSuccess } from '@/features/profile/hooks';
 import { identityVerifiedTokens, styles } from './IdentityVerifiedSuccessScreen.styles';
 
-const CONFETTI_COLORS = ['#335EEA', '#0342D1', '#DDE1FF', '#B7C4FF'] as const;
+const CONFETTI_COLORS = ['#4B61C4', '#374BB1', '#DDE1FF', '#B7C4FF'] as const;
 
 export const IdentityVerifiedSuccessScreen = () => {
   const { isAuthFlow, ctaLabel, continuing, continueAfterVerification, goBack } =

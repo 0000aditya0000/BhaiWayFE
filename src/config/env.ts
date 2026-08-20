@@ -1,15 +1,4 @@
 import Constants from 'expo-constants';
-import {
-  DEMO_BANK_ACCOUNTS_SHEET_GID,
-  DEMO_CHAT_MESSAGES_SHEET_GID,
-  DEMO_CHAT_THREADS_SHEET_GID,
-  DEMO_GOOGLE_SHEET_ID,
-  DEMO_NOTIFICATIONS_SHEET_GID,
-  DEMO_PUBLISHED_RIDES_SHEET_GID,
-  DEMO_RIDE_BOOKINGS_SHEET_GID,
-  DEMO_VEHICLES_SHEET_GID,
-  DEMO_WALLET_TRANSACTIONS_SHEET_GID,
-} from '@/DemoData/files';
 
 export type AppEnvironment = 'development' | 'staging' | 'production';
 
@@ -31,26 +20,6 @@ export interface EnvConfig {
   readonly useMsg91Otp: boolean;
   readonly msg91WidgetId: string;
   readonly msg91AuthToken: string;
-  /** Google Sheet used as UserDetails demo source (read via public CSV). */
-  readonly googleSheetId: string;
-  /** gid of the Vehicles tab (multi-vehicle rows). Default 1. */
-  readonly googleSheetVehiclesGid: string;
-  /** gid of the Notifications tab. Default 2. */
-  readonly googleSheetNotificationsGid: string;
-  /** gid of the ChatThreads tab. Default 3. */
-  readonly googleSheetChatThreadsGid: string;
-  /** gid of the ChatMessages tab. Default 4. */
-  readonly googleSheetChatMessagesGid: string;
-  /** gid of the WalletTransactions tab. Default 5. */
-  readonly googleSheetWalletTransactionsGid: string;
-  /** gid of the PublishedRides tab. Default 6. */
-  readonly googleSheetPublishedRidesGid: string;
-  /** gid of the RideBookings tab. Default 7. */
-  readonly googleSheetRideBookingsGid: string;
-  /** gid of the BankAccounts tab. Default 8. */
-  readonly googleSheetBankAccountsGid: string;
-  /** Apps Script Web App URL for insert/update writes. */
-  readonly googleSheetWebhookUrl: string;
   readonly googlePlacesApiKey: string;
   readonly googleMapsApiKey: string;
   /**
@@ -144,65 +113,6 @@ const useMsg91Otp =
     ? true
     : useMsg91OtpExplicit !== 'false' && useMsg91OtpExplicit !== '0');
 
-const googleSheetId = firstNonEmpty(
-  process.env.EXPO_PUBLIC_GOOGLE_SHEET_ID,
-  extra.googleSheetId,
-  DEMO_GOOGLE_SHEET_ID,
-);
-
-const googleSheetWebhookUrl = firstNonEmpty(
-  process.env.EXPO_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL,
-  extra.googleSheetWebhookUrl,
-);
-
-const googleSheetVehiclesGid = firstNonEmpty(
-  process.env.EXPO_PUBLIC_GOOGLE_SHEET_VEHICLES_GID,
-  extra.googleSheetVehiclesGid,
-  DEMO_VEHICLES_SHEET_GID,
-);
-
-const googleSheetNotificationsGid = firstNonEmpty(
-  process.env.EXPO_PUBLIC_GOOGLE_SHEET_NOTIFICATIONS_GID,
-  extra.googleSheetNotificationsGid,
-  DEMO_NOTIFICATIONS_SHEET_GID,
-);
-
-const googleSheetChatThreadsGid = firstNonEmpty(
-  process.env.EXPO_PUBLIC_GOOGLE_SHEET_CHAT_THREADS_GID,
-  extra.googleSheetChatThreadsGid,
-  DEMO_CHAT_THREADS_SHEET_GID,
-);
-
-const googleSheetChatMessagesGid = firstNonEmpty(
-  process.env.EXPO_PUBLIC_GOOGLE_SHEET_CHAT_MESSAGES_GID,
-  extra.googleSheetChatMessagesGid,
-  DEMO_CHAT_MESSAGES_SHEET_GID,
-);
-
-const googleSheetWalletTransactionsGid = firstNonEmpty(
-  process.env.EXPO_PUBLIC_GOOGLE_SHEET_WALLET_TX_GID,
-  extra.googleSheetWalletTransactionsGid,
-  DEMO_WALLET_TRANSACTIONS_SHEET_GID,
-);
-
-const googleSheetPublishedRidesGid = firstNonEmpty(
-  process.env.EXPO_PUBLIC_GOOGLE_SHEET_PUBLISHED_RIDES_GID,
-  extra.googleSheetPublishedRidesGid,
-  DEMO_PUBLISHED_RIDES_SHEET_GID,
-);
-
-const googleSheetRideBookingsGid = firstNonEmpty(
-  process.env.EXPO_PUBLIC_GOOGLE_SHEET_RIDE_BOOKINGS_GID,
-  extra.googleSheetRideBookingsGid,
-  DEMO_RIDE_BOOKINGS_SHEET_GID,
-);
-
-const googleSheetBankAccountsGid = firstNonEmpty(
-  process.env.EXPO_PUBLIC_GOOGLE_SHEET_BANK_ACCOUNTS_GID,
-  extra.googleSheetBankAccountsGid,
-  DEMO_BANK_ACCOUNTS_SHEET_GID,
-);
-
 export const env: EnvConfig = {
   environment,
   apiBaseUrl:
@@ -232,16 +142,6 @@ export const env: EnvConfig = {
   useMsg91Otp,
   msg91WidgetId,
   msg91AuthToken,
-  googleSheetId,
-  googleSheetVehiclesGid,
-  googleSheetNotificationsGid,
-  googleSheetChatThreadsGid,
-  googleSheetChatMessagesGid,
-  googleSheetWalletTransactionsGid,
-  googleSheetPublishedRidesGid,
-  googleSheetRideBookingsGid,
-  googleSheetBankAccountsGid,
-  googleSheetWebhookUrl,
   googlePlacesApiKey,
   googleMapsApiKey,
   bypassGoogleMaps: readBoolean(

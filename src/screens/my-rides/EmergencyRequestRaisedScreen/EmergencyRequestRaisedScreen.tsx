@@ -90,15 +90,16 @@ export const EmergencyRequestRaisedScreen = () => {
           <IconButton
             icon="arrow-back"
             onPress={handleBack}
-            color="#0342D1"
+            color="#374BB1"
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle}>{EMERGENCY_REQUEST_RAISED_SCREEN.title}</Text>
         </View>
+        <Text style={styles.headerTitle}>{EMERGENCY_REQUEST_RAISED_SCREEN.title}</Text>
+
         <IconButton
           icon="headset-outline"
           onPress={handleSupport}
-          color="#0342D1"
+          color="#374BB1"
           accessibilityLabel={EMERGENCY_REQUEST_RAISED_SCREEN.supportLabel}
         />
       </View>
@@ -107,7 +108,7 @@ export const EmergencyRequestRaisedScreen = () => {
         <View style={styles.illustrationWrap}>
           <View style={styles.illustrationGlow} />
           <Animated.View style={[styles.iconCircle, pulseStyle]}>
-            <Ionicons name="hourglass-outline" size={64} color="#0342D1" />
+            <Ionicons name="hourglass-outline" size={64} color="#374BB1" />
           </Animated.View>
           <View style={styles.scheduleBadge}>
             <Ionicons name="time-outline" size={22} color="#5C6276" />

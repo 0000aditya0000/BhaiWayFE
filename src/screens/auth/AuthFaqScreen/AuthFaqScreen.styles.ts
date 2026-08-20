@@ -9,6 +9,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -20,11 +21,16 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     ...typography.title,
     fontSize: 22,
     lineHeight: 28,
     color: colors.primary,
     flexShrink: 1,
+    textAlign: 'center',
   },
   scroll: {
     flex: 1,

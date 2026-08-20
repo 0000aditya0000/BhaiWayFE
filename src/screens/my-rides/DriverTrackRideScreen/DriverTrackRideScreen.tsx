@@ -22,6 +22,7 @@ export const DriverTrackRideScreen = () => {
     goBack,
     callPassenger,
     chatPassenger,
+    openRiderProfile,
     acceptRequest,
     declineRequest,
   } = useDriverTrackRide();
@@ -78,7 +79,23 @@ export const DriverTrackRideScreen = () => {
                 key={passenger.id}
                 passenger={passenger}
                 onCall={() => callPassenger(passenger.name)}
-                onChat={() => chatPassenger(passenger.name)}
+                onChat={() =>
+                  chatPassenger({
+                    id: passenger.id,
+                    name: passenger.name,
+                    avatarUri: passenger.avatarUri,
+                  })
+                }
+                onPressProfile={() =>
+                  openRiderProfile({
+                    id: passenger.id,
+                    name: passenger.name,
+                    subtitle: passenger.subtitle,
+                    avatarUri: passenger.avatarUri,
+                    seatsBooked: passenger.seatsBooked,
+                    verified: passenger.verified,
+                  })
+                }
               />
             ))}
           </View>
@@ -95,6 +112,18 @@ export const DriverTrackRideScreen = () => {
                 request={request}
                 onAccept={() => acceptRequest(request.id)}
                 onDecline={() => declineRequest(request.id)}
+                onPressProfile={() =>
+                  openRiderProfile({
+                    id: request.id,
+                    name: request.name,
+                    subtitle: request.subtitle,
+                    avatarUri: request.avatarUri,
+                    rating: request.rating,
+                    ridesCount: request.ridesCount,
+                    seatsBooked: request.seatsBooked,
+                    verified: request.idVerified,
+                  })
+                }
               />
             ))}
           </View>

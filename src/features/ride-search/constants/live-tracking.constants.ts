@@ -25,7 +25,7 @@ export const LIVE_TRACKING_SCREEN = {
   shareTripMessage: (driverName: string, etaMins: number, otp: string) =>
     `I'm on a BhaiWay ride with ${driverName}. ETA ${etaMins} mins. Start OTP: ${otp}`,
   defaultEtaMinutes: 4,
-  defaultOtp: '4481',
+  defaultOtp: '4821',
   defaultDriverName: 'Vikram',
   defaultVehicle: 'Swift Dzire',
   defaultPlate: 'HR 26 DQ 8842',

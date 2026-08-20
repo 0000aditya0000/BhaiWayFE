@@ -15,6 +15,12 @@ export const AddVehicleScreen = () => {
     categories,
     submitState,
     uploadSheetVisible,
+    isEditMode,
+    loadingVehicle,
+    screenTitle,
+    submitLabel,
+    submittingLabel,
+    successLabel,
     setCategory,
     setModel,
     setColor,
@@ -35,7 +41,7 @@ export const AddVehicleScreen = () => {
 
   const isSubmitting = submitState === 'submitting';
   const isSuccess = submitState === 'success';
-  const busy = isSubmitting || isSuccess || isUploadingDocument;
+  const busy = isSubmitting || isSuccess || isUploadingDocument || loadingVehicle;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -47,7 +53,7 @@ export const AddVehicleScreen = () => {
           accessibilityLabel="Go back"
         />
         <Text style={styles.headerTitle} accessibilityRole="header">
-          {ADD_VEHICLE_SCREEN.title}
+          {screenTitle}
         </Text>
       </View>
 
@@ -58,8 +64,14 @@ export const AddVehicleScreen = () => {
         bottomInset={40}
       >
         <View style={styles.hero}>
-          <Ionicons name="car" size={48} color={addVehicleTokens.PRIMARY} />
-          <Text style={styles.heroHint}>{ADD_VEHICLE_SCREEN.heroHint}</Text>
+          {loadingVehicle ? (
+            <ActivityIndicator size="small" color={addVehicleTokens.PRIMARY} />
+          ) : (
+            <Ionicons name="car" size={48} color={addVehicleTokens.PRIMARY} />
+          )}
+          <Text style={styles.heroHint}>
+            {isEditMode ? 'Update your vehicle details below.' : ADD_VEHICLE_SCREEN.heroHint}
+          </Text>
         </View>
 
         <View style={styles.section}>
@@ -184,7 +196,7 @@ export const AddVehicleScreen = () => {
                     {form.documentSecureUrl
                       ? ADD_VEHICLE_SCREEN.documentUploadedLabel
                       : isUploadingDocument
-                        ? 'Uploading…'
+                        ? ADD_VEHICLE_SCREEN.uploadingDocumentLabel
                         : ADD_VEHICLE_SCREEN.documentSubtitle}
                   </Text>
                 </View>
@@ -209,8 +221,8 @@ export const AddVehicleScreen = () => {
               >
                 {isUploadingDocument
                   ? uploadProgress > 0
-                    ? `Uploading… ${uploadProgress}%`
-                    : 'Uploading…'
+                    ? `${ADD_VEHICLE_SCREEN.uploadingDocumentLabel} ${uploadProgress}%`
+                    : ADD_VEHICLE_SCREEN.uploadingDocumentLabel
                   : form.documentSecureUrl
                     ? ADD_VEHICLE_SCREEN.documentUploadedLabel
                     : ADD_VEHICLE_SCREEN.optionalLabel}
@@ -233,12 +245,12 @@ export const AddVehicleScreen = () => {
           }}
           disabled={busy}
           accessibilityRole="button"
-          accessibilityLabel={ADD_VEHICLE_SCREEN.submitLabel}
+          accessibilityLabel={submitLabel}
         >
           {isSubmitting ? (
             <>
               <ActivityIndicator color="#FFFFFF" />
-              <Text style={styles.submitLabel}>{ADD_VEHICLE_SCREEN.submittingLabel}</Text>
+              <Text style={styles.submitLabel}>{submittingLabel}</Text>
             </>
           ) : isSuccess ? (
             <>
@@ -248,12 +260,12 @@ export const AddVehicleScreen = () => {
                 color={addVehicleTokens.ON_TERTIARY_FIXED}
               />
               <Text style={[styles.submitLabel, styles.submitLabelSuccess]}>
-                {ADD_VEHICLE_SCREEN.successLabel}
+                {successLabel}
               </Text>
             </>
           ) : (
             <>
-              <Text style={styles.submitLabel}>{ADD_VEHICLE_SCREEN.submitLabel}</Text>
+              <Text style={styles.submitLabel}>{submitLabel}</Text>
               <Ionicons name="arrow-forward" size={22} color="#FFFFFF" />
             </>
           )}

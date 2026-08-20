@@ -59,6 +59,11 @@ export {
   getRiderRequestAcceptedPath,
 } from './rider-request-accepted.constants';
 export {
+  RIDER_PROFILE_SCREEN,
+  getRiderProfileMock,
+  getRiderProfilePath,
+} from './rider-profile.constants';
+export {
   DECLINE_RIDER_SCREEN,
   DECLINE_RIDER_REASONS,
   getDeclineRiderPath,

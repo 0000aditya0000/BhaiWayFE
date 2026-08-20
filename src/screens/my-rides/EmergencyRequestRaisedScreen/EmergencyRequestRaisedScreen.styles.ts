@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { colors, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
-const PRIMARY = '#0342D1';
+const PRIMARY = '#374BB1';
 const ON_SURFACE = '#191C1D';
 const ON_SURFACE_VARIANT = '#434655';
 const OUTLINE = '#747686';
@@ -23,7 +23,7 @@ export const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: 'rgba(3, 66, 209, 0.08)',
+    backgroundColor: 'rgba(55, 75, 177, 0.08)',
   },
   glowBottom: {
     position: 'absolute',
@@ -35,6 +35,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(218, 223, 247, 0.35)',
   },
   header: {
+    position: 'relative',
     height: 64,
     paddingHorizontal: spacing.lg,
     flexDirection: 'row',
@@ -50,16 +51,22 @@ export const styles = StyleSheet.create({
     }),
   },
   headerLeft: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     flex: 1,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '700',
     color: PRIMARY,
+    textAlign: 'center',
   },
   content: {
     flex: 1,
@@ -80,7 +87,7 @@ export const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: 'rgba(3, 66, 209, 0.05)',
+    backgroundColor: 'rgba(55, 75, 177, 0.05)',
   },
   iconCircle: {
     width: 128,

@@ -7,7 +7,7 @@ import { styles } from './SeatStepper.styles';
 import type { SeatStepperProps } from './SeatStepper.types';
 import { AppText as Text } from '@/shared/components';
 
-export const SeatStepper = ({ value, min = 1, max = 6, onChange }: SeatStepperProps) => {
+export const SeatStepper = ({ value, min = 1, max = 8, onChange }: SeatStepperProps) => {
   const decrement = useCallback(() => {
     if (value > min) {
       onChange(value - 1);

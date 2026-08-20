@@ -62,8 +62,6 @@
       "cloudinaryUploadPreset": "",
       "msg91WidgetId": "",
       "msg91AuthToken": "",
-      "googleSheetId": "1W_2ZuTbhrlMKuArAov4E5hzH11LtGs_s6xtiI98nj6w",
-      "googleSheetWebhookUrl": "",
       "eas": {
         "projectId": "0b5df897-5c40-4adf-b956-550fd7c65877"
       }

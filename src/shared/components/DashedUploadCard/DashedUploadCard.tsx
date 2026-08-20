@@ -30,7 +30,7 @@ export const DashedUploadCard = React.memo(
     >
       {status === 'uploading' ? (
         <>
-          <ActivityIndicator size="large" color="#0342D1" />
+          <ActivityIndicator size="large" color="#374BB1" />
           <Text style={styles.title}>{uploadingLabel}</Text>
         </>
       ) : status === 'uploaded' ? (

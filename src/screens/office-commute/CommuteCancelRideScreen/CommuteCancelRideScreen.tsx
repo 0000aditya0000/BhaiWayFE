@@ -115,7 +115,7 @@ export const CommuteCancelRideScreen = () => {
 
         <View style={styles.policyCardRegular}>
           <View style={styles.policyRow}>
-            <Ionicons name="information-circle" size={22} color="#0342D1" />
+            <Ionicons name="information-circle" size={22} color="#374BB1" />
             <View style={styles.policyCopy}>
               <Text style={styles.policyTitleRegular}>
                 {COMMUTE_CANCEL_RIDE_SCREEN.policyTitle}

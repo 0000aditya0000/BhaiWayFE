@@ -4,7 +4,7 @@ import { layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const walletTxTokens = {
-  PRIMARY: '#0342D1',
+  PRIMARY: '#374BB1',
   ON_PRIMARY: '#FFFFFF',
   ON_SURFACE: '#191C1D',
   ON_SURFACE_VARIANT: '#434655',
@@ -26,6 +26,7 @@ export const styles = StyleSheet.create({
     backgroundColor: walletTxTokens.SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
@@ -35,11 +36,16 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: '#000000', opacity: 0.05, radius: 12, offsetY: 2, elevation: 2 }),
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     flex: 1,
     fontSize: 22,
     lineHeight: 30,
     fontWeight: '700',
     color: walletTxTokens.PRIMARY,
+    textAlign: 'center',
   },
   scroll: {
     flex: 1,

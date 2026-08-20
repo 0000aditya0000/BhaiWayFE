@@ -65,7 +65,7 @@ export const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: 'rgba(3,66,209,0.05)',
+    backgroundColor: 'rgba(55, 75, 177,0.05)',
   },
   blobBottom: {
     position: 'absolute',
@@ -110,10 +110,10 @@ export const styles = StyleSheet.create({
     width: '100%',
     height: 56,
     borderRadius: 16,
-    backgroundColor: '#0342D1',
+    backgroundColor: '#374BB1',
     alignItems: 'center',
     justifyContent: 'center',
-    ...createShadow({ color: '#0342D1', opacity: 0.25, radius: 12, offsetY: 6, elevation: 6 }),
+    ...createShadow({ color: '#374BB1', opacity: 0.25, radius: 12, offsetY: 6, elevation: 6 }),
   },
   primaryLabel: {
     fontSize: 12,

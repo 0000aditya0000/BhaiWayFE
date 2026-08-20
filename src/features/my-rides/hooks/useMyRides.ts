@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
 import {
-  publishedRidesSheetStore,
   rideBookingsSheetStore,
-  type PublishedRidesSheetRow,
   type RideBookingsSheetRow,
 } from '@/DemoData';
-import { useGetBookingsQuery, useGetRidesQuery } from '@/services/api';
+import { listMyRides, type RideResponseDto } from '@/features/offer-ride/api';
+import { useGetBookingsQuery } from '@/services/api';
 import { useSessionUser } from '@/shared/hooks';
-import { appModeStore, type AppMode } from '@/store';
+import { getErrorMessage } from '@/shared/utils';
+import { appModeStore, authSession, type AppMode } from '@/store';
 import {
   DEFAULT_PROFILE_AVATAR,
   getCancelUpcomingRidePath,
@@ -21,7 +22,14 @@ import {
   getTripDetailsPath,
   MY_RIDES_SCREEN,
 } from '../constants';
-import { mapBookingToUpcoming, mapPublishedRideToUpcoming, rideKindFromAssuredFlag } from '../utils';
+import {
+  isHistoryRideStatus,
+  isUpcomingRideStatus,
+  mapBookingToUpcoming,
+  mapRideResponseToHistory,
+  mapRideResponseToUpcoming,
+  rideKindFromAssuredFlag,
+} from '../utils';
 import {
   myRidesSurfaceStore,
   type MyRidesSurface,
@@ -76,21 +84,12 @@ export const useMyRides = (): UseMyRidesResult => {
     upcomingRideCancelledStore.get(),
   );
   const [regularRidersVersion, setRegularRidersVersion] = useState(0);
-  const [publishedRides, setPublishedRides] = useState<PublishedRidesSheetRow[]>(() =>
-    publishedRidesSheetStore.getForCurrentUser(),
-  );
+  const [myDriverRides, setMyDriverRides] = useState<RideResponseDto[]>([]);
   const [bookings, setBookings] = useState<RideBookingsSheetRow[]>(() =>
     rideBookingsSheetStore.getForCurrentUser(),
   );
 
-  const { data: ridesQueryData } = useGetRidesQuery({ mine: true });
   const { data: bookingsQueryData } = useGetBookingsQuery({ mine: true });
-
-  useEffect(() => {
-    if (ridesQueryData?.rows) {
-      setPublishedRides(ridesQueryData.rows);
-    }
-  }, [ridesQueryData]);
 
   useEffect(() => {
     if (bookingsQueryData?.bookings) {
@@ -110,17 +109,43 @@ export const useMyRides = (): UseMyRidesResult => {
   );
   useEffect(
     () =>
-      publishedRidesSheetStore.subscribe(() => {
-        setPublishedRides(publishedRidesSheetStore.getForCurrentUser());
-      }),
-    [],
-  );
-  useEffect(
-    () =>
       rideBookingsSheetStore.subscribe(() => {
         setBookings(rideBookingsSheetStore.getForCurrentUser());
       }),
     [],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+
+      void (async () => {
+        if (!authSession.getToken()) {
+          return;
+        }
+        try {
+          const rows = await listMyRides();
+          if (active) {
+            setMyDriverRides(rows);
+          }
+        } catch (error) {
+          console.log('[My Rides] GET /rides/my failed', getErrorMessage(error));
+          if (
+            typeof error === 'object' &&
+            error !== null &&
+            'status' in error &&
+            Number((error as { status?: unknown }).status) === 401
+          ) {
+            authSession.clear();
+            router.replace(ROUTES.welcome);
+          }
+        }
+      })();
+
+      return () => {
+        active = false;
+      };
+    }, [router]),
   );
 
   const isDriving = mode === 'driving';
@@ -133,10 +158,10 @@ export const useMyRides = (): UseMyRidesResult => {
     }
 
     if (isDriving) {
-      return publishedRides
-        .filter((row) => row.status === 'published')
+      return myDriverRides
+        .filter((row) => isUpcomingRideStatus(row.status))
         .map((row) => {
-          const mapped = mapPublishedRideToUpcoming(row);
+          const mapped = mapRideResponseToUpcoming(row);
           return {
             ...mapped,
             riders: regularRideRidersStore.getForRide(mapped.id),
@@ -150,30 +175,16 @@ export const useMyRides = (): UseMyRidesResult => {
   }, [
     bookings,
     isDriving,
-    publishedRides,
+    myDriverRides,
     upcomingCancelled,
     regularRidersVersion,
   ]);
 
   const historyRides = useMemo((): readonly HistoryRideItem[] => {
     if (isDriving) {
-      return publishedRides
-        .filter((row) => row.status === 'completed' || row.status === 'cancelled')
-        .map((row) => {
-          const upcoming = mapPublishedRideToUpcoming(row);
-          return {
-            id: upcoming.id,
-            title: row.status === 'cancelled' ? 'Ride Cancelled' : 'Trip Completed',
-            routeLabel: `${upcoming.pickupLabel} → ${upcoming.dropoffLabel}`,
-            dateLabel: upcoming.dateLabel,
-            statusLabel: row.status === 'cancelled' ? 'Cancelled' : 'Completed',
-            pickupLabel: upcoming.pickupLabel,
-            dropoffLabel: upcoming.dropoffLabel,
-            pickup: upcoming.pickup,
-            dropoff: upcoming.dropoff,
-            role: 'driver' as const,
-          };
-        });
+      return myDriverRides
+        .filter((row) => isHistoryRideStatus(row.status))
+        .map(mapRideResponseToHistory);
     }
 
     return bookings
@@ -193,7 +204,7 @@ export const useMyRides = (): UseMyRidesResult => {
           role: 'rider' as const,
         };
       });
-  }, [bookings, isDriving, publishedRides]);
+  }, [bookings, isDriving, myDriverRides]);
 
   const resolveRideRole = useCallback(
     (ride: UpcomingRideSummary): MyRidesRideRole => {

@@ -7,9 +7,8 @@ export const isAssuredRide = (rideType: DriverRideKind): boolean => rideType ===
 
 export const isRegularRide = (rideType: DriverRideKind): boolean => rideType === 'regular';
 
-/** Assured pickup requires OTP after swipe; Regular skips OTP. */
-export const requiresPickupOtp = (rideType: DriverRideKind): boolean =>
-  isAssuredRide(rideType);
+/** Every ride requires rider OTP verification before the driver can start. */
+export const requiresPickupOtp = (_rideType?: DriverRideKind): boolean => true;
 
 export const rideKindFromAssuredFlag = (assured: boolean): DriverRideKind =>
   assured ? 'assured' : 'regular';

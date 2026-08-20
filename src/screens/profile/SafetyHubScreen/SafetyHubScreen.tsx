@@ -56,10 +56,11 @@ export const SafetyHubScreen = () => {
             color={safetyTokens.PRIMARY}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
+        </View>
+        <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
             {SAFETY_HUB_SCREEN.title}
           </Text>
-        </View>
+
         <IconButton
           icon="information-circle-outline"
           onPress={openInfo}

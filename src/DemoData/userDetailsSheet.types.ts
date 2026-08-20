@@ -19,10 +19,10 @@ export {
 import type { UserDetailsSheetRole } from './files/demoData.common';
 
 /**
- * Flattened row matching the Google Sheet "UserDetails" columns.
+ * Flattened UserDetails local-store row.
  * Note: header "CorporateID" appears twice — index 4 = company/ID text,
  * index 13 = Cloudinary URL of the Corporate ID card image.
- * Vehicles for a user live on the separate Vehicles sheet (many per user).
+ * Vehicles for a user live in the separate Vehicles store (many per user).
  */
 export interface UserDetailsSheetRow {
   row_id: number;

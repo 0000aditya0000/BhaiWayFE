@@ -31,7 +31,7 @@ export const styles = StyleSheet.create({
     ...androidTextInputFix,
   },
   searchInputFocused: {
-    borderColor: '#0342D1',
+    borderColor: '#374BB1',
     borderWidth: 2,
   },
   listContent: {

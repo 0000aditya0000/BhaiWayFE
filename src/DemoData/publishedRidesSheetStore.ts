@@ -5,7 +5,6 @@ import { createLocalListStore } from './localStore';
 import {
   PUBLISHED_RIDES_SHEET_HEADERS,
   PUBLISHED_RIDES_SHEET_ID_START,
-  publishedRidesSheetHeaderCsv,
   type PublishedRideSheetStatus,
   type PublishedRideSheetType,
   type PublishedRidesSheetPatch,
@@ -248,40 +247,6 @@ export const publishedRidesSheetStore = {
       publishedAt: patch.publishedAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
-  },
-
-  toCsv: (): string => {
-    const header = publishedRidesSheetHeaderCsv();
-    const lines = store.getAll().map((row) => {
-      const normalized = normalizeStoredRow(row);
-      return [
-        String(normalized.rideId),
-        String(normalized.userId),
-        normalized.mobile,
-        normalized.rideType,
-        normalized.origin,
-        normalized.destination,
-        normalized.departureDate,
-        normalized.departureTime,
-        String(normalized.availableSeats),
-        normalized.pricePerSeat,
-        normalized.preferences,
-        normalized.notes,
-        normalized.vehicleName,
-        normalized.vehiclePlate,
-        normalized.maxTwoInBack ? 'TRUE' : 'FALSE',
-        normalized.womenOnly ? 'TRUE' : 'FALSE',
-        String(normalized.originLat),
-        String(normalized.originLng),
-        String(normalized.destLat),
-        String(normalized.destLng),
-        normalized.status,
-        normalized.publishedAt,
-      ]
-        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-        .join(',');
-    });
-    return [header, ...lines].join('\n');
   },
 
   headers: PUBLISHED_RIDES_SHEET_HEADERS,

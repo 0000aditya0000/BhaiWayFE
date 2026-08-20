@@ -5,7 +5,6 @@ import { createLocalListStore } from './localStore';
 import {
   NOTIFICATIONS_SHEET_HEADERS,
   NOTIFICATIONS_SHEET_ID_START,
-  notificationsSheetHeaderCsv,
   type NotificationSheetCategory,
   type NotificationSheetSection,
   type NotificationsSheetPatch,
@@ -215,28 +214,6 @@ export const notificationsSheetStore = {
       updated.push(await notificationsSheetStore.upsert({ notificationId: row.notificationId, unread: false }));
     }
     return updated;
-  },
-
-  toCsv: (): string => {
-    const header = notificationsSheetHeaderCsv();
-    const lines = store.getAll().map((row) => {
-      const normalized = normalizeStoredRow(row);
-      return [
-        String(normalized.notificationId),
-        String(normalized.userId),
-        normalized.mobile,
-        normalized.title,
-        normalized.body,
-        normalized.timeLabel,
-        normalized.category,
-        normalized.section,
-        normalized.unread ? 'TRUE' : 'FALSE',
-        normalized.createdAt,
-      ]
-        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-        .join(',');
-    });
-    return [header, ...lines].join('\n');
   },
 
   headers: NOTIFICATIONS_SHEET_HEADERS,

@@ -1,36 +1,9 @@
 /**
- * Common DemoData constants — single source of truth for sheet tabs,
+ * Common DemoData constants — single source of truth for local store tabs,
  * headers, ID ranges, roles, and AsyncStorage keys.
  *
  * Path: src/DemoData/files/
  */
-
-/** Default Google Spreadsheet (override with EXPO_PUBLIC_GOOGLE_SHEET_ID). */
-export const DEMO_GOOGLE_SHEET_ID = '1W_2ZuTbhrlMKuArAov4E5hzH11LtGs_s6xtiI98nj6w';
-
-/** Default Vehicles tab gid (override with EXPO_PUBLIC_GOOGLE_SHEET_VEHICLES_GID). */
-export const DEMO_VEHICLES_SHEET_GID = '1';
-
-/** Notifications tab gid (override with EXPO_PUBLIC_GOOGLE_SHEET_NOTIFICATIONS_GID). */
-export const DEMO_NOTIFICATIONS_SHEET_GID = '2';
-
-/** ChatThreads tab gid (override with EXPO_PUBLIC_GOOGLE_SHEET_CHAT_THREADS_GID). */
-export const DEMO_CHAT_THREADS_SHEET_GID = '3';
-
-/** ChatMessages tab gid (override with EXPO_PUBLIC_GOOGLE_SHEET_CHAT_MESSAGES_GID). */
-export const DEMO_CHAT_MESSAGES_SHEET_GID = '4';
-
-/** WalletTransactions tab gid (override with EXPO_PUBLIC_GOOGLE_SHEET_WALLET_TX_GID). */
-export const DEMO_WALLET_TRANSACTIONS_SHEET_GID = '5';
-
-/** PublishedRides tab gid (override with EXPO_PUBLIC_GOOGLE_SHEET_PUBLISHED_RIDES_GID). */
-export const DEMO_PUBLISHED_RIDES_SHEET_GID = '6';
-
-/** RideBookings tab gid (override with EXPO_PUBLIC_GOOGLE_SHEET_RIDE_BOOKINGS_GID). */
-export const DEMO_RIDE_BOOKINGS_SHEET_GID = '7';
-
-/** BankAccounts tab gid (override with EXPO_PUBLIC_GOOGLE_SHEET_BANK_ACCOUNTS_GID). */
-export const DEMO_BANK_ACCOUNTS_SHEET_GID = '8';
 
 export const DEMO_USER_DETAILS_TAB_NAME = 'UserDetails';
 export const DEMO_VEHICLES_TAB_NAME = 'Vehicles';
@@ -76,7 +49,7 @@ export const DEMO_STORAGE_KEYS = {
   bookings: '@bhaiway/demo-bookings',
   userDetailsSheet: '@bhaiway/demo-user-details-sheet',
   vehiclesSheet: '@bhaiway/demo-vehicles-sheet',
-  /** VehicleIDs / plates removed locally until the sheet confirms they are gone. */
+  /** Soft-deleted vehicle IDs / plates (local tombstones). */
   vehiclesDeleted: '@bhaiway/demo-vehicles-deleted',
   notificationsSheet: '@bhaiway/demo-notifications-sheet',
   chatThreadsSheet: '@bhaiway/demo-chat-threads-sheet',
@@ -440,27 +413,3 @@ export const BANK_ACCOUNTS_SHEET_FIELD_KEYS = [
 ] as const;
 
 export const bankAccountsSheetHeaderCsv = (): string => BANK_ACCOUNTS_SHEET_HEADERS.join(',');
-
-export const DEMO_SHEET_LINKS = {
-  spreadsheet: `https://docs.google.com/spreadsheets/d/${DEMO_GOOGLE_SHEET_ID}/edit?usp=sharing`,
-  userDetailsCsv: (sheetId = DEMO_GOOGLE_SHEET_ID) =>
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=0`,
-  vehiclesCsv: (sheetId = DEMO_GOOGLE_SHEET_ID, gid = DEMO_VEHICLES_SHEET_GID) =>
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
-  notificationsCsv: (sheetId = DEMO_GOOGLE_SHEET_ID, gid = DEMO_NOTIFICATIONS_SHEET_GID) =>
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
-  chatThreadsCsv: (sheetId = DEMO_GOOGLE_SHEET_ID, gid = DEMO_CHAT_THREADS_SHEET_GID) =>
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
-  chatMessagesCsv: (sheetId = DEMO_GOOGLE_SHEET_ID, gid = DEMO_CHAT_MESSAGES_SHEET_GID) =>
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
-  walletTransactionsCsv: (
-    sheetId = DEMO_GOOGLE_SHEET_ID,
-    gid = DEMO_WALLET_TRANSACTIONS_SHEET_GID,
-  ) => `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
-  publishedRidesCsv: (sheetId = DEMO_GOOGLE_SHEET_ID, gid = DEMO_PUBLISHED_RIDES_SHEET_GID) =>
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
-  rideBookingsCsv: (sheetId = DEMO_GOOGLE_SHEET_ID, gid = DEMO_RIDE_BOOKINGS_SHEET_GID) =>
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
-  bankAccountsCsv: (sheetId = DEMO_GOOGLE_SHEET_ID, gid = DEMO_BANK_ACCOUNTS_SHEET_GID) =>
-    `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`,
-} as const;

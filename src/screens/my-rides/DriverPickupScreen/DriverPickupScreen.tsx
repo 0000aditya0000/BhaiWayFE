@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,7 +10,10 @@ import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
 import { triggerLightHaptic } from '@/shared/utils';
 import { ArrivalConfirmedModal, PickupOtpModal, SwipeToComplete } from '@/features/my-rides/components';
 import { DRIVER_PICKUP_MAP_DELTA, DRIVER_PICKUP_SCREEN } from '@/features/my-rides/constants';
-import { useDriverPickup } from '@/features/my-rides/hooks';
+import {
+  DRIVER_PICKUP_OTP_SWIPE_THRESHOLD,
+  useDriverPickup,
+} from '@/features/my-rides/hooks';
 import { styles } from './DriverPickupScreen.styles';
 
 const toRegion = (latitude: number, longitude: number): Region => ({
@@ -32,7 +35,8 @@ export const DriverPickupScreen = () => {
     otpVerifying,
     confirmedVisible,
     isLastStop,
-    confirmArrival,
+    swipeResetKey,
+    requestRiderOtp,
     setOtpValue,
     verifyOtp,
     closeOtp,
@@ -55,10 +59,10 @@ export const DriverPickupScreen = () => {
     );
   }, [stop.coordinate.latitude, stop.coordinate.longitude, stop.id]);
 
-  const handleConfirm = useCallback(() => {
+  const handleThresholdReach = useCallback(() => {
     triggerLightHaptic();
-    confirmArrival();
-  }, [confirmArrival]);
+    requestRiderOtp();
+  }, [requestRiderOtp]);
 
   const handleVerify = useCallback(() => {
     triggerLightHaptic();
@@ -85,11 +89,6 @@ export const DriverPickupScreen = () => {
     openNotifications();
   }, [openNotifications]);
 
-  const swipeKey = useMemo(
-    () => `${stop.id}-${confirming ? 'done' : 'ready'}`,
-    [confirming, stop.id],
-  );
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <BrandTopBar
@@ -98,7 +97,7 @@ export const DriverPickupScreen = () => {
           <IconButton
             icon="notifications-outline"
             onPress={handleNotifications}
-            color="#335EEA"
+            color="#4B61C4"
             accessibilityLabel="Notifications"
           />
         }
@@ -135,7 +134,7 @@ export const DriverPickupScreen = () => {
                 <View style={styles.pickupBadge}>
                   <Text style={styles.pickupBadgeText}>Pickup</Text>
                 </View>
-                <Ionicons name="location" size={40} color="#335EEA" />
+                <Ionicons name="location" size={40} color="#4B61C4" />
               </View>
             </Marker>
           </MapView>
@@ -168,7 +167,7 @@ export const DriverPickupScreen = () => {
 
           <View style={styles.locationRow}>
             <View style={styles.locationIcon}>
-              <Ionicons name="location" size={22} color="#335EEA" />
+              <Ionicons name="location" size={22} color="#4B61C4" />
             </View>
             <View style={styles.locationText}>
               <Text style={styles.locationLabel}>{stop.locationLabel}</Text>
@@ -181,11 +180,14 @@ export const DriverPickupScreen = () => {
 
         <View style={styles.swipeWrap}>
           <SwipeToComplete
-            key={swipeKey}
+            key={swipeResetKey}
             label={DRIVER_PICKUP_SCREEN.swipeLabel}
             completedLabel={DRIVER_PICKUP_SCREEN.completedLabel}
             completed={confirming}
-            onComplete={handleConfirm}
+            threshold={DRIVER_PICKUP_OTP_SWIPE_THRESHOLD}
+            holdAtThreshold={otpVisible}
+            onThresholdReach={handleThresholdReach}
+            onComplete={handleThresholdReach}
           />
         </View>
       </View>

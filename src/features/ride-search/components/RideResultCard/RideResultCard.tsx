@@ -46,7 +46,7 @@ export const RideResultCard = React.memo(
                 {ride.driver.name}
               </Text>
               <View style={styles.ratingBadge}>
-                <Ionicons name="star" size={14} color="#335EEA" />
+                <Ionicons name="star" size={14} color="#4B61C4" />
                 <Text style={styles.ratingText}>{ride.driver.rating.toFixed(1)}</Text>
               </View>
             </View>

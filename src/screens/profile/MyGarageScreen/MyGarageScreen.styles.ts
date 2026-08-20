@@ -4,8 +4,8 @@ import { colors, layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const garageTokens = {
-  PRIMARY: '#0342D1',
-  PRIMARY_CONTAINER: '#335EEA',
+  PRIMARY: '#374BB1',
+  PRIMARY_CONTAINER: '#4B61C4',
   ON_PRIMARY_CONTAINER: '#EAEBFF',
   ON_SURFACE: '#191C1D',
   ON_SURFACE_VARIANT: '#434655',
@@ -26,6 +26,7 @@ export const styles = StyleSheet.create({
     backgroundColor: garageTokens.SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -36,11 +37,16 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: colors.shadow, opacity: 0.04, radius: 8, offsetY: 2, elevation: 2 }),
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '600',
     color: garageTokens.PRIMARY,
     flexShrink: 1,
+    textAlign: 'center',
   },
   body: {
     flex: 1,
@@ -103,9 +109,6 @@ export const styles = StyleSheet.create({
     gap: spacing.cardGap,
   },
   vehicleCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     gap: spacing.md,
     backgroundColor: colors.white,
     borderRadius: layout.radiusXl,
@@ -113,6 +116,12 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: garageTokens.OUTLINE_VARIANT,
     ...createShadow({ color: colors.shadow, opacity: 0.05, radius: 20, offsetY: 4, elevation: 2 }),
+  },
+  vehicleMain: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
   },
   vehicleLeft: {
     flexDirection: 'row',
@@ -146,15 +155,40 @@ export const styles = StyleSheet.create({
     color: garageTokens.ON_SURFACE_VARIANT,
     fontVariant: ['tabular-nums'],
   },
+  vehicleDetail: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: garageTokens.ON_SURFACE_VARIANT,
+  },
+  activeToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: garageTokens.OUTLINE_VARIANT,
+  },
+  activeToggleLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+    color: garageTokens.ON_SURFACE,
+  },
   statusBadge: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: spacing.xs,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: layout.radiusSm,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   statusApproved: {
     backgroundColor: garageTokens.APPROVED_BG,
@@ -181,6 +215,47 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  actionButton: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: layout.radiusLg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
+  actionButtonPrimary: {
+    backgroundColor: garageTokens.PRIMARY_CONTAINER,
+  },
+  actionButtonSecondary: {
+    backgroundColor: garageTokens.SURFACE_CONTAINER,
+    borderWidth: 1,
+    borderColor: garageTokens.OUTLINE_VARIANT,
+  },
+  actionButtonDisabled: {
+    opacity: 0.55,
+  },
+  actionButtonPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.98 }],
+  },
+  actionButtonPrimaryLabel: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    color: garageTokens.ON_PRIMARY_CONTAINER,
+  },
+  actionButtonSecondaryLabel: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    color: garageTokens.PRIMARY,
   },
   whyCard: {
     marginTop: spacing.lg,

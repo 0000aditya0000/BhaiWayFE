@@ -70,7 +70,7 @@ export const InboxScreen = () => {
               <Ionicons
                 name={mode === 'driving' ? 'people-outline' : 'car-outline'}
                 size={28}
-                color="#0342D1"
+                color="#374BB1"
               />
             </View>
             <Text style={styles.emptyTitle}>{INBOX_SCREEN.emptyTitle}</Text>

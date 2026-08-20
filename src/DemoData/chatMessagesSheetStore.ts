@@ -5,7 +5,6 @@ import { createLocalListStore } from './localStore';
 import {
   CHAT_MESSAGES_SHEET_HEADERS,
   CHAT_MESSAGES_SHEET_ID_START,
-  chatMessagesSheetHeaderCsv,
   type ChatMessageSheetSender,
   type ChatMessageSheetStatus,
   type ChatMessagesSheetPatch,
@@ -178,27 +177,6 @@ export const chatMessagesSheetStore = {
       createdAt: patch.createdAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });
-  },
-
-  toCsv: (): string => {
-    const header = chatMessagesSheetHeaderCsv();
-    const lines = store.getAll().map((row) => {
-      const normalized = normalizeStoredRow(row);
-      return [
-        String(normalized.messageId),
-        normalized.threadKey,
-        String(normalized.userId),
-        normalized.mobile,
-        normalized.sender,
-        normalized.text,
-        normalized.timeLabel,
-        normalized.status,
-        normalized.createdAt,
-      ]
-        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-        .join(',');
-    });
-    return [header, ...lines].join('\n');
   },
 
   headers: CHAT_MESSAGES_SHEET_HEADERS,

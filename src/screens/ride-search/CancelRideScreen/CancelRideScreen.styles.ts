@@ -3,8 +3,8 @@ import { StyleSheet } from 'react-native';
 import { colors } from '@/shared/theme';
 import { androidTextInputFix, createShadow } from '@/shared/utils/platform';
 
-const PRIMARY = '#0342D1';
-const PRIMARY_CONTAINER = '#335EEA';
+const PRIMARY = '#374BB1';
+const PRIMARY_CONTAINER = '#4B61C4';
 const ON_SURFACE = '#191C1D';
 const ON_SURFACE_VARIANT = '#434655';
 const OUTLINE = '#747686';
@@ -19,6 +19,7 @@ export const styles = StyleSheet.create({
     backgroundColor: SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -27,11 +28,16 @@ export const styles = StyleSheet.create({
     backgroundColor: SURFACE,
   },
   headerSide: {
+    zIndex: 2,
     width: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     flex: 1,
     fontSize: 28,
     lineHeight: 36,

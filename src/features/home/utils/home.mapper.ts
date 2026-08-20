@@ -17,9 +17,9 @@ export const mapDashboardToViewData = (dashboard: HomeDashboard): HomeViewData =
 };
 
 export const getFirstName = (fullName: string | undefined | null): string => {
-  if (!fullName) {
-    return 'there';
+  if (!fullName?.trim()) {
+    return 'User';
   }
   const [first] = fullName.trim().split(/\s+/);
-  return first || 'there';
+  return first || 'User';
 };

@@ -122,10 +122,10 @@ export const ProfileSuccessScreen = ({
                 color={successTokens.PRIMARY}
                 accessibilityLabel="Go back"
               />
-              <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
-                {brandTitle}
-              </Text>
             </View>
+            <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
+              {brandTitle}
+            </Text>
             <IconButton
               icon="notifications-outline"
               onPress={handleNotifications}
@@ -142,10 +142,10 @@ export const ProfileSuccessScreen = ({
                 color={successTokens.PRIMARY}
                 accessibilityLabel="Open home"
               />
-              <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
-                {brandTitle}
-              </Text>
             </View>
+            <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
+              {brandTitle}
+            </Text>
             <Pressable
               style={styles.avatarButton}
               onPress={openProfile}
@@ -276,7 +276,7 @@ export const ProfileSuccessScreen = ({
             <Pressable
               style={({ pressed }) => [
                 styles.secondaryButton,
-                pressed && { backgroundColor: 'rgba(3, 66, 209, 0.05)' },
+                pressed && { backgroundColor: 'rgba(55, 75, 177, 0.05)' },
               ]}
               onPress={onSecondary}
               accessibilityRole="button"

@@ -21,18 +21,45 @@ export const SwipeToComplete = ({
   completedLabel,
   completed,
   onComplete,
+  threshold,
+  onThresholdReach,
+  holdAtThreshold = false,
 }: SwipeToCompleteProps) => {
   const translateX = useSharedValue(0);
   const startX = useSharedValue(0);
   const maxX = useSharedValue(0);
   const finished = useSharedValue(false);
+  const thresholdHit = useSharedValue(false);
+  const useThresholdGate = useSharedValue(Boolean(onThresholdReach));
+  const thresholdRatio = useSharedValue(
+    typeof threshold === 'number' ? Math.min(1, Math.max(0, threshold)) : 1,
+  );
+
+  useEffect(() => {
+    useThresholdGate.value = Boolean(onThresholdReach);
+    thresholdRatio.value =
+      typeof threshold === 'number' ? Math.min(1, Math.max(0, threshold)) : 1;
+  }, [onThresholdReach, threshold, thresholdRatio, useThresholdGate]);
 
   useEffect(() => {
     if (completed) {
       finished.value = true;
+      thresholdHit.value = true;
       translateX.value = withSpring(maxX.value);
+      return;
     }
-  }, [completed, finished, maxX, translateX]);
+    if (holdAtThreshold && thresholdHit.value && maxX.value > 0) {
+      translateX.value = withSpring(maxX.value * thresholdRatio.value);
+    }
+  }, [
+    completed,
+    finished,
+    holdAtThreshold,
+    maxX,
+    thresholdHit,
+    thresholdRatio,
+    translateX,
+  ]);
 
   const handleLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -41,14 +68,22 @@ export const SwipeToComplete = ({
       maxX.value = nextMax;
       if (completed || finished.value) {
         translateX.value = nextMax;
+        return;
+      }
+      if (holdAtThreshold && thresholdHit.value) {
+        translateX.value = nextMax * thresholdRatio.value;
       }
     },
-    [completed, finished, maxX, translateX],
+    [completed, finished, holdAtThreshold, maxX, thresholdHit, thresholdRatio, translateX],
   );
 
   const triggerComplete = useCallback(() => {
     onComplete();
   }, [onComplete]);
+
+  const triggerThreshold = useCallback(() => {
+    onThresholdReach?.();
+  }, [onThresholdReach]);
 
   const pan = Gesture.Pan()
     .enabled(!completed)
@@ -61,11 +96,39 @@ export const SwipeToComplete = ({
       }
       const next = Math.max(0, Math.min(startX.value + event.translationX, maxX.value));
       translateX.value = next;
+
+      const ratio = maxX.value > 0 ? next / maxX.value : 0;
+      if (
+        useThresholdGate.value &&
+        !thresholdHit.value &&
+        thresholdRatio.value < 1 &&
+        ratio >= thresholdRatio.value
+      ) {
+        thresholdHit.value = true;
+        runOnJS(triggerThreshold)();
+      }
     })
     .onEnd(() => {
       if (finished.value) {
         return;
       }
+
+      const ratio = maxX.value > 0 ? translateX.value / maxX.value : 0;
+
+      if (useThresholdGate.value && thresholdRatio.value < 1) {
+        if (ratio >= thresholdRatio.value || thresholdHit.value) {
+          if (!thresholdHit.value) {
+            thresholdHit.value = true;
+            runOnJS(triggerThreshold)();
+          }
+          translateX.value = withSpring(maxX.value * thresholdRatio.value);
+          return;
+        }
+        thresholdHit.value = false;
+        translateX.value = withSpring(0);
+        return;
+      }
+
       if (translateX.value >= maxX.value - 8) {
         finished.value = true;
         translateX.value = withSpring(maxX.value);
@@ -96,11 +159,7 @@ export const SwipeToComplete = ({
 
       <GestureDetector gesture={pan}>
         <Animated.View
-          style={[
-            styles.handle,
-            completed && styles.handleCompleted,
-            handleStyle,
-          ]}
+          style={[styles.handle, completed && styles.handleCompleted, handleStyle]}
         >
           <Ionicons
             name={completed ? 'checkmark' : 'chevron-forward'}

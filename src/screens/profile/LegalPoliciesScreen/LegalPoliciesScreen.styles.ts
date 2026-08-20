@@ -4,8 +4,8 @@ import { colors, layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const legalTokens = {
-  PRIMARY: '#0342D1',
-  PRIMARY_CONTAINER: '#335EEA',
+  PRIMARY: '#374BB1',
+  PRIMARY_CONTAINER: '#4B61C4',
   ON_PRIMARY_CONTAINER: '#EAEBFF',
   ON_SURFACE: '#191C1D',
   ON_SURFACE_VARIANT: '#434655',
@@ -21,6 +21,7 @@ export const styles = StyleSheet.create({
     backgroundColor: legalTokens.SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
@@ -37,11 +38,16 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '600',
     color: legalTokens.PRIMARY,
     flexShrink: 1,
+    textAlign: 'center',
   },
   scroll: {
     flex: 1,

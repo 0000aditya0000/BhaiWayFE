@@ -6,7 +6,7 @@ export const publishRideValidationSchema = z.object({
   departureDate: z.string().trim().min(1, 'Select departure date'),
   departureTime: z.string().trim().min(1, 'Select departure time'),
   maxTwoInBackSeat: z.boolean(),
-  availableSeats: z.number().min(1).max(6),
+  availableSeats: z.number().min(1).max(8),
   womenOnly: z.boolean(),
   pricePerSeat: z
     .string()

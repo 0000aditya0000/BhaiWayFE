@@ -57,10 +57,11 @@ export const ReferEarnScreen = () => {
             color={referTokens.ON_SURFACE}
             accessibilityLabel="Go back"
           />
-          <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
+        </View>
+        <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
             {REFER_EARN_SCREEN.title}
           </Text>
-        </View>
+
         <IconButton
           icon="help-circle-outline"
           onPress={openHelp}
@@ -122,7 +123,8 @@ export const ReferEarnScreen = () => {
             <View style={styles.codeBox}>
               <Text style={styles.codeText} numberOfLines={1}>
                 {code}
-              </Text>
+            </Text>
+
               <Pressable
                 style={styles.copyButton}
                 onPress={copyCode}

@@ -2,8 +2,8 @@ import { Dimensions, StyleSheet } from 'react-native';
 import { colors, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
-const PRIMARY = '#0342D1';
-const PRIMARY_CONTAINER = '#335EEA';
+const PRIMARY = '#374BB1';
+const PRIMARY_CONTAINER = '#4B61C4';
 const ON_SURFACE = '#191C1D';
 const ON_SURFACE_VARIANT = '#434655';
 const OUTLINE = '#747686';
@@ -21,6 +21,7 @@ export const styles = StyleSheet.create({
     backgroundColor: SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -29,16 +30,22 @@ export const styles = StyleSheet.create({
     backgroundColor: SURFACE,
   },
   headerLeft: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
     flex: 1,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '700',
     color: PRIMARY,
+    textAlign: 'center',
   },
   scroll: {
     flex: 1,
@@ -213,7 +220,7 @@ export const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(3, 66, 209, 0.3)',
+    backgroundColor: 'rgba(55, 75, 177, 0.3)',
   },
   carMarker: {
     width: 40,

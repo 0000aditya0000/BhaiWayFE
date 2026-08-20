@@ -189,8 +189,8 @@ export const usePaymentOptions = (
           destLng: params.destinationLng,
           bookedAt: new Date().toISOString(),
         })
-        .catch((error) => {
-          console.log('[RideBookings Sheet] confirm booking failed', error);
+        .catch(() => {
+          // ignore sheet booking sync errors
         });
 
       navigateToBooked();
@@ -220,8 +220,7 @@ export const usePaymentOptions = (
           });
           persistBooking();
         } catch (error) {
-          console.log('[Payment] assured fee debit failed', error);
-          showAppAlert(
+                    showAppAlert(
             'Payment failed',
             'Could not charge the assured booking fee. Please try again.',
           );

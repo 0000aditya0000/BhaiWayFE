@@ -20,3 +20,14 @@ export {
   withOptionalAssuredBonusLine,
 } from './driverEarnings';
 export { mapPublishedRideToUpcoming, mapBookingToUpcoming } from './mapSheetRides';
+export {
+  isHistoryRideStatus,
+  isUpcomingRideStatus,
+  mapRideResponseToHistory,
+  mapRideResponseToUpcoming,
+} from './mapRideResponse';
+export {
+  buildDriverTripInvoiceText,
+  buildRiderTripInvoiceText,
+  shareInvoiceDocument,
+} from './shareInvoice';

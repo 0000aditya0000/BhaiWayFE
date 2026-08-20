@@ -14,7 +14,8 @@ import {
 import type { CloudinaryUploadResponse, UploadKind } from '@/types/cloudinary';
 import { colors, layout, spacing } from '@/shared/theme';
 import { showSuccessFeedback } from '@/shared/utils/feedback';
-import { triggerLightHaptic } from '@/shared/utils';
+import { getErrorMessage, triggerLightHaptic } from '@/shared/utils';
+import { showAppAlert } from '@/store';
 
 interface MediaUploadExampleScreenProps {
   kind: UploadKind;
@@ -74,9 +75,34 @@ export const MediaUploadExampleScreen = ({
     setIsSaving(true);
     try {
       await persistByKind(kind, lastUpload);
-      showSuccessFeedback('Uploaded', 'Saved successfully.');
-    } catch {
-      showSuccessFeedback('Upload failed', 'Could not save. Please try again.');
+      showSuccessFeedback(
+        'Uploaded',
+        kind === 'dl'
+          ? 'Driving license saved and verification submitted.'
+          : kind === 'rc'
+            ? 'Vehicle RC saved and verification submitted.'
+            : 'Saved successfully.',
+      );
+    } catch (error) {
+      const status =
+        typeof error === 'object' && error !== null && 'status' in error
+          ? Number((error as { status?: unknown }).status)
+          : undefined;
+      if (status === 401) {
+        showAppAlert(
+          'Session expired',
+          kind === 'rc'
+            ? 'Please sign in again to submit vehicle verification.'
+            : kind === 'dl'
+              ? 'Please sign in again to submit driving license verification.'
+              : 'Please sign in again and retry.',
+        );
+      } else {
+        showAppAlert(
+          'Upload failed',
+          getErrorMessage(error, 'Could not save. Please try again.'),
+        );
+      }
     } finally {
       setIsSaving(false);
     }
@@ -126,7 +152,13 @@ export const MediaUploadExampleScreen = ({
           accessibilityLabel={submitLabel}
         >
           <Text style={styles.saveLabel}>
-            {isSaving ? 'Saving…' : submitLabel}
+            {isSaving
+              ? kind === 'dl'
+                ? 'Submitting driving license verification…'
+                : kind === 'rc'
+                  ? 'Submitting vehicle verification…'
+                  : 'Saving…'
+              : submitLabel}
           </Text>
         </Pressable>
       </ScrollView>
@@ -140,6 +172,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
@@ -148,10 +181,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 22,
     fontWeight: '700',
     color: colors.primary,
-    flexShrink: 1,
+    textAlign: 'center',
   },
   content: {
     padding: spacing.lg,

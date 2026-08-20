@@ -4,7 +4,7 @@ import { colors, layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const deleteAccountTokens = {
-  PRIMARY: '#0342D1',
+  PRIMARY: '#374BB1',
   ON_SURFACE: '#191C1D',
   ON_SURFACE_VARIANT: '#434655',
   OUTLINE: '#747686',
@@ -14,7 +14,7 @@ export const deleteAccountTokens = {
   ERROR: '#BA1A1A',
   ERROR_SOFT: 'rgba(255, 218, 214, 0.3)',
   ERROR_BORDER: 'rgba(186, 26, 26, 0.1)',
-  SELECTED_BG: 'rgba(3, 66, 209, 0.05)',
+  SELECTED_BG: 'rgba(55, 75, 177, 0.05)',
 } as const;
 
 export const styles = StyleSheet.create({
@@ -23,6 +23,7 @@ export const styles = StyleSheet.create({
     backgroundColor: deleteAccountTokens.SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -33,17 +34,23 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: colors.shadow, opacity: 0.04, radius: 8, offsetY: 2, elevation: 2 }),
   },
   headerLeft: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
     flex: 1,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '700',
     color: deleteAccountTokens.PRIMARY,
     flexShrink: 1,
+    textAlign: 'center',
   },
   scroll: {
     flex: 1,

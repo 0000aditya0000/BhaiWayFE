@@ -31,6 +31,7 @@ import {
   formatTimeLabel,
   getRelativeDateLabel,
   startOfDay,
+  toCivilDateFromDate,
 } from '../utils';
 
 const isPassengerCount = (value: number): value is PassengerCount =>
@@ -337,6 +338,7 @@ export const useFindRide = (mode: RideSearchMode): UseFindRideResult => {
         getRideResultPath({
           origin: origin.placeName,
           destination: destination.placeName,
+          date: toCivilDateFromDate(journeyDate),
           dateLabel,
           passengers,
           originLat: origin.latitude,

@@ -4,4 +4,5 @@ export interface ConfirmedPassengerCardProps {
   passenger: DriverTrackConfirmedPassenger;
   onCall: () => void;
   onChat: () => void;
+  onPressProfile?: () => void;
 }

@@ -5,7 +5,7 @@ import { ROUTES } from '@/config';
 import type { MissingLocationKind } from '@/shared/components';
 import { getSearchParam, formatSlashDate, parseSlashDate, startOfDay, showAppAlert } from '@/shared/utils';
 import { getRouteTooCloseMessage } from '@/features/ride-search/utils';
-import { formatTimeLabel, getSelectLocationPath, parseTimeLabel } from '../constants';
+import { formatTimeLabel, getSelectLocationPath, parseTimeLabel, PUBLISH_SEAT_LIMITS } from '../constants';
 import { publishRideDraft } from '../store';
 import type { LocationFieldType, OutstationRideTypeId, PublishRideDraft } from '../types';
 
@@ -93,6 +93,24 @@ export const usePublishRide = () => {
     }
     if (!draft.departureDate || !draft.departureTime) {
       showAppAlert('Missing schedule', 'Please select departure date and time.');
+      return;
+    }
+
+    if (
+      !Number.isInteger(draft.availableSeats) ||
+      draft.availableSeats < PUBLISH_SEAT_LIMITS.min ||
+      draft.availableSeats > PUBLISH_SEAT_LIMITS.max
+    ) {
+      showAppAlert(
+        'Check seats',
+        `Available seats must be between ${PUBLISH_SEAT_LIMITS.min} and ${PUBLISH_SEAT_LIMITS.max}.`,
+      );
+      return;
+    }
+
+    const price = Number(draft.pricePerSeat);
+    if (!Number.isFinite(price) || price < 0) {
+      showAppAlert('Check price', 'Enter a valid price per seat.');
       return;
     }
 

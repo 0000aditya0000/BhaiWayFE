@@ -101,15 +101,9 @@ export const validateFileForKind = async (
     );
   }
 
+  // Size limits are intentionally not enforced client-side so large
+  // camera / gallery picks can upload; Cloudinary may still reject oversized files.
   const sizeBytes = file.sizeBytes ?? (await getFileSizeBytes(file.uri));
-  if (typeof sizeBytes === 'number' && sizeBytes > config.maxBytes) {
-    const maxMb = Math.round(config.maxBytes / (1024 * 1024));
-    throw new CloudinaryUploadError(
-      'FILE_TOO_LARGE',
-      `File is too large. Maximum allowed size is ${maxMb} MB.`,
-      { details: { sizeBytes, maxBytes: config.maxBytes } },
-    );
-  }
 
   return {
     ...file,

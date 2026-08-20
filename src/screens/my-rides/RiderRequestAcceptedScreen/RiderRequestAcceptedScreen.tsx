@@ -17,7 +17,8 @@ import { useRiderRequestAccepted } from '@/features/my-rides/hooks';
 import { styles } from './RiderRequestAcceptedScreen.styles';
 
 export const RiderRequestAcceptedScreen = () => {
-  const { rider, goToDashboard, messageRider, goBack } = useRiderRequestAccepted();
+  const { rider, goToDashboard, messageRider, openRiderProfile, goBack } =
+    useRiderRequestAccepted();
 
   const handleBack = useCallback(() => {
     triggerLightHaptic();
@@ -46,7 +47,12 @@ export const RiderRequestAcceptedScreen = () => {
         />
 
         <View style={styles.card}>
-          <View style={styles.riderRow}>
+          <Pressable
+            style={styles.riderRow}
+            onPress={openRiderProfile}
+            accessibilityRole="button"
+            accessibilityLabel={`View ${rider.name} profile`}
+          >
             <Avatar
               size={64}
               uri={rider.avatarUri || null}
@@ -71,7 +77,7 @@ export const RiderRequestAcceptedScreen = () => {
                 </View>
               </View>
             </View>
-          </View>
+          </Pressable>
 
           <View style={styles.infoBox}>
             <Ionicons name="information-circle-outline" size={20} color={colors.textMuted} />

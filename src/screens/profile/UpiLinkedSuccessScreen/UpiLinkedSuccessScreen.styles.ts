@@ -4,8 +4,8 @@ import { layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const upiLinkedTokens = {
-  PRIMARY: '#0342D1',
-  PRIMARY_CONTAINER: '#335EEA',
+  PRIMARY: '#374BB1',
+  PRIMARY_CONTAINER: '#4B61C4',
   ON_PRIMARY: '#FFFFFF',
   ON_PRIMARY_CONTAINER: '#EAEBFF',
   ON_SURFACE: '#191C1D',
@@ -24,6 +24,7 @@ export const styles = StyleSheet.create({
     backgroundColor: upiLinkedTokens.SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
@@ -33,11 +34,16 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: '#000000', opacity: 0.04, radius: 8, offsetY: 2, elevation: 2 }),
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     flex: 1,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '700',
     color: upiLinkedTokens.PRIMARY,
+    textAlign: 'center',
   },
   scroll: {
     flex: 1,
@@ -65,7 +71,7 @@ export const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: 'rgba(3, 66, 209, 0.05)',
+    backgroundColor: 'rgba(55, 75, 177, 0.05)',
   },
   iconCircle: {
     width: 128,
@@ -158,7 +164,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: 999,
-    backgroundColor: 'rgba(3, 66, 209, 0.1)',
+    backgroundColor: 'rgba(55, 75, 177, 0.1)',
   },
   verifiedText: {
     fontSize: 12,

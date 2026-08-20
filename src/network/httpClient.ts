@@ -1,5 +1,6 @@
 import { env } from '@/config';
 import { logger } from '@/shared/utils';
+import { logApiExchange } from './apiLog';
 import { applyRequestInterceptors } from './interceptors';
 import type { ApiError, RequestConfig } from './network.types';
 
@@ -27,13 +28,15 @@ const serializeBody = (body: unknown): string | undefined => {
 };
 
 const toApiError = (status: number, payload: unknown, fallbackMessage: string): ApiError => {
-  const fromPayload =
-    typeof payload === 'object' &&
-    payload !== null &&
-    'message' in payload &&
-    typeof (payload as { message?: unknown }).message === 'string'
-      ? (payload as { message: string }).message
-      : undefined;
+  let fromPayload: string | undefined;
+  if (typeof payload === 'object' && payload !== null && 'message' in payload) {
+    const message = (payload as { message?: unknown }).message;
+    if (typeof message === 'string') {
+      fromPayload = message;
+    } else if (Array.isArray(message)) {
+      fromPayload = message.map(String).join('\n');
+    }
+  }
 
   return {
     status,
@@ -85,6 +88,17 @@ const request = async <T>(path: string, config: RequestConfig = {}): Promise<T> 
 
   logger.debug('HTTP request', { method, path, url });
 
+  const startedAt = Date.now();
+
+  logApiExchange({
+    phase: 'request',
+    method,
+    path,
+    url,
+    headers: finalConfig.headers,
+    body: finalConfig.body,
+  });
+
   const controller = new AbortController();
   const externalSignal = finalConfig.signal;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -110,6 +124,27 @@ const request = async <T>(path: string, config: RequestConfig = {}): Promise<T> 
     });
 
     const payload = (await response.json().catch(() => null)) as unknown;
+    const durationMs = Date.now() - startedAt;
+
+    logApiExchange({
+      phase: response.ok ? 'response' : 'error',
+      method,
+      path,
+      url,
+      status: response.status,
+      durationMs,
+      headers: finalConfig.headers,
+      body: payload,
+      errorMessage: response.ok
+        ? undefined
+        : typeof payload === 'object' &&
+            payload !== null &&
+            'message' in payload
+          ? Array.isArray((payload as { message?: unknown }).message)
+            ? ((payload as { message: unknown[] }).message).map(String).join('\n')
+            : String((payload as { message?: unknown }).message ?? '')
+          : undefined,
+    });
 
     if (!response.ok) {
       throw toApiError(
@@ -122,6 +157,21 @@ const request = async <T>(path: string, config: RequestConfig = {}): Promise<T> 
     return payload as T;
   } catch (error) {
     const apiError = mapUnknownError(error, url);
+    const durationMs = Date.now() - startedAt;
+    // HTTP error bodies are already logged; only log transport failures here.
+    if (!isApiError(error)) {
+      logApiExchange({
+        phase: 'error',
+        method,
+        path,
+        url,
+        status: apiError.status,
+        durationMs,
+        headers: finalConfig.headers,
+        body: apiError.details ?? apiError,
+        errorMessage: apiError.message,
+      });
+    }
     if (apiError.code === 'NETWORK_ERROR' || apiError.code === 'TIMEOUT') {
       logger.error('HTTP request failed', { method, path, url, code: apiError.code });
     } else if (!isApiError(error)) {

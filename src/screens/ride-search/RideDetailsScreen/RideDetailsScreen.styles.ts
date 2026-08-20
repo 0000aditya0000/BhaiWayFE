@@ -8,6 +8,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   header: {
+    position: 'relative',
     height: 64,
     flexDirection: 'row',
     alignItems: 'center',
@@ -23,16 +24,22 @@ export const styles = StyleSheet.create({
     }),
   },
   headerLeft: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     flex: 1,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '600',
     color: colors.primary,
+    textAlign: 'center',
   },
   scroll: {
     flex: 1,

@@ -4,8 +4,8 @@ import { layout, spacing } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const trustedContactsTokens = {
-  PRIMARY: '#0342D1',
-  PRIMARY_CONTAINER: '#335EEA',
+  PRIMARY: '#374BB1',
+  PRIMARY_CONTAINER: '#4B61C4',
   ON_PRIMARY_CONTAINER: '#EAEBFF',
   ON_SURFACE: '#191C1D',
   ON_SURFACE_VARIANT: '#434655',
@@ -28,6 +28,7 @@ export const styles = StyleSheet.create({
     backgroundColor: trustedContactsTokens.SURFACE,
   },
   header: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -39,17 +40,23 @@ export const styles = StyleSheet.create({
     ...createShadow({ color: '#000000', opacity: 0.04, radius: 8, offsetY: 2, elevation: 2 }),
   },
   headerLeft: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
     flex: 1,
   },
   headerTitle: {
+    position: 'absolute',
+    left: 56,
+    right: 56,
+    zIndex: 0,
     fontSize: 28,
     lineHeight: 36,
     fontWeight: '700',
     color: trustedContactsTokens.PRIMARY,
     flexShrink: 1,
+    textAlign: 'center',
   },
   avatarButton: {
     width: 32,

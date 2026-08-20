@@ -10,7 +10,7 @@ export const styles = StyleSheet.create({
     width: 4,
     height: 24,
     borderRadius: 999,
-    backgroundColor: '#0342D1',
+    backgroundColor: '#374BB1',
   },
   title: {
     fontSize: 28,

@@ -21,6 +21,18 @@ export const ScreenHeader = ({
 }: ScreenHeaderProps) => {
   const router = useRouter();
 
+  const handleBack = useCallback(() => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace(ROUTES.home);
+  }, [onBack, router]);
+
   const openNotifications = useCallback(() => {
     if (onNotificationsPress) {
       onNotificationsPress();
@@ -35,7 +47,7 @@ export const ScreenHeader = ({
         showBack ? (
           <IconButton
             icon="arrow-back"
-            onPress={onBack}
+            onPress={handleBack}
             color={colors.primary}
             accessibilityLabel="Go back"
           />
@@ -43,7 +55,10 @@ export const ScreenHeader = ({
       }
       center={
         <Text
-          style={[typography.title, { fontSize: 18, color: colors.primary }]}
+          style={[
+            typography.title,
+            { fontSize: 18, color: colors.primary, textAlign: 'center', width: '100%' },
+          ]}
           numberOfLines={1}
           accessibilityRole="header"
         >

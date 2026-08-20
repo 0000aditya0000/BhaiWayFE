@@ -79,7 +79,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(196, 197, 215, 0.35)',
     borderLeftWidth: 4,
-    borderLeftColor: 'rgba(3, 66, 209, 0.22)',
+    borderLeftColor: 'rgba(55, 75, 177, 0.22)',
     padding: spacing.xl,
     ...createShadow({
       color: colors.shadow,

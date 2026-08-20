@@ -166,7 +166,7 @@ export const RideBookedScreen = () => {
 
         {isAssured ? (
           <View style={styles.cancelNote}>
-            <Ionicons name="information-circle" size={18} color="#0342D1" />
+            <Ionicons name="information-circle" size={18} color="#374BB1" />
             <Text style={styles.cancelNoteText}>{BOOKED_SCREEN.assuredCancelNote}</Text>
           </View>
         ) : null}

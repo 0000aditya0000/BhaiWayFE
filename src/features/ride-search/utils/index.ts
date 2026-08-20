@@ -35,3 +35,12 @@ export {
   getPublishedRideOrganization,
   getPublishedRideVehicleColor,
 } from './mapPublishedRide';
+export {
+  formatApiDepartureTime,
+  mapRideSearchItemToResult,
+  mapRideSearchItemsToResults,
+  mapSearchRidesError,
+  parsePricePerSeat,
+  resolveSearchDateParam,
+  toCivilDateFromDate,
+} from './rideSearch.mapper';

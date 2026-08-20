@@ -17,7 +17,6 @@ import { authSession, showAppAlert } from '@/store';
 import {
   DEFAULT_MASTER_PROFILE,
   DEFAULT_PROFILE_AVATAR,
-  canAccessLocalDemoData,
   PROFILE_MENU_ITEMS,
   PROFILE_SCREEN,
 } from '../constants';
@@ -27,7 +26,7 @@ import type {
   ProfileMenuActionId,
   ProfileMenuItem,
 } from '../types';
-
+import { useMyVerification } from './useMyVerification';
 /** Snapshot so profile name/phone refresh when the sheet row changes. */
 const getSheetProfileIdentity = (): string => {
   const row = findCurrentUserSheetRow();
@@ -52,7 +51,6 @@ const formatProfilePhoneLabel = (mobile?: string | null, fallback?: string | nul
 export interface UseMasterProfileResult {
   profile: MasterProfileData;
   menuItems: readonly ProfileMenuItem[];
-  showDemoDataSettings: boolean;
   uploadSheetVisible: boolean;
   avatarUploading: boolean;
   logoutVisible: boolean;
@@ -60,7 +58,6 @@ export interface UseMasterProfileResult {
   closeCameraSheet: () => void;
   applyAvatar: (document: UploadedDocument) => void;
   goBack: () => void;
-  openSettings: () => void;
   openAddRedeem: () => void;
   openPaymentMethods: () => void;
   onMenuPress: (id: ProfileMenuActionId) => void;
@@ -75,14 +72,41 @@ export const useMasterProfile = (): UseMasterProfileResult => {
   const sheetIdentity = useSyncExternalStore(subscribeBhaiWayWallet, getSheetProfileIdentity);
   const sheetRow = useMemo(() => findCurrentUserSheetRow(), [sheetIdentity]);
   const walletBalanceLabel = formatBhaiWayWalletLabel(getBhaiWayWalletBalance());
-  const canOpenDemoData = canAccessLocalDemoData(sheetRow?.mobile || user?.phone);
-  const menuItems = useMemo(
-    () =>
-      canOpenDemoData
-        ? PROFILE_MENU_ITEMS
-        : PROFILE_MENU_ITEMS.filter((item) => item.id !== 'demoData'),
-    [canOpenDemoData],
-  );
+  const { verifications } = useMyVerification();
+  const identityVerified = verifications?.identity?.status === 'VERIFIED';
+  const menuItems = useMemo((): readonly ProfileMenuItem[] => {
+    return PROFILE_MENU_ITEMS.map((item) => {
+      if (item.id !== 'verify') {
+        return item;
+      }
+      if (!verifications) {
+        return item;
+      }
+      const status = verifications.identity.status;
+      if (status === 'VERIFIED') {
+        return {
+          ...item,
+          subtitle: 'Identity verified',
+        };
+      }
+      if (status === 'IN_REVIEW') {
+        return {
+          ...item,
+          subtitle: 'Identity verification in review',
+        };
+      }
+      if (status === 'REJECTED') {
+        return {
+          ...item,
+          subtitle: verifications.identity.rejectionReason?.trim() || 'Identity verification rejected',
+        };
+      }
+      return {
+        ...item,
+        subtitle: 'Verify Aadhaar to unlock trust & features',
+      };
+    });
+  }, [verifications]);
   const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
   const [uploadSheetVisible, setUploadSheetVisible] = useState(false);
   const [logoutVisible, setLogoutVisible] = useState(false);
@@ -114,14 +138,14 @@ export const useMasterProfile = (): UseMasterProfileResult => {
 
   const profile = useMemo((): MasterProfileData => {
     const fullName =
-      sheetRow?.userName?.trim() ||
       user?.fullName?.trim() ||
+      sheetRow?.userName?.trim() ||
       DEFAULT_MASTER_PROFILE.fullName;
-    const phoneLabel = formatProfilePhoneLabel(sheetRow?.mobile, user?.phone);
+    const phoneLabel = formatProfilePhoneLabel(user?.phone, sheetRow?.mobile);
     const avatarUri =
       localAvatarUri ??
-      (sheetRow?.profilePicture?.trim() ||
-        user?.avatarUri ||
+      (user?.avatarUri?.trim() ||
+        sheetRow?.profilePicture?.trim() ||
         DEFAULT_MASTER_PROFILE.avatarUri ||
         DEFAULT_PROFILE_AVATAR);
     const ratingLabel = '0';
@@ -141,12 +165,19 @@ export const useMasterProfile = (): UseMasterProfileResult => {
             tone: 'danger' as const,
           },
       { id: 'rating', label: ratingLabel, icon: 'star' as const, tone: 'neutral' as const },
-      {
-        id: 'trust',
-        label: DEFAULT_MASTER_PROFILE.trustLabel,
-        icon: 'shield-checkmark' as const,
-        tone: 'primary' as const,
-      },
+      identityVerified
+        ? {
+            id: 'trust',
+            label: 'Verified',
+            icon: 'shield-checkmark' as const,
+            tone: 'success' as const,
+          }
+        : {
+            id: 'trust',
+            label: DEFAULT_MASTER_PROFILE.trustLabel,
+            icon: 'shield-checkmark' as const,
+            tone: 'primary' as const,
+          },
     ];
 
     return {
@@ -157,8 +188,10 @@ export const useMasterProfile = (): UseMasterProfileResult => {
       walletBalanceLabel,
       ratingLabel,
       badges,
+      trustLabel: identityVerified ? 'Verified' : DEFAULT_MASTER_PROFILE.trustLabel,
     };
   }, [
+    identityVerified,
     isCorporateVerified,
     localAvatarUri,
     sheetRow?.mobile,
@@ -176,15 +209,6 @@ export const useMasterProfile = (): UseMasterProfileResult => {
       return;
     }
     router.replace(ROUTES.home);
-  }, [router]);
-
-  const openSettings = useCallback(() => {
-    triggerLightHaptic();
-    if (!canAccessLocalDemoData(findCurrentUserSheetRow()?.mobile || authSession.getUser()?.phone)) {
-      showAppAlert(PROFILE_SCREEN.comingSoonTitle, PROFILE_SCREEN.comingSoonMessage);
-      return;
-    }
-    router.push(ROUTES.demoData);
   }, [router]);
 
   const openCameraSheet = useCallback(() => {
@@ -279,19 +303,6 @@ export const useMasterProfile = (): UseMasterProfileResult => {
         return;
       }
 
-      if (id === 'demoData') {
-        if (
-          !canAccessLocalDemoData(
-            findCurrentUserSheetRow()?.mobile || authSession.getUser()?.phone,
-          )
-        ) {
-          showAppAlert(PROFILE_SCREEN.comingSoonTitle, PROFILE_SCREEN.comingSoonMessage);
-          return;
-        }
-        router.push(ROUTES.demoData);
-        return;
-      }
-
       showAppAlert(PROFILE_SCREEN.comingSoonTitle, PROFILE_SCREEN.comingSoonMessage);
     },
     [router],
@@ -316,7 +327,6 @@ export const useMasterProfile = (): UseMasterProfileResult => {
   return {
     profile,
     menuItems,
-    showDemoDataSettings: canOpenDemoData,
     uploadSheetVisible,
     avatarUploading,
     logoutVisible,
@@ -324,7 +334,6 @@ export const useMasterProfile = (): UseMasterProfileResult => {
     closeCameraSheet,
     applyAvatar,
     goBack,
-    openSettings,
     openAddRedeem,
     openPaymentMethods,
     onMenuPress,

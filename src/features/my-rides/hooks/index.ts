@@ -9,7 +9,7 @@ export { useCancelUpcomingConfirmed } from './useCancelUpcomingConfirmed';
 export type { UseCancelUpcomingConfirmedResult } from './useCancelUpcomingConfirmed';
 export { useDriverActiveTrip } from './useDriverActiveTrip';
 export type { UseDriverActiveTripResult } from './useDriverActiveTrip';
-export { useDriverPickup } from './useDriverPickup';
+export { useDriverPickup, DRIVER_PICKUP_OTP_SWIPE_THRESHOLD } from './useDriverPickup';
 export type { UseDriverPickupResult } from './useDriverPickup';
 export { useEmergencyEndTrip } from './useEmergencyEndTrip';
 export type { UseEmergencyEndTripResult } from './useEmergencyEndTrip';
@@ -27,6 +27,8 @@ export type {
   UseRiderRequestAcceptedResult,
   RiderAcceptedSummary,
 } from './useRiderRequestAccepted';
+export { useRiderProfile } from './useRiderProfile';
+export type { UseRiderProfileResult } from './useRiderProfile';
 export { useDeclineRiderRequest } from './useDeclineRiderRequest';
 export type { UseDeclineRiderRequestResult } from './useDeclineRiderRequest';
 export { useRequestDeclined } from './useRequestDeclined';
