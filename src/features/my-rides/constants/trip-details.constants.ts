@@ -21,9 +21,22 @@ export const TRIP_DETAILS_SCREEN = {
   vehicleLabel: 'Vehicle Used',
   earningsTitle: 'Earnings Breakdown',
   totalLabel: 'Total Earnings',
+  passengerTotalLabel: 'Passenger fares',
+  driverShareLabel: 'Driver share',
+  platformShareLabel: 'Platform share',
+  assuredBonusLabel: 'Assured Bonus',
+  otherEarningsLabel: 'Other earnings',
+  fareSubtitlePrefix: 'Fare',
+  seatsLabel: (count: number) => `${count} seats`,
   downloadInvoiceLabel: 'Download Invoice',
   downloadInvoiceTitle: 'Download Invoice',
   downloadInvoiceMessage: 'Share or save your trip invoice.',
+  loadingLabel: 'Loading trip details…',
+  loadErrorTitle: 'Unable to load trip',
+  loadErrorMessage: 'Pull to refresh or go back and try again.',
+  unavailableVehicle: 'Vehicle unavailable',
+  noPassengers: 'No passenger earnings recorded',
+  noFareBreakdown: 'Fare breakdown unavailable',
 } as const;
 
 const DRIVER_AVATAR =
@@ -103,21 +116,19 @@ export const getTripDetailsMock = (params?: {
     totalEarningsLabel: earnings.totalEarningsLabelCompact,
     mapImageUri: MAP_IMAGE,
     avatarUri: DRIVER_AVATAR,
+    pickup: null,
+    dropoff: null,
   };
 };
 
 export const getTripDetailsPath = (params?: {
   rideId?: string;
-  origin?: string;
-  destination?: string;
   rideType?: DriverRideKind;
 }) => ({
   pathname: ROUTES.myRidesTripDetails,
   params: withRideTypeParam(
     {
       rideId: params?.rideId ?? '',
-      origin: params?.origin ?? '',
-      destination: params?.destination ?? '',
     },
     parseDriverRideKind(params?.rideType),
   ),

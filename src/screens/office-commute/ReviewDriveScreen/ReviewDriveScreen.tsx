@@ -20,27 +20,30 @@ export const ReviewDriveScreen = () => {
     pickupLabel,
     destinationLabel,
     departureLabel,
+    returnDepartureLabel,
     distanceLabel,
     durationLabel,
     routeLoading,
     estimatedEarnings,
     weekdays,
     publishing,
+    canPublish,
     goBack,
     verifyIdentity,
     publishRide,
     isCorporateVerified,
+    corporateStatusReady,
   } = useReviewDrive();
 
   const hasRecurringDays = draft.recurringDays.length > 0;
 
   const handlePublish = useCallback(() => {
-    if (publishing) {
+    if (publishing || !canPublish) {
       return;
     }
     triggerLightHaptic();
     publishRide();
-  }, [publishRide, publishing]);
+  }, [canPublish, publishRide, publishing]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -71,6 +74,8 @@ export const ReviewDriveScreen = () => {
         <CommuteReviewMapPreview
           pickup={pickup}
           dropoff={destination}
+          pickupLabel={pickupLabel}
+          dropoffLabel={destinationLabel}
           routeCoordinates={routeCoordinates}
           distanceLabel={distanceLabel}
           durationLabel={durationLabel}
@@ -101,39 +106,46 @@ export const ReviewDriveScreen = () => {
 
           <View style={styles.bentoGrid}>
             <View style={[styles.card, styles.scheduleCard]}>
-              <View style={styles.scheduleRow}>
-                <View>
-                  <Text style={styles.fieldCaption}>{REVIEW_DRIVE_SCREEN.departureLabel}</Text>
-                  <View style={styles.timeRow}>
-                    <Ionicons name="time-outline" size={22} color="#4B61C4" />
-                    <Text style={styles.timeValue}>{departureLabel}</Text>
-                  </View>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.fieldCaption}>{REVIEW_DRIVE_SCREEN.repeatLabel}</Text>
-                  {hasRecurringDays ? (
-                    <View style={styles.daysRow}>
-                      {weekdays.map((day) => {
-                        const selected = draft.recurringDays.includes(day.id);
-                        return (
-                          <View
-                            key={day.id}
-                            style={[styles.dayChip, selected && styles.dayChipSelected]}
-                          >
-                            <Text
-                              style={[styles.dayLabel, selected && styles.dayLabelSelected]}
-                            >
-                              {day.label}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  ) : (
-                    <Text style={styles.oneTime}>{REVIEW_DRIVE_SCREEN.oneTimeLabel}</Text>
-                  )}
-                </View>
+              <Text style={styles.fieldCaption}>{REVIEW_DRIVE_SCREEN.departureLabel}</Text>
+              <View style={styles.timeRow}>
+                <Ionicons name="time-outline" size={22} color="#4B61C4" />
+                <Text style={styles.timeValue}>{departureLabel}</Text>
               </View>
+              {draft.returningBack && returnDepartureLabel ? (
+                <>
+                  <Text style={[styles.fieldCaption, styles.repeatCaption]}>
+                    Return
+                  </Text>
+                  <View style={styles.timeRow}>
+                    <Ionicons name="return-down-back-outline" size={22} color="#4B61C4" />
+                    <Text style={styles.timeValue}>{returnDepartureLabel}</Text>
+                  </View>
+                </>
+              ) : null}
+              <Text style={[styles.fieldCaption, styles.repeatCaption]}>
+                {REVIEW_DRIVE_SCREEN.repeatLabel}
+              </Text>
+              {hasRecurringDays ? (
+                <View style={styles.daysRow}>
+                  {weekdays.map((day) => {
+                    const selected = draft.recurringDays.includes(day.id);
+                    return (
+                      <View
+                        key={day.id}
+                        style={[styles.dayChip, selected && styles.dayChipSelected]}
+                      >
+                        <Text
+                          style={[styles.dayLabel, selected && styles.dayLabelSelected]}
+                        >
+                          {day.label}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <Text style={styles.oneTime}>{REVIEW_DRIVE_SCREEN.oneTimeLabel}</Text>
+              )}
             </View>
 
             <View style={[styles.card, styles.halfCard]}>
@@ -164,37 +176,39 @@ export const ReviewDriveScreen = () => {
             </View>
           </View>
 
-          <View>
-            {isCorporateVerified ? (
-              <View style={styles.verifiedCard}>
-                <Ionicons name="shield-checkmark" size={22} color="#374BB1" />
-                <Text style={styles.verifiedText}>{REVIEW_DRIVE_SCREEN.verifiedLabel}</Text>
-              </View>
-            ) : (
-              <>
-                <View style={styles.warningCard}>
-                  <Ionicons name="warning" size={22} color="#D97706" />
-                  <Text style={styles.warningText}>
-                    <Text style={styles.warningBold}>Note: </Text>
-                    {REVIEW_DRIVE_SCREEN.verifyWarning}
-                  </Text>
+          {corporateStatusReady ? (
+            <View>
+              {isCorporateVerified ? (
+                <View style={styles.verifiedCard}>
+                  <Ionicons name="shield-checkmark" size={22} color="#374BB1" />
+                  <Text style={styles.verifiedText}>{REVIEW_DRIVE_SCREEN.verifiedLabel}</Text>
                 </View>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.verifyButton,
-                    { marginTop: 16 },
-                    pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-                  ]}
-                  onPress={verifyIdentity}
-                  accessibilityRole="button"
-                  accessibilityLabel={REVIEW_DRIVE_SCREEN.verifyLabel}
-                >
-                  <Ionicons name="shield-checkmark-outline" size={20} color="#4B61C4" />
-                  <Text style={styles.verifyLabel}>{REVIEW_DRIVE_SCREEN.verifyLabel}</Text>
-                </Pressable>
-              </>
-            )}
-          </View>
+              ) : (
+                <>
+                  <View style={styles.warningCard}>
+                    <Ionicons name="warning" size={22} color="#D97706" />
+                    <Text style={styles.warningText}>
+                      <Text style={styles.warningBold}>Note: </Text>
+                      {REVIEW_DRIVE_SCREEN.verifyWarning}
+                    </Text>
+                  </View>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.verifyButton,
+                      { marginTop: 16 },
+                      pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+                    ]}
+                    onPress={verifyIdentity}
+                    accessibilityRole="button"
+                    accessibilityLabel={REVIEW_DRIVE_SCREEN.verifyLabel}
+                  >
+                    <Ionicons name="shield-checkmark-outline" size={20} color="#4B61C4" />
+                    <Text style={styles.verifyLabel}>{REVIEW_DRIVE_SCREEN.verifyLabel}</Text>
+                  </Pressable>
+                </>
+              )}
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -202,10 +216,11 @@ export const ReviewDriveScreen = () => {
         <Pressable
           style={({ pressed }) => [
             styles.publishButton,
-            pressed && !publishing && { opacity: 0.92, transform: [{ scale: 0.98 }] },
+            pressed && canPublish && { opacity: 0.92, transform: [{ scale: 0.98 }] },
+            !canPublish && { opacity: 0.55 },
           ]}
           onPress={handlePublish}
-          disabled={publishing}
+          disabled={!canPublish}
           accessibilityRole="button"
           accessibilityLabel={REVIEW_DRIVE_SCREEN.publishLabel}
         >

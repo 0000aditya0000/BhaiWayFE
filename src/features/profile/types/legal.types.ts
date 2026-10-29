@@ -1,22 +1,17 @@
 export type LegalPolicyId =
-  | 'terms'
+  | 'userAgreement'
+  | 'driverAgreement'
   | 'privacy'
-  | 'safety'
-  | 'community'
-  | 'licenses'
-  | 'cookies'
-  | 'deletion';
+  | 'terms';
 
 export interface LegalPolicyItem {
   id: LegalPolicyId;
   title: string;
   subtitle: string;
+  url: string;
   icon:
     | 'document-text-outline'
+    | 'car-outline'
     | 'shield-checkmark-outline'
-    | 'medkit-outline'
-    | 'people-outline'
-    | 'code-slash-outline'
-    | 'analytics-outline'
-    | 'trash-outline';
+    | 'reader-outline';
 }

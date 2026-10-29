@@ -1,5 +1,6 @@
 import type {
   TripCompletedData,
+  TripCompletedFareLine,
   TripCompletedPaymentOption,
   RideType,
 } from '../types';
@@ -15,33 +16,52 @@ export const TRIP_COMPLETED_SCREEN = {
   destinationLabel: 'DESTINATION',
   driverLabel: 'DRIVER',
   amountLabel: 'AMOUNT TO PAY',
+  rideFareLabel: 'Ride fare',
+  assuredDepositLabel: 'Assured security deposit',
+  assuredDepositNote: 'Already handled separately',
   paymentTitle: 'Payment Method',
+  walletOptionLabel: 'BhaiWay Wallet',
+  cashOptionLabel: 'Pay in Cash',
+  walletAvailablePrefix: 'Available:',
   payCta: 'Pay Now & Rate Driver',
+  processingLabel: 'Processing payment...',
   secureNote: 'Secure transaction processed by BhaiWay Pay',
   paidTitle: 'Payment Successful',
-  paidMessage: 'Thank you! You can rate your driver next.',
+  paidWalletMessage: 'paid from your\nBhaiWay Wallet',
+  paidCashTitle: 'Payment Marked as Cash',
+  paidCashMessage: 'Your ride fare has been marked\nas paid in cash.',
+  paidFareMessage: 'Your ride fare has been paid.',
+  paymentIdLabel: 'Payment ID',
+  doneCta: 'Done',
+  continueToRatingCta: 'Rate Driver',
+  insufficientTitle: 'Insufficient Wallet Balance',
+  insufficientAddMoneyCta: 'Add Money',
+  insufficientPayCashCta: 'Pay in Cash',
+  retryPaymentMessage: 'Payment could not be completed. Please try again.',
+  alreadyPaidTitle: 'Fare Paid',
+  alreadyPaidMessage: 'Your ride fare is already settled.',
 } as const;
 
-export const TRIP_COMPLETED_PAYMENT_OPTIONS: readonly TripCompletedPaymentOption[] = [
-  {
-    id: 'wallet',
-    label: 'BhaiWay Coins Wallet',
-    subtitle: 'Balance: 1,450',
-    icon: 'wallet',
-  },
-  {
-    id: 'upi',
-    label: 'UPI (Google Pay, PhonePe)',
-    subtitle: 'Instant bank transfer',
-    icon: 'business',
-  },
-  {
-    id: 'cash',
-    label: 'Pay Driver in BhaiWay Coins',
-    subtitle: 'Settle the driver directly in coins',
-    icon: 'cash',
-  },
-] as const;
+export const buildTripCompletedPaymentOptions = (walletAvailableLabel?: string | null) =>
+  [
+    {
+      id: 'wallet' as const,
+      label: TRIP_COMPLETED_SCREEN.walletOptionLabel,
+      subtitle: walletAvailableLabel
+        ? `${TRIP_COMPLETED_SCREEN.walletAvailablePrefix} ${walletAvailableLabel}`
+        : 'Pay from your BhaiWay Wallet',
+      icon: 'wallet' as const,
+    },
+    {
+      id: 'cash' as const,
+      label: TRIP_COMPLETED_SCREEN.cashOptionLabel,
+      subtitle: 'Settle the fare directly with your driver',
+      icon: 'cash' as const,
+    },
+  ] as const;
+
+/** @deprecated Use buildTripCompletedPaymentOptions — kept for type compatibility. */
+export const TRIP_COMPLETED_PAYMENT_OPTIONS = buildTripCompletedPaymentOptions();
 
 export const getTripCompletedMock = (params: {
   rideId: string;
@@ -55,6 +75,9 @@ export const getTripCompletedMock = (params: {
   originLng?: number;
   destinationLat?: number;
   destinationLng?: number;
+  dateLabel?: string;
+  distanceLabel?: string;
+  fareLines?: TripCompletedFareLine[];
 }): TripCompletedData => {
   const total = params.price != null && Number.isFinite(params.price) ? params.price : 240;
   const pickupTitle = shortName(params.origin) || 'Saket';
@@ -65,7 +88,7 @@ export const getTripCompletedMock = (params: {
   return {
     rideId: params.rideId,
     rideType: params.rideType,
-    dateLabel: 'Oct 24, 2023',
+    dateLabel: params.dateLabel?.trim() || '—',
     statusLabel: TRIP_COMPLETED_SCREEN.statusLabel,
     pickupTitle,
     pickupAddress: params.origin?.includes(',')
@@ -79,11 +102,12 @@ export const getTripCompletedMock = (params: {
     driverMeta: `4.9 • ${car} (DL 1C AB 1234)`,
     amountLabel: formatBhaiWayCoins(Math.round(total), { spaced: false }),
     totalAmount: total,
-    distanceLabel: '18.4 km total distance',
-    fareLines: [
-      { label: 'Base Fare', amountLabel: formatBhaiWayCoins(180, { spaced: false }) },
-      { label: 'Distance (18.4 km)', amountLabel: formatBhaiWayCoins(45, { spaced: false }) },
-      { label: 'Taxes & Fees', amountLabel: formatBhaiWayCoins(15, { spaced: false }) },
+    distanceLabel: params.distanceLabel?.trim() || '—',
+    fareLines: params.fareLines ?? [
+      {
+        label: 'Trip fare',
+        amountLabel: formatBhaiWayCoins(Math.round(total), { spaced: false }),
+      },
     ],
     pickup: {
       latitude: params.originLat ?? DEFAULT_MAP_COORDINATE.latitude,
@@ -108,11 +132,13 @@ export const getTripCompletedPath = (params: {
   originLng?: number;
   destinationLat?: number;
   destinationLng?: number;
+  bookingId?: string;
 }) => ({
   pathname: '/ride-search/trip-completed' as const,
   params: {
     rideId: params.rideId,
     rideType: params.rideType,
+    bookingId: params.bookingId ?? '',
     origin: params.origin ?? '',
     destination: params.destination ?? '',
     driverName: params.driverName ?? '',

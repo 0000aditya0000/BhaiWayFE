@@ -1,22 +1,27 @@
 import React, { useCallback } from 'react';
-import { RefreshControl, ScrollView } from 'react-native';
+import { RefreshControl, ScrollView, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { APP_CONFIG, ROUTES } from '@/config';
-import { ScreenIntro } from '@/shared/components';
-import { colors, spacing } from '@/shared/theme';
+import { AppText as Text } from '@/shared/components';
+import { colors } from '@/shared/theme';
 import { appModeStore } from '@/store';
 import { myRidesSurfaceStore } from '@/features/my-rides/store';
 import {
+  ActiveRideContainer,
   EmptyHomeState,
+  HomeCategoryCard,
+  HomeFooter,
   HomeHeader,
   HomeLoader,
-  ServiceCard,
 } from '@/features/home/components';
-import { HOME_SERVICE_CARD_ILLUSTRATIONS } from '@/features/home/constants';
-import { useHome } from '@/features/home/hooks';
-import type { ServiceCardData } from '@/features/home/types';
+import { getActiveRideDockHeight, HOME_GREETING } from '@/features/home/constants';
+import { useActiveRides, useHome } from '@/features/home/hooks';
+import type { HomeAction, HomeCategory } from '@/features/home/types';
+import { useUnreadNotificationCount } from '@/features/notifications/hooks';
 import { styles } from './HomeScreen.styles';
 
 export const HomeScreen = () => {
@@ -26,12 +31,14 @@ export const HomeScreen = () => {
     refreshing,
     error,
     firstName,
-    greetingSubtitle,
+    user,
     location,
-    serviceCards,
+    categories,
     refresh,
     retry,
   } = useHome();
+  const { count: unreadNotificationCount } = useUnreadNotificationCount();
+  const activeRide = useActiveRides();
 
   const handleNotifications = useCallback(() => {
     router.push(ROUTES.notifications);
@@ -41,62 +48,88 @@ export const HomeScreen = () => {
     router.push(ROUTES.profile);
   }, [router]);
 
-  const handleCardPress = useCallback(
-    (data: ServiceCardData) => {
-      if (data.variant === 'office') {
-        myRidesSurfaceStore.setOfficeCommute();
-        appModeStore.setRiding();
-        router.push(ROUTES.officeCommute);
-        return;
+  const handleActionPress = useCallback(
+    (action: HomeAction, _category: HomeCategory) => {
+      switch (action.id) {
+        case 'outstation-publish':
+          myRidesSurfaceStore.setStandard();
+          appModeStore.setDriving();
+          router.push(ROUTES.offerRide);
+          return;
+        case 'outstation-book':
+          myRidesSurfaceStore.setStandard();
+          appModeStore.setRiding();
+          router.push({
+            pathname: ROUTES.rideSearch,
+            params: { mode: 'outstation' },
+          });
+          return;
+        case 'office-publish':
+          myRidesSurfaceStore.setOfficeCommute();
+          appModeStore.setDriving();
+          router.push(ROUTES.officeCommutePublish);
+          return;
+        case 'office-book':
+          myRidesSurfaceStore.setOfficeCommute();
+          appModeStore.setRiding();
+          router.push(ROUTES.officeCommuteSearch);
+          return;
+        default:
+          return;
       }
-
-      if (data.variant === 'publish') {
-        myRidesSurfaceStore.setStandard();
-        appModeStore.setDriving();
-        router.push(ROUTES.offerRide);
-        return;
-      }
-
-      myRidesSurfaceStore.setStandard();
-      appModeStore.setRiding();
-      router.push({
-        pathname: ROUTES.rideSearch,
-        params: { mode: data.variant },
-      });
     },
     [router],
   );
 
-  const showEmpty = !loading && !error && serviceCards.length === 0;
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([refresh(), activeRide.refresh()]);
+  }, [activeRide.refresh, refresh]);
+
+  const showEmpty = !loading && !error && categories.length === 0;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <LinearGradient
+        colors={['#EEF1FA', '#F4F6FB', '#F8F9FA']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.backdrop}
+        pointerEvents="none"
+      />
+
       <HomeHeader
         brandName={APP_CONFIG.name}
         location={location}
+        hasUnreadNotifications={unreadNotificationCount > 0}
+        notificationBadgeCount={unreadNotificationCount}
+        avatarUri={user?.avatarUri}
         onNotificationsPress={handleNotifications}
         onProfilePress={handleProfile}
       />
 
       <ScrollView
+        style={activeRide.visible ? { marginBottom: getActiveRideDockHeight() } : undefined}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={refresh}
+            onRefresh={handleRefresh}
             tintColor={colors.primary}
             colors={[colors.primary]}
           />
         }
       >
-        <ScreenIntro
-          title={`Hi, ${firstName}!`}
-          subtitle={greetingSubtitle}
-          variant="default"
-          style={styles.intro}
-        />
+        <Animated.View entering={FadeInDown.duration(380)} style={styles.hero}>
+          <View style={styles.greetingRow}>
+            <Text style={styles.greeting} accessibilityRole="header">
+              {HOME_GREETING.prefix},{' '}
+              <Text style={[styles.greeting, styles.greetingAccent]}>{firstName}</Text>
+            </Text>
+          </View>
+          <Text style={styles.heroHint}>{HOME_GREETING.hint}</Text>
+        </Animated.View>
 
         {loading ? <HomeLoader /> : null}
 
@@ -118,18 +151,32 @@ export const HomeScreen = () => {
           />
         ) : null}
 
-        {!loading && !error
-          ? serviceCards.map((card, index) => (
-              <ServiceCard
-                key={card.id}
-                data={card}
+        {!loading && !error && categories.length > 0 ? (
+          <>
+            {categories.map((category, index) => (
+              <HomeCategoryCard
+                key={category.id}
+                category={category}
                 index={index}
-                illustration={HOME_SERVICE_CARD_ILLUSTRATIONS[card.variant]}
-                onPress={handleCardPress}
+                onActionPress={handleActionPress}
               />
-            ))
-          : null}
+            ))}
+            <HomeFooter />
+          </>
+        ) : null}
       </ScrollView>
+
+      {activeRide.visible ? (
+        <ActiveRideContainer
+          items={activeRide.items}
+          selected={activeRide.selected}
+          expanded={activeRide.expanded}
+          onToggleExpanded={activeRide.toggleExpanded}
+          onCollapse={activeRide.collapse}
+          onSelectRide={activeRide.selectRide}
+          onGoToRide={activeRide.goToRide}
+        />
+      ) : null}
     </SafeAreaView>
   );
 };

@@ -1,6 +1,7 @@
-import { Platform, Share } from 'react-native';
+import { Share } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 
+import { shareLocalFile } from '@/shared/utils';
 import type { RideInvoiceSummary, TripDetailsSummary } from '../types';
 
 const safeFileName = (value: string): string =>
@@ -11,7 +12,13 @@ export const buildDriverTripInvoiceText = (trip: TripDetailsSummary): string => 
     'BhaiWay — Trip Invoice (Driver)',
     '================================',
     `Ride ID: ${trip.rideId}`,
-    `Type: ${trip.rideType === 'assured' ? 'Assured' : 'Regular'}`,
+    `Type: ${
+      trip.rideType === 'assured'
+        ? 'Assured'
+        : trip.rideType === 'commute'
+          ? 'Office Commute'
+          : 'Regular'
+    }`,
     `Date: ${trip.dateLabel}`,
     `Status: ${trip.statusLabel}`,
     '',
@@ -25,11 +32,13 @@ export const buildDriverTripInvoiceText = (trip: TripDetailsSummary): string => 
     `  ${trip.vehicle.plateNumber}`,
     '',
     'Earnings',
-    ...trip.earningsLines.map((line) =>
-      line.kind === 'bonus'
-        ? `  ${line.name}: ${line.amountLabel}`
-        : `  ${line.name}${line.tag ? ` (${line.tag})` : ''}: ${line.amountLabel}`,
-    ),
+    ...trip.earningsLines.map((line) => {
+      if (line.kind === 'passenger') {
+        const fareNote = line.subtitle ? ` [${line.subtitle}]` : '';
+        return `  ${line.name}${line.tag ? ` (${line.tag})` : ''}: ${line.amountLabel}${fareNote}`;
+      }
+      return `  ${line.name}: ${line.amountLabel}`;
+    }),
     '',
     `Total Earnings: ${trip.totalEarningsLabel}`,
     '',
@@ -42,8 +51,8 @@ export const buildRiderTripInvoiceText = (invoice: RideInvoiceSummary): string =
   const lines = [
     'BhaiWay — Ride Invoice',
     '======================',
-    `Invoice ID: ${invoice.invoiceId}`,
-    `Ride ID: ${invoice.id}`,
+    `Booking ID: ${invoice.bookingId}`,
+    `Ride ID: ${invoice.rideId || invoice.bookingId}`,
     `Date: ${invoice.dateLabel}`,
     `Status: ${invoice.statusLabel}`,
     '',
@@ -85,18 +94,10 @@ export const shareInvoiceDocument = async (params: {
 
   const path = `${directory}${fileName}`;
   await FileSystem.writeAsStringAsync(path, params.body);
-
-  if (Platform.OS === 'ios') {
-    await Share.share({
-      title: params.dialogTitle,
-      url: path,
-      message: params.body,
-    });
-    return;
-  }
-
-  await Share.share({
-    title: params.dialogTitle,
-    message: params.body,
+  await shareLocalFile({
+    path,
+    mimeType: 'text/plain',
+    dialogTitle: params.dialogTitle,
+    uti: 'public.plain-text',
   });
 };

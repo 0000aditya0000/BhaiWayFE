@@ -12,7 +12,13 @@ export const styles = StyleSheet.create({
     padding: spacing.md,
     borderWidth: 1,
     borderColor: 'rgba(198, 198, 205, 0.3)',
-    ...createShadow({ color: colors.shadow, opacity: 0.04, radius: 20, offsetY: 4, elevation: 3 }),
+    ...createShadow({
+      color: colors.shadow,
+      opacity: 0.04,
+      radius: 20,
+      offsetY: 4,
+      elevation: 3,
+    }),
   },
   iconWrap: {
     width: 44,
@@ -42,6 +48,10 @@ export const styles = StyleSheet.create({
   amount: {
     ...typography.label,
     color: colors.textPrimary,
+  },
+  percentage: {
+    ...typography.caption,
+    color: colors.textSecondary,
   },
   selected: {
     ...typography.caption,

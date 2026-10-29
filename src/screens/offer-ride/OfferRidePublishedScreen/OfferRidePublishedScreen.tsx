@@ -21,6 +21,9 @@ import { styles } from './OfferRidePublishedScreen.styles';
 export const OfferRidePublishedScreen = () => {
   const {
     isAssured,
+    successTitle,
+    successSubtitle,
+    statusLabel,
     pickupLabel,
     dropoffLabel,
     departureLabel,
@@ -100,8 +103,11 @@ export const OfferRidePublishedScreen = () => {
               <Ionicons name="checkmark-circle" size={44} color={colors.white} />
             </Animated.View>
           </View>
-          <Text style={styles.title}>{RIDE_PUBLISHED_SCREEN.title}</Text>
-          <Text style={styles.subtitle}>{RIDE_PUBLISHED_SCREEN.subtitle}</Text>
+          <Text style={styles.title}>{successTitle}</Text>
+          <Text style={styles.subtitle}>{successSubtitle}</Text>
+          {isAssured && statusLabel ? (
+            <Text style={styles.subtitle}>{statusLabel}</Text>
+          ) : null}
         </View>
 
         <View style={styles.tripCard}>

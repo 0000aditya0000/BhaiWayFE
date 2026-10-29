@@ -33,6 +33,8 @@ export const RIDE_PREFERENCES_SCREEN = {
   refundableHint: 'Amount will be refunded after trip ends.',
   totalToPayLabel: 'Total to Pay',
   assuredRefundableAmount: '50.00',
+  /** UX-only fallback % for driver deposit display/pre-check — backend admin % is authoritative. */
+  assuredDriverDepositPercentUx: 5,
   assuredNote:
     'Assured ride amount will not be refunded if you cancel the trip.',
   assuredNotePrefix: 'Note:',
@@ -43,6 +45,10 @@ export const RIDE_PREFERENCES_SCREEN = {
   safetyMessage:
     'Follow BhaiWay safety guidelines: verify rider identity, share trip details with a trusted contact, and avoid cash-only off-app deals.',
 } as const;
+
+/** UX-only — backend admin Assured driver deposit % is authoritative on POST /rides. */
+export const ASSURED_DRIVER_DEPOSIT_PERCENT_UX =
+  RIDE_PREFERENCES_SCREEN.assuredDriverDepositPercentUx;
 
 export const RIDE_PREFERENCE_OPTIONS: readonly {
   id: RidePreferenceId;

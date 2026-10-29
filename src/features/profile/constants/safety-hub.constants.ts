@@ -12,14 +12,9 @@ export const SAFETY_HUB_SCREEN = {
   sosBody:
     'Immediate connection to local emergency services and our 24/7 security team.',
   reportHeading: 'Report an Issue',
-  contactHeading: 'Contact Us',
-  chatLabel: 'Chat with BhaiWay Support',
-  responseTimeLabel: 'Average response time: 2 minutes',
   infoTitle: 'Safety Hub',
   infoMessage:
     'Use trusted contacts, SOS, and reporting tools to stay safe on every BhaiWay trip.',
-  reportTitle: 'Coming Soon',
-  reportMessage: 'Issue reporting will be available soon.',
 } as const;
 
 export { TRUSTED_CONTACTS };

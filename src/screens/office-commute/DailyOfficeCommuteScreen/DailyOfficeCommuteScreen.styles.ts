@@ -1,15 +1,155 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing } from '@/shared/theme';
+
+import { colors, spacing, typography } from '@/shared/theme';
+import { createShadow } from '@/shared/utils/platform';
 
 export const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: '#F5F6FA',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: spacing.screenHorizontal,
     paddingTop: spacing.lg,
     paddingBottom: spacing.huge,
+    gap: spacing.lg,
+  },
+  heroOuter: {
+    borderRadius: 28,
+    overflow: 'hidden',
+    ...createShadow({
+      color: colors.primaryDark,
+      opacity: 0.26,
+      radius: 22,
+      offsetY: 12,
+      elevation: 9,
+    }),
+  },
+  heroCanvas: {
+    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    overflow: 'hidden',
+  },
+  orbOne: {
+    position: 'absolute',
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    top: -55,
+    right: -35,
+  },
+  orbTwo: {
+    position: 'absolute',
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    bottom: 78,
+    left: -32,
+  },
+  heroCopy: {
+    gap: spacing.sm,
+    zIndex: 2,
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  heroBadgeText: {
+    ...typography.caption,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textInverse,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+  },
+  heroTitle: {
+    ...typography.title,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+    color: colors.textInverse,
+  },
+  heroSubtitle: {
+    ...typography.body,
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xl,
+    zIndex: 2,
+  },
+  actionCard: {
+    flex: 1,
+    borderRadius: 18,
+    backgroundColor: colors.white,
+    padding: spacing.md,
+    minHeight: 138,
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    ...createShadow({
+      color: colors.shadow,
+      opacity: 0.1,
+      radius: 12,
+      offsetY: 4,
+      elevation: 3,
+    }),
+  },
+  actionCardPressed: {
+    opacity: 0.94,
+    transform: [{ scale: 0.98 }],
+  },
+  actionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionTitle: {
+    ...typography.title,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  actionSubtitle: {
+    ...typography.caption,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  actionFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+  },
+  actionCta: {
+    ...typography.caption,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  actionArrow: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { FlatList, Pressable, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,43 +13,60 @@ import {
 } from '@/shared/components';
 import { colors } from '@/shared/theme';
 import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
-import { DRIVER_CHAT_SCREEN } from '@/features/ride-search/constants';
-import { useDriverChat } from '@/features/ride-search/hooks';
-import type { ChatMessage } from '@/features/ride-search/types';
+import { CHAT_SCREEN, useConversationChat } from '@/features/chat';
+import type { ChatUiMessage } from '@/features/chat';
 import { styles } from './DriverChatScreen.styles';
 
 const MessageBubble = ({
   item,
-  selfSender,
+  onRetry,
 }: {
-  item: ChatMessage;
-  selfSender: 'user' | 'driver';
+  item: ChatUiMessage;
+  onRetry: (message: ChatUiMessage) => void;
 }) => {
-  const isSelf = item.sender === selfSender;
+  const isSelf = item.isMine;
 
   return (
-    <View style={isSelf ? styles.messageBlockRight : styles.messageBlockLeft}>
+    <Pressable
+      onPress={() => {
+        if (item.localStatus === 'failed') {
+          onRetry(item);
+        }
+      }}
+      disabled={item.localStatus !== 'failed'}
+      style={isSelf ? styles.messageBlockRight : styles.messageBlockLeft}
+    >
       <View style={isSelf ? styles.bubbleRight : styles.bubbleLeft}>
         <Text style={isSelf ? styles.messageTextRight : styles.messageTextLeft}>{item.text}</Text>
       </View>
       {isSelf ? (
         <View style={styles.metaRight}>
-          <Text style={styles.metaRightText}>{item.timeLabel}</Text>
-          <Ionicons
-            name={item.status === 'read' ? 'checkmark-done' : 'checkmark'}
-            size={14}
-            color="#374BB1"
-          />
+          <Text style={styles.metaRightText}>
+            {item.localStatus === 'failed'
+              ? 'Failed · tap to retry'
+              : item.localStatus === 'pending'
+                ? 'Sending…'
+                : item.timeLabel}
+          </Text>
+          {item.localStatus === 'sent' || item.localStatus === 'read' ? (
+            <Ionicons
+              name={item.localStatus === 'read' ? 'checkmark-done' : 'checkmark'}
+              size={14}
+              color="#374BB1"
+            />
+          ) : null}
         </View>
       ) : (
         <Text style={styles.metaLeft}>{item.timeLabel}</Text>
       )}
-    </View>
+    </Pressable>
   );
 };
 
 export const DriverChatScreen = () => {
   const params = useLocalSearchParams<{
+    conversationId?: string;
+    bookingId?: string;
     driverName?: string;
     carModel?: string;
     threadId?: string;
@@ -60,38 +77,59 @@ export const DriverChatScreen = () => {
   }>();
 
   const perspectiveParam = getSearchParam(params.perspective);
+  const conversationId =
+    getSearchParam(params.conversationId) || getSearchParam(params.threadId);
+  const bookingId = getSearchParam(params.bookingId);
+
   const {
-    profile,
+    loading,
+    errorMessage,
+    isClosed,
+    peerName,
+    peerSubtitle,
+    routeLabel,
+    tripTimeLabel,
+    avatarUri,
     messages,
     draft,
     quickReplies,
     listRef,
     perspective,
-    selfSender,
-    callLabel,
+    peerTyping,
+    loadingOlder,
+    hasMoreOlder,
     setDraft,
     sendMessage,
+    retryFailedMessage,
+    loadOlderMessages,
+    onMessagesScroll,
     goBack,
-    callDriver,
-    openMore,
-    attachFile,
-  } = useDriverChat({
-    driverName: getSearchParam(params.driverName),
-    carModel: getSearchParam(params.carModel),
-    threadId: getSearchParam(params.threadId),
-    perspective: perspectiveParam === 'driver' ? 'driver' : 'rider',
+    canCallPeer,
+    callPeer,
+  } = useConversationChat({
+    conversationId,
+    bookingId,
+    peerName: getSearchParam(params.driverName),
+    peerSubtitle: getSearchParam(params.carModel),
     routeLabel: getSearchParam(params.routeLabel),
     tripTimeLabel: getSearchParam(params.tripTimeLabel),
     avatarUri: getSearchParam(params.avatarUri),
+    perspective: perspectiveParam === 'driver' ? 'driver' : 'rider',
   });
 
   const isDriverView = perspective === 'driver';
   const hasDraft = draft.trim().length > 0;
+  const canCompose = !isClosed && !loading && !errorMessage;
 
   const handleBack = useCallback(() => {
     triggerLightHaptic();
     goBack();
   }, [goBack]);
+
+  const handleCall = useCallback(() => {
+    triggerLightHaptic();
+    callPeer();
+  }, [callPeer]);
 
   const handleSend = useCallback(() => {
     triggerLightHaptic();
@@ -107,10 +145,10 @@ export const DriverChatScreen = () => {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: ChatMessage }) => (
-      <MessageBubble item={item} selfSender={selfSender} />
+    ({ item }: { item: ChatUiMessage }) => (
+      <MessageBubble item={item} onRetry={retryFailedMessage} />
     ),
-    [selfSender],
+    [retryFailedMessage],
   );
 
   return (
@@ -125,137 +163,153 @@ export const DriverChatScreen = () => {
           />
           <View style={styles.profileRow}>
             <View style={styles.avatarWrap}>
-              <Avatar
-                size={40}
-                uri={profile.avatarUri}
-                accessibilityLabel={`${profile.name} photo`}
-              />
+              <Avatar size={40} uri={avatarUri} accessibilityLabel={`${peerName} photo`} />
             </View>
             <View style={{ flexShrink: 1 }}>
               <View style={styles.peerNameRow}>
                 <Text style={styles.peerName} numberOfLines={1}>
-                  {profile.name}
+                  {peerName}
                 </Text>
-                {profile.verified ? (
-                  <Ionicons name="checkmark-circle" size={16} color="#4B61C4" />
-                ) : null}
               </View>
-              {isDriverView ? (
-                <Text style={styles.roleLabel}>
-                  {profile.roleLabel || DRIVER_CHAT_SCREEN.riderRoleLabel}
+              <View style={styles.statusRow}>
+                <Text style={styles.roleLabel} numberOfLines={1}>
+                  {peerTyping ? CHAT_SCREEN.peerTyping : peerSubtitle}
                 </Text>
-              ) : (
-                <View style={styles.statusRow}>
-                  <Text style={styles.onlineLabel}>{DRIVER_CHAT_SCREEN.onlineLabel}</Text>
-                  <Text style={styles.vehicleLabel}>• {profile.vehicleLabel}</Text>
-                </View>
-              )}
+              </View>
             </View>
           </View>
         </View>
         <View style={styles.headerActions}>
           <IconButton
             icon="call-outline"
-            onPress={callDriver}
-            color="#434655"
-            accessibilityLabel={callLabel}
-          />
-          <IconButton
-            icon="ellipsis-vertical"
-            onPress={openMore}
-            color="#434655"
-            accessibilityLabel="More options"
+            onPress={handleCall}
+            color={canCallPeer ? colors.primary : '#9AA0B4'}
+            accessibilityLabel={isDriverView ? 'Call passenger' : 'Call driver'}
           />
         </View>
       </View>
 
-      {profile.routeLabel ? (
+      {routeLabel ? (
         <View style={styles.tripBanner}>
           <View style={styles.tripBannerLeft}>
             <Ionicons name="navigate-outline" size={18} color="#374BB1" />
             <Text style={styles.tripRoute} numberOfLines={1}>
-              {profile.routeLabel}
+              {routeLabel}
             </Text>
           </View>
-          {profile.tripTimeLabel ? (
-            <Text style={styles.tripTime}>{profile.tripTimeLabel}</Text>
-          ) : null}
+          {tripTimeLabel ? <Text style={styles.tripTime}>{tripTimeLabel}</Text> : null}
         </View>
       ) : null}
 
-      <FlatList
-        ref={listRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ListHeaderComponent={
-          <View style={styles.dayChipWrap}>
-            <View style={styles.dayChip}>
-              <Text style={styles.dayChipText}>{DRIVER_CHAT_SCREEN.todayLabel}</Text>
+      {loading ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={colors.primary} />
+          <Text style={styles.metaLeft}>{CHAT_SCREEN.loading}</Text>
+        </View>
+      ) : errorMessage && messages.length === 0 ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <Text style={styles.peerName}>{CHAT_SCREEN.unavailableTitle}</Text>
+          <Text style={[styles.metaLeft, { textAlign: 'center', marginTop: 8 }]}>
+            {errorMessage}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          ref={listRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          ListHeaderComponent={
+            hasMoreOlder ? (
+              <Pressable
+                onPress={loadOlderMessages}
+                disabled={loadingOlder}
+                style={styles.dayChipWrap}
+              >
+                <View style={styles.dayChip}>
+                  <Text style={styles.dayChipText}>
+                    {loadingOlder ? CHAT_SCREEN.loadingOlder : CHAT_SCREEN.loadOlder}
+                  </Text>
+                </View>
+              </Pressable>
+            ) : messages.length === 0 ? (
+              <View style={styles.dayChipWrap}>
+                <View style={styles.dayChip}>
+                  <Text style={styles.dayChipText}>{CHAT_SCREEN.emptyMessages}</Text>
+                </View>
+              </View>
+            ) : null
+          }
+          extraData={messages.length}
+          onScroll={onMessagesScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        />
+      )}
+
+      {isClosed ? (
+        <View style={styles.tripBanner}>
+          <Text style={styles.tripRoute}>{CHAT_SCREEN.closedBanner}</Text>
+        </View>
+      ) : null}
+
+      {canCompose ? (
+        <>
+          <View style={styles.quickWrap}>
+            <View style={styles.quickRow}>
+              {quickReplies.map((reply: string) => (
+                <Pressable
+                  key={reply}
+                  style={({ pressed }) => [
+                    styles.quickChip,
+                    pressed && {
+                      backgroundColor: 'rgba(55, 75, 177, 0.05)',
+                      transform: [{ scale: 0.97 }],
+                    },
+                  ]}
+                  onPress={() => handleQuickReply(reply)}
+                  accessibilityRole="button"
+                  accessibilityLabel={reply}
+                >
+                  <Text style={styles.quickLabel}>{reply}</Text>
+                </Pressable>
+              ))}
             </View>
           </View>
-        }
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-        keyboardShouldPersistTaps="handled"
-      />
 
-      <View style={styles.quickWrap}>
-        <View style={styles.quickRow}>
-          {quickReplies.map((reply) => (
-            <Pressable
-              key={reply}
-              style={({ pressed }) => [
-                styles.quickChip,
-                pressed && { backgroundColor: 'rgba(55, 75, 177, 0.05)', transform: [{ scale: 0.97 }] },
-              ]}
-              onPress={() => handleQuickReply(reply)}
-              accessibilityRole="button"
-              accessibilityLabel={reply}
-            >
-              <Text style={styles.quickLabel}>{reply}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.composer}>
-        <View style={styles.inputRow}>
-          <Pressable
-            style={({ pressed }) => [styles.addButton, pressed && { transform: [{ scale: 0.9 }] }]}
-            onPress={attachFile}
-            accessibilityRole="button"
-            accessibilityLabel="Attach file"
-          >
-            <Ionicons name="add" size={22} color="#434655" />
-          </Pressable>
-          <View style={styles.inputShell}>
-            <TextInput
-              style={styles.input}
-              value={draft}
-              onChangeText={setDraft}
-              placeholder={DRIVER_CHAT_SCREEN.inputPlaceholder}
-              placeholderTextColor="rgba(67,70,85,0.5)"
-              returnKeyType="send"
-              onSubmitEditing={handleSend}
-              accessibilityLabel="Message input"
-            />
+          <View style={styles.composer}>
+            <View style={styles.inputRow}>
+              <View style={[styles.inputShell, { flex: 1 }]}>
+                <TextInput
+                  style={styles.input}
+                  value={draft}
+                  onChangeText={setDraft}
+                  placeholder={CHAT_SCREEN.inputPlaceholder}
+                  placeholderTextColor="rgba(67,70,85,0.5)"
+                  returnKeyType="send"
+                  onSubmitEditing={handleSend}
+                  maxLength={CHAT_SCREEN.maxLength}
+                  accessibilityLabel="Message input"
+                />
+              </View>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.sendButton,
+                  hasDraft && styles.sendButtonActive,
+                  pressed && { transform: [{ scale: 0.92 }] },
+                ]}
+                onPress={handleSend}
+                accessibilityRole="button"
+                accessibilityLabel="Send message"
+              >
+                <Ionicons name="send" size={18} color={colors.white} />
+              </Pressable>
+            </View>
           </View>
-          <Pressable
-            style={({ pressed }) => [
-              styles.sendButton,
-              hasDraft && styles.sendButtonActive,
-              pressed && { transform: [{ scale: 0.92 }] },
-            ]}
-            onPress={handleSend}
-            accessibilityRole="button"
-            accessibilityLabel="Send message"
-          >
-            <Ionicons name="send" size={18} color={colors.white} />
-          </Pressable>
-        </View>
-      </View>
+        </>
+      ) : null}
 
       <AppFooter activeTab={isDriverView ? 'rides' : 'inbox'} />
     </SafeAreaView>

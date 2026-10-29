@@ -1,4 +1,5 @@
 import type { UserProfile } from '@/features/auth/types';
+import type { ApiGender } from '@/features/auth/types';
 
 import { authStorage } from './authStorage';
 
@@ -10,6 +11,8 @@ export interface SessionUser {
   email: string | null;
   avatarUri: string | null;
   phone: string | null;
+  /** Canonical gender from GET /users/me profile.gender (Aadhaar-controlled). */
+  gender: ApiGender | null;
 }
 
 interface AuthSessionState {
@@ -53,6 +56,7 @@ const toSessionUser = (
   email: partial.email ?? null,
   avatarUri: partial.avatarUri ?? null,
   phone: partial.phone ?? null,
+  gender: partial.gender ?? null,
 });
 
 const persistCurrent = (): void => {
@@ -87,6 +91,7 @@ export const authSession = {
         email: saved.user.email,
         avatarUri: saved.user.avatarUri,
         phone: saved.user.phone,
+        gender: saved.user.gender ?? null,
       });
       state.role = saved.role ?? null;
     } else {
@@ -126,6 +131,14 @@ export const authSession = {
 
   setUserFromProfile: (profile: UserProfile): void => {
     const [firstName] = profile.fullName.trim().split(/\s+/);
+    const genderFromUi =
+      profile.gender === 'male'
+        ? 'MALE'
+        : profile.gender === 'female'
+          ? 'FEMALE'
+          : profile.gender === 'other'
+            ? 'OTHER'
+            : null;
     state.user = toSessionUser({
       id: state.user?.id || profile.id,
       fullName: profile.fullName,
@@ -133,6 +146,7 @@ export const authSession = {
       email: profile.email,
       avatarUri: profile.avatarUri,
       phone: state.user?.phone ?? null,
+      gender: state.user?.gender ?? genderFromUi,
     });
     state.profileCompleted = true;
     persistCurrent();
@@ -151,6 +165,15 @@ export const authSession = {
 
   subscribe: (listener: SessionListener): (() => void) => {
     listeners.add(listener);
+    // Replay current state immediately so listeners attached after hydrate
+    // (e.g. push registration) do not miss an already-authenticated session.
+    listener({
+      token: state.token,
+      user: state.user ? { ...state.user } : null,
+      role: state.role,
+      profileCompleted: state.profileCompleted,
+      hydrated: state.hydrated,
+    });
     return () => {
       listeners.delete(listener);
     };

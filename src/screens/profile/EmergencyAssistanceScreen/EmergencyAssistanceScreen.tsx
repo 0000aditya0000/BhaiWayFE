@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -19,6 +19,7 @@ import { emergencyTokens, styles } from './EmergencyAssistanceScreen.styles';
 export const EmergencyAssistanceScreen = () => {
   const {
     ride,
+    rideLoading,
     contacts,
     tips,
     isHolding,
@@ -32,6 +33,11 @@ export const EmergencyAssistanceScreen = () => {
     callContact,
     openMap,
   } = useEmergencyAssistance();
+
+  const counterpartHeading =
+    ride.role === 'driver'
+      ? EMERGENCY_ASSISTANCE_SCREEN.driverCounterpartLabel
+      : EMERGENCY_ASSISTANCE_SCREEN.riderCounterpartLabel;
 
   const pulse = useSharedValue(1);
 
@@ -97,7 +103,7 @@ export const EmergencyAssistanceScreen = () => {
                 accessibilityRole="button"
                 accessibilityLabel="SOS emergency button. Tap three times or hold to trigger alert."
               >
-                <Ionicons name="warning" size={64} color="#FFFFFF" />
+                <Ionicons name="warning" size={56} color="#FFFFFF" />
                 <Text style={styles.sosLabel}>{EMERGENCY_ASSISTANCE_SCREEN.sosLabel}</Text>
               </Pressable>
             </Animated.View>
@@ -115,41 +121,84 @@ export const EmergencyAssistanceScreen = () => {
             <Text style={styles.rideSectionLabel}>
               {EMERGENCY_ASSISTANCE_SCREEN.rideSectionLabel}
             </Text>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusLabel}>{ride.statusLabel}</Text>
-            </View>
-          </View>
-
-          <View style={styles.driverRow}>
-            <Image
-              source={{ uri: ride.avatarUri }}
-              style={styles.driverAvatar}
-              accessibilityIgnoresInvertColors
-              accessibilityLabel={ride.driverName}
-            />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.driverName}>{ride.driverName}</Text>
-              <Text style={styles.driverMeta}>
-                {ride.vehicleLabel} • {ride.plateNumber}
+            <View
+              style={[
+                styles.statusBadge,
+                !ride.hasActiveRide && styles.statusBadgeMuted,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusLabel,
+                  !ride.hasActiveRide && styles.statusLabelMuted,
+                ]}
+              >
+                {ride.hasActiveRide
+                  ? ride.statusLabel
+                  : EMERGENCY_ASSISTANCE_SCREEN.noActiveRideLabel}
               </Text>
             </View>
           </View>
 
-          <View style={styles.locationCard}>
-            <Ionicons name="location" size={22} color={emergencyTokens.PRIMARY} />
-            <View style={styles.locationMeta}>
-              <Text style={styles.locationLabel}>{EMERGENCY_ASSISTANCE_SCREEN.locationLabel}</Text>
-              <Text style={styles.locationValue}>{ride.locationLabel}</Text>
+          {rideLoading ? (
+            <View style={styles.rideLoadingRow}>
+              <ActivityIndicator color={emergencyTokens.PRIMARY} />
             </View>
-            <Pressable
-              onPress={openMap}
-              accessibilityRole="button"
-              accessibilityLabel={EMERGENCY_ASSISTANCE_SCREEN.mapLabel}
-              hitSlop={8}
-            >
-              <Text style={styles.mapLabel}>{EMERGENCY_ASSISTANCE_SCREEN.mapLabel}</Text>
-            </Pressable>
-          </View>
+          ) : (
+            <>
+              <View style={styles.driverRow}>
+                {ride.avatarUri ? (
+                  <Image
+                    source={{ uri: ride.avatarUri }}
+                    style={styles.driverAvatar}
+                    accessibilityIgnoresInvertColors
+                    accessibilityLabel={ride.driverName}
+                  />
+                ) : (
+                  <View style={[styles.driverAvatar, { alignItems: 'center', justifyContent: 'center' }]}>
+                    <Ionicons
+                      name={ride.hasActiveRide ? 'person' : 'car-outline'}
+                      size={28}
+                      color={emergencyTokens.PRIMARY}
+                    />
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  {ride.hasActiveRide ? (
+                    <Text style={styles.counterpartLabel}>{counterpartHeading}</Text>
+                  ) : null}
+                  <Text style={styles.driverName}>{ride.driverName}</Text>
+                  {ride.hasActiveRide ? (
+                    <Text style={styles.driverMeta}>
+                      {ride.vehicleLabel} • {ride.plateNumber}
+                    </Text>
+                  ) : (
+                    <Text style={styles.driverMeta}>{ride.locationLabel}</Text>
+                  )}
+                </View>
+              </View>
+
+              {ride.hasActiveRide ? (
+                <View style={styles.locationCard}>
+                  <Ionicons name="location" size={22} color={emergencyTokens.PRIMARY} />
+                  <View style={styles.locationMeta}>
+                    <Text style={styles.locationLabel}>
+                      {EMERGENCY_ASSISTANCE_SCREEN.locationLabel}
+                    </Text>
+                    <Text style={styles.locationValue}>{ride.locationLabel}</Text>
+                  </View>
+                  <Pressable
+                    onPress={openMap}
+                    accessibilityRole="button"
+                    accessibilityLabel={EMERGENCY_ASSISTANCE_SCREEN.mapLabel}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.mapLabel}>{EMERGENCY_ASSISTANCE_SCREEN.mapLabel}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </>
+          )}
         </View>
 
         <View style={styles.contactsSection}>

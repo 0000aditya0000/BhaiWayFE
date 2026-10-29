@@ -79,6 +79,7 @@ export const KeyboardAwareScrollView = ({
     >
       <ScrollView
         ref={setRefs}
+        style={{ flex: 1 }}
         contentContainerStyle={[
           contentContainerStyle,
           { paddingBottom: insets.bottom + bottomInset, flexGrow: 1 },

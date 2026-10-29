@@ -4,6 +4,15 @@ import type { PublishedRideSummary } from '../store/publishedRideStore';
 import type { PublishRideDraft, PublishRideVehicleOption } from '../types';
 import type { CreateRideDto, RideResponseDto } from '../api/rides.types';
 import { CREATE_RIDE_SEAT_LIMITS } from '../api/rides.types';
+import { mapRideStatusLabel } from './mapRideStatusLabel';
+import { PUBLISH_REQUIREMENT_MESSAGES } from './publishReadiness';
+import {
+  ROUTE_SELECTION_USER_MESSAGES,
+  isRouteSelectionTokenError,
+  mapRouteSelectionError,
+  selectionMatchesEndpoints,
+  toRouteEndpoints,
+} from './routeSelection';
 
 const FORBIDDEN_CREATE_FIELDS = [
   'driverId',
@@ -13,7 +22,6 @@ const FORBIDDEN_CREATE_FIELDS = [
   'assuredDepositAmount',
   'regularSeatsPolicy',
   'driverDepositHoldId',
-  'womenOnly',
   'genderPreference',
   'music',
 ] as const;
@@ -61,6 +69,33 @@ export const parsePricePerSeat = (value: string): number | null => {
   return Math.round(amount);
 };
 
+/**
+ * Normalize WGS84 coords for POST /rides.
+ * Backend `@IsNumber({ maxDecimalPlaces: 6 })` rejects raw GPS float noise.
+ */
+export const toApiCoordinate = (value: unknown): number | null => {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+  return Math.round(numeric * 1e6) / 1e6;
+};
+
+export const isValidApiCoordinatePair = (
+  latitude: unknown,
+  longitude: unknown,
+): boolean => {
+  const lat = toApiCoordinate(latitude);
+  const lng = toApiCoordinate(longitude);
+  if (lat == null || lng == null) {
+    return false;
+  }
+  if (lat === 0 && lng === 0) {
+    return false;
+  }
+  return Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+};
+
 /** Client must never send server-controlled or unsupported outcome fields. */
 export const assertCreateRidePayload = (payload: CreateRideDto): void => {
   const record = payload as unknown as Record<string, unknown>;
@@ -69,8 +104,27 @@ export const assertCreateRidePayload = (payload: CreateRideDto): void => {
       throw new Error(`Client must not send ${key} on POST /rides`);
     }
   }
-  if (payload.rideType !== 'REGULAR') {
-    throw new Error('Regular Ride publish must send rideType REGULAR');
+  if (payload.rideType !== 'REGULAR' && payload.rideType !== 'ASSURED') {
+    throw new Error('POST /rides must send rideType REGULAR or ASSURED');
+  }
+  if (!payload.routeSelectionToken?.trim()) {
+    throw new Error('POST /rides must send routeSelectionToken');
+  }
+  const coords = [
+    payload.sourceLatitude,
+    payload.sourceLongitude,
+    payload.destinationLatitude,
+    payload.destinationLongitude,
+  ];
+  const allValid = coords.every(
+    (value) => typeof value === 'number' && Number.isFinite(value),
+  );
+  if (
+    !allValid ||
+    !isValidApiCoordinatePair(coords[0], coords[1]) ||
+    !isValidApiCoordinatePair(coords[2], coords[3])
+  ) {
+    throw new Error('POST /rides must send valid source/destination coordinates');
   }
 };
 
@@ -81,6 +135,10 @@ type VehicleOptionSource = {
   model: string;
   color?: string | null;
   registrationNumber: string;
+  isActive?: boolean;
+  isRcVerified?: boolean | null;
+  isVerified?: boolean | null;
+  rcVerificationStatus?: string | null;
 };
 
 export const mapVehicleResponseToPublishOption = (
@@ -92,18 +150,57 @@ export const mapVehicleResponseToPublishOption = (
   const color = typeof row.color === 'string' ? row.color.trim() : '';
   const modelLabel = [make, model].filter(Boolean).join(' ');
   const name = modelLabel || model || plate || `Vehicle ${row.id}`;
+  const isRcVerified =
+    row.isRcVerified === true ||
+    row.isVerified === true ||
+    String(row.rcVerificationStatus ?? '')
+      .trim()
+      .toUpperCase() === 'VERIFIED';
 
   return {
     id: row.id,
     name,
     plateNumber: plate || '—',
     icon: row.vehicleType === 'BIKE' ? 'car-sport' : 'car',
+    isActive: row.isActive !== false,
+    isRcVerified,
   };
 };
 
 export type MapCreateRideResult =
   | { ok: true; payload: CreateRideDto }
   | { ok: false; message: string };
+
+/** UX copy aligned with backend codes — backend remains authoritative. */
+export const CREATE_RIDE_USER_MESSAGES = {
+  departureInPast: 'Ride departure time must be in the future.',
+  activeAssuredExists:
+    'You already have an active Assured Ride. Complete or cancel it before publishing another Assured Ride.',
+} as const;
+
+/**
+ * Soft client check only (local clock). Backend `RIDE_DEPARTURE_IN_PAST` is authoritative.
+ */
+export const isLocalDepartureInPast = (
+  slashDate: string,
+  timeLabel: string,
+  now: Date = new Date(),
+): boolean => {
+  const date = parseSlashDate(slashDate.trim());
+  const hhmm = toApiDepartureTime(timeLabel);
+  if (!date || !hhmm) {
+    return false;
+  }
+  const [hoursRaw, minutesRaw] = hhmm.split(':');
+  const hours = Number(hoursRaw);
+  const minutes = Number(minutesRaw);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return false;
+  }
+  const departure = new Date(date);
+  departure.setHours(hours, minutes, 0, 0);
+  return departure.getTime() <= now.getTime();
+};
 
 export const mapDraftToCreateRideDto = (draft: PublishRideDraft): MapCreateRideResult => {
   const source = draft.origin.trim();
@@ -123,6 +220,10 @@ export const mapDraftToCreateRideDto = (draft: PublishRideDraft): MapCreateRideR
   const departureTime = toApiDepartureTime(draft.departureTime);
   if (!departureTime) {
     return { ok: false, message: 'Please select a valid departure time.' };
+  }
+
+  if (isLocalDepartureInPast(draft.departureDate, draft.departureTime)) {
+    return { ok: false, message: CREATE_RIDE_USER_MESSAGES.departureInPast };
   }
 
   const totalSeats = draft.availableSeats;
@@ -148,12 +249,41 @@ export const mapDraftToCreateRideDto = (draft: PublishRideDraft): MapCreateRideR
   }
 
   const notes = draft.notes.trim();
+  const apiRideType = draft.rideType === 'assured' ? 'ASSURED' : 'REGULAR';
+
+  const origin = draft.originLocation;
+  const dropoff = draft.destinationLocation;
+  const endpoints = toRouteEndpoints(
+    origin?.latitude,
+    origin?.longitude,
+    dropoff?.latitude,
+    dropoff?.longitude,
+  );
+  if (!endpoints) {
+    return {
+      ok: false,
+      message: ROUTE_SELECTION_USER_MESSAGES.missingCoords,
+    };
+  }
+
+  const selection = draft.routeSelection;
+  if (!selection?.selectionToken?.trim()) {
+    return { ok: false, message: ROUTE_SELECTION_USER_MESSAGES.required };
+  }
+  if (!selectionMatchesEndpoints(selection, endpoints)) {
+    return { ok: false, message: ROUTE_SELECTION_USER_MESSAGES.stale };
+  }
 
   const payload: CreateRideDto = {
-    rideType: 'REGULAR',
+    rideType: apiRideType,
     vehicleId,
     source,
     destination,
+    routeSelectionToken: selection.selectionToken,
+    sourceLatitude: endpoints.sourceLatitude,
+    sourceLongitude: endpoints.sourceLongitude,
+    destinationLatitude: endpoints.destinationLatitude,
+    destinationLongitude: endpoints.destinationLongitude,
     departureDate,
     departureTime,
     totalSeats,
@@ -162,10 +292,11 @@ export const mapDraftToCreateRideDto = (draft: PublishRideDraft): MapCreateRideR
     noSmoking: Boolean(draft.preferences.noSmoking),
     noPets: Boolean(draft.preferences.noPets),
     luggageAllowed: Boolean(draft.preferences.luggage),
+    womenOnly: Boolean(draft.womenOnly),
     notes: notes.length > 0 ? notes : null,
   };
 
-  // womenOnly and music remain UI-only until the backend DTO supports them.
+  // music remains UI-only until the backend DTO supports it.
   assertCreateRidePayload(payload);
   return { ok: true, payload };
 };
@@ -199,6 +330,10 @@ export const mapRideResponseToPublishedSummary = (
   const timeLabel = formatDisplayTimeFromCivil(ride.departureTime);
 
   return {
+    rideId: ride.id,
+    backendStatus: ride.status,
+    isBookable: ride.isBookable,
+    statusLabel: mapRideStatusLabel(ride.status, ride.rideType),
     pickupLabel: ride.source,
     dropoffLabel: ride.destination,
     departureLabel: `${dateLabel} · ${timeLabel}`,
@@ -213,7 +348,10 @@ export const mapRideResponseToPublishedSummary = (
       music: Boolean(extras?.music),
     },
     notes: extras?.notes ?? ride.notes ?? '',
-    refundableAmount: null,
+    refundableAmount:
+      ride.assuredDepositAmount != null && String(ride.assuredDepositAmount).trim()
+        ? String(ride.assuredDepositAmount).trim()
+        : null,
   };
 };
 
@@ -240,23 +378,92 @@ const getErrorText = (error: unknown): string => {
   return '';
 };
 
+const getErrorCode = (error: unknown): string => {
+  if (error && typeof error === 'object' && 'code' in error) {
+    const code = (error as ApiError).code;
+    if (typeof code === 'string') {
+      return code.trim().toUpperCase();
+    }
+  }
+  return '';
+};
+
 export const mapCreateRideError = (error: unknown): string => {
   const status = getErrorStatus(error);
+  const code = getErrorCode(error);
   const text = getErrorText(error);
-
-  if (status === 403) {
-    return (
-      text.trim() ||
-      'You or the selected vehicle is not currently eligible to publish this ride. Complete identity, licence, and vehicle verification, then try again.'
-    );
-  }
+  const normalized = `${code} ${text}`.toUpperCase();
 
   if (status === 401) {
     return 'Your session expired. Please sign in again.';
   }
 
+  if (
+    code === 'RIDE_DEPARTURE_IN_PAST' ||
+    normalized.includes('RIDE_DEPARTURE_IN_PAST')
+  ) {
+    return CREATE_RIDE_USER_MESSAGES.departureInPast;
+  }
+
+  if (
+    code === 'ACTIVE_ASSURED_RIDE_EXISTS' ||
+    normalized.includes('ACTIVE_ASSURED_RIDE_EXISTS')
+  ) {
+    return CREATE_RIDE_USER_MESSAGES.activeAssuredExists;
+  }
+
+  if (
+    normalized.includes('AADHAAR') ||
+    normalized.includes('IDENTITY') ||
+    code === 'IDENTITY_NOT_VERIFIED' ||
+    code === 'AADHAAR_NOT_VERIFIED'
+  ) {
+    return 'Aadhaar verification is required before publishing a ride.';
+  }
+
+  if (
+    normalized.includes('VEHICLE_RC') ||
+    normalized.includes('RC_NOT') ||
+    code === 'VEHICLE_RC_NOT_VERIFIED' ||
+    (normalized.includes('VEHICLE') &&
+      normalized.includes('VERIF') &&
+      !normalized.includes('LICEN'))
+  ) {
+    return 'Vehicle RC verification is required before publishing a ride.';
+  }
+
+  if (status === 403) {
+    // Do not claim Driving License is required — DL is optional.
+    return text.trim() || PUBLISH_REQUIREMENT_MESSAGES.generic;
+  }
+
+  if (isRouteSelectionTokenError(error)) {
+    return mapRouteSelectionError(error);
+  }
+
   if (status === 400) {
     return text.trim() || 'Please check the ride details and try again.';
+  }
+
+  if (
+    code === 'IDEMPOTENCY_KEY_CONFLICT' ||
+    normalized.includes('IDEMPOTENCY') && normalized.includes('PAYLOAD')
+  ) {
+    return (
+      text.trim() ||
+      'This publish attempt does not match the previous request. Change the schedule and try again, or wait and retry the same details.'
+    );
+  }
+
+  if (status === 409) {
+    return text.trim() || 'This ride was already published or conflicts with a previous attempt.';
+  }
+
+  if (status === 422) {
+    return (
+      text.trim() ||
+      'Insufficient BhaiWay Coins for the Assured driver deposit. Add coins and try again.'
+    );
   }
 
   if (status === 0) {
@@ -264,4 +471,67 @@ export const mapCreateRideError = (error: unknown): string => {
   }
 
   return text.trim() || 'Unable to publish the ride. Please try again.';
+};
+
+/** Docs: POST /rides/:id/cancel — owning driver only. */
+export const mapCancelRideError = (error: unknown): string => {
+  const status = getErrorStatus(error);
+  const code = getErrorCode(error);
+  const text = getErrorText(error);
+  const normalized = text.trim().toLowerCase();
+  const normalizedCode = `${code} ${text}`.toUpperCase();
+
+  if (
+    code === 'COMMUTE_SERIES_OCCURRENCE_IN_PROGRESS' ||
+    normalizedCode.includes('COMMUTE_SERIES_OCCURRENCE_IN_PROGRESS')
+  ) {
+    return 'This trip is already in progress, so it cannot be cancelled as a series from this occurrence. Finish the trip, or cancel a later occurrence instead.';
+  }
+
+  // Backend currently rejects Regular rides on POST /rides/:id/cancel with this message.
+  // Mobile is calling the documented driver-cancel endpoint; this is a server lifecycle bug.
+  // Note: backend has misspelled "lifecyle" in some responses.
+  if (
+    normalized.includes('assured lifecycle') ||
+    normalized.includes('assured lifecyle') ||
+    normalized.includes('only to assured')
+  ) {
+    return (
+      'This Regular ride could not be cancelled. The server treated cancel as an Assured-only action. Please update the backend so POST /rides/:id/cancel supports Regular rides.'
+    );
+  }
+
+  if (status === 401) {
+    return 'Your session expired. Please sign in again.';
+  }
+
+  if (status === 403) {
+    return text.trim() || 'You can only cancel rides that you own.';
+  }
+
+  if (status === 404) {
+    return text.trim() || 'This ride was not found or is no longer available.';
+  }
+
+  if (status === 400 || status === 409 || status === 422) {
+    return text.trim() || 'Unable to cancel this ride right now.';
+  }
+
+  if (status === 0) {
+    return text.trim() || 'Unable to cancel. Check your connection and try again.';
+  }
+
+  return text.trim() || 'Unable to cancel this ride. Please try again.';
+};
+
+export const isRideCancelAlreadyApplied = (
+  result: { status?: string; alreadyApplied?: boolean } | null | undefined,
+): boolean => {
+  if (!result) {
+    return false;
+  }
+  if (result.alreadyApplied === true) {
+    return true;
+  }
+  return String(result.status ?? '').trim().toUpperCase() === 'CANCELLED';
 };

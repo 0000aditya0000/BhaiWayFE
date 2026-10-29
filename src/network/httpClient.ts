@@ -2,7 +2,7 @@ import { env } from '@/config';
 import { logger } from '@/shared/utils';
 import { logApiExchange } from './apiLog';
 import { applyRequestInterceptors } from './interceptors';
-import type { ApiError, RequestConfig } from './network.types';
+import type { ApiError, BinaryResponse, RequestConfig } from './network.types';
 
 const isApiError = (value: unknown): value is ApiError =>
   typeof value === 'object' &&
@@ -29,18 +29,36 @@ const serializeBody = (body: unknown): string | undefined => {
 
 const toApiError = (status: number, payload: unknown, fallbackMessage: string): ApiError => {
   let fromPayload: string | undefined;
-  if (typeof payload === 'object' && payload !== null && 'message' in payload) {
-    const message = (payload as { message?: unknown }).message;
-    if (typeof message === 'string') {
-      fromPayload = message;
-    } else if (Array.isArray(message)) {
-      fromPayload = message.map(String).join('\n');
+  let codeFromPayload: string | undefined;
+  if (typeof payload === 'object' && payload !== null) {
+    if ('message' in payload) {
+      const message = (payload as { message?: unknown }).message;
+      if (typeof message === 'string') {
+        fromPayload = message;
+      } else if (Array.isArray(message)) {
+        fromPayload = message.map(String).join('\n');
+      }
+    }
+    if ('code' in payload && typeof (payload as { code?: unknown }).code === 'string') {
+      codeFromPayload = String((payload as { code: string }).code).trim();
+    } else if (
+      'error' in payload &&
+      typeof (payload as { error?: unknown }).error === 'object' &&
+      (payload as { error: { code?: unknown } }).error != null &&
+      typeof (payload as { error: { code?: unknown } }).error.code === 'string'
+    ) {
+      codeFromPayload = String((payload as { error: { code: string } }).error.code).trim();
+    } else if (
+      'errorCode' in payload &&
+      typeof (payload as { errorCode?: unknown }).errorCode === 'string'
+    ) {
+      codeFromPayload = String((payload as { errorCode: string }).errorCode).trim();
     }
   }
 
   return {
     status,
-    code: status === 0 ? 'NETWORK_ERROR' : `HTTP_${status}`,
+    code: codeFromPayload || (status === 0 ? 'NETWORK_ERROR' : `HTTP_${status}`),
     message: fromPayload?.trim() || fallbackMessage,
     details: payload,
   };
@@ -123,8 +141,54 @@ const request = async <T>(path: string, config: RequestConfig = {}): Promise<T> 
       signal: controller.signal,
     });
 
-    const payload = (await response.json().catch(() => null)) as unknown;
     const durationMs = Date.now() - startedAt;
+    const wantsBinary = finalConfig.responseType === 'arraybuffer';
+
+    if (wantsBinary) {
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as unknown;
+        logApiExchange({
+          phase: 'error',
+          method,
+          path,
+          url,
+          status: response.status,
+          durationMs,
+          headers: finalConfig.headers,
+          body: payload,
+          errorMessage:
+            typeof payload === 'object' && payload !== null && 'message' in payload
+              ? Array.isArray((payload as { message?: unknown }).message)
+                ? ((payload as { message: unknown[] }).message).map(String).join('\n')
+                : String((payload as { message?: unknown }).message ?? '')
+              : undefined,
+        });
+        throw toApiError(
+          response.status,
+          payload,
+          'Something went wrong. Please try again.',
+        );
+      }
+
+      const bytes = await response.arrayBuffer();
+      logApiExchange({
+        phase: 'response',
+        method,
+        path,
+        url,
+        status: response.status,
+        durationMs,
+        headers: finalConfig.headers,
+        body: { binary: true, byteLength: bytes.byteLength },
+      });
+      return {
+        bytes,
+        contentType: response.headers.get('content-type') ?? '',
+        contentDisposition: response.headers.get('content-disposition'),
+      } as T;
+    }
+
+    const payload = (await response.json().catch(() => null)) as unknown;
 
     logApiExchange({
       phase: response.ok ? 'response' : 'error',
@@ -189,6 +253,16 @@ const request = async <T>(path: string, config: RequestConfig = {}): Promise<T> 
 export const httpClient = {
   get: <T>(path: string, config?: RequestConfig): Promise<T> =>
     request<T>(path, { ...config, method: 'GET' }),
+  getBinary: (path: string, config?: RequestConfig): Promise<BinaryResponse> =>
+    request<BinaryResponse>(path, {
+      ...config,
+      method: 'GET',
+      responseType: 'arraybuffer',
+      headers: {
+        Accept: 'application/pdf',
+        ...config?.headers,
+      },
+    }),
   post: <T>(path: string, body?: unknown, config?: RequestConfig): Promise<T> =>
     request<T>(path, { ...config, method: 'POST', body }),
   put: <T>(path: string, body?: unknown, config?: RequestConfig): Promise<T> =>

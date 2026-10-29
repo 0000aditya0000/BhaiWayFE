@@ -1,18 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Linking } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
+import { getBookingById, resolveBookingRideId, resolveDriverDisplayName } from '../api';
+import { resolveDriverContactPhone } from '../utils/bookingContactPhone';
 import {
   getOngoingTripMock,
   getDriverChatPath,
   getTripCompletedPath,
-  ONGOING_TRIP_SCREEN,
 } from '../constants';
 import { fetchDrivingRoute } from '../services';
 import type { MapCoordinate, OngoingTripData, RideType } from '../types';
-import { resetTo, showAppAlert } from '@/shared/utils';
+import { openPhoneCall, showAppAlert } from '@/shared/utils';
+
+const BOOKING_POLL_MS = 5000;
 
 export interface UseOngoingTripParams {
   rideId: string;
@@ -26,6 +28,7 @@ export interface UseOngoingTripParams {
   originLng?: number;
   destinationLat?: number;
   destinationLng?: number;
+  bookingId?: string;
 }
 
 export interface UseOngoingTripResult {
@@ -42,6 +45,9 @@ export interface UseOngoingTripResult {
 export const useOngoingTrip = (params: UseOngoingTripParams): UseOngoingTripResult => {
   const router = useRouter();
   const [routeCoordinates, setRouteCoordinates] = useState<MapCoordinate[]>([]);
+  const [driverPhone, setDriverPhone] = useState<string | null>(null);
+  const navigatingCompletedRef = useRef(false);
+  const bookingId = params.bookingId?.trim() ?? '';
 
   const trip = useMemo(
     () =>
@@ -68,6 +74,84 @@ export const useOngoingTrip = (params: UseOngoingTripParams): UseOngoingTripResu
       params.rideType,
     ],
   );
+
+  const navigateAfterTripCompletion = useCallback(
+    async (booking?: Awaited<ReturnType<typeof getBookingById>>) => {
+      if (navigatingCompletedRef.current) {
+        return;
+      }
+      navigatingCompletedRef.current = true;
+
+      let resolvedBooking = booking;
+      if (!resolvedBooking && bookingId) {
+        try {
+          resolvedBooking = await getBookingById(bookingId);
+        } catch (error) {
+          console.log('[OngoingTrip] completion booking fetch failed', error);
+        }
+      }
+
+      const rideId = resolvedBooking
+        ? resolveBookingRideId(resolvedBooking)
+        : params.rideId;
+      const driverName = resolvedBooking
+        ? resolveDriverDisplayName(resolvedBooking) || params.driverName
+        : params.driverName;
+      const tripCompletedParams = {
+        rideId,
+        rideType: params.rideType,
+        origin: params.origin,
+        destination: params.destination,
+        driverName,
+        carModel: params.carModel,
+        price: params.price,
+        originLat: params.originLat,
+        originLng: params.originLng,
+        destinationLat: params.destinationLat,
+        destinationLng: params.destinationLng,
+        bookingId: resolvedBooking?.id || bookingId || undefined,
+      };
+
+      // Always land on trip-completed first (payment method → then rating).
+      router.replace(getTripCompletedPath(tripCompletedParams));
+    },
+    [bookingId, params, router],
+  );
+
+  useEffect(() => {
+    if (!bookingId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const refresh = async () => {
+      try {
+        const booking = await getBookingById(bookingId);
+        if (cancelled) {
+          return;
+        }
+        setDriverPhone(resolveDriverContactPhone(booking) || null);
+        const rideStatus = String(booking.ride?.status ?? '').toUpperCase();
+        const bookingStatus = String(booking.status ?? '').toUpperCase();
+        if (rideStatus === 'COMPLETED' || bookingStatus === 'COMPLETED') {
+          void navigateAfterTripCompletion(booking);
+        }
+      } catch (error) {
+        console.log('[OngoingTrip] getBookingById failed', error);
+      }
+    };
+
+    void refresh();
+    const timer = setInterval(() => {
+      void refresh();
+    }, BOOKING_POLL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [bookingId, navigateAfterTripCompletion]);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,19 +184,27 @@ export const useOngoingTrip = (params: UseOngoingTripParams): UseOngoingTripResu
   }, [router]);
 
   const callDriver = useCallback(() => {
-    Linking.openURL('tel:+919999999999').catch(() => {
-      showAppAlert('Call', 'Unable to start a call right now.');
+    if (!driverPhone) {
+      showAppAlert('Call', 'Driver phone number is not available on this booking yet.');
+      return;
+    }
+    void openPhoneCall(driverPhone).then((started) => {
+      if (!started) {
+        showAppAlert('Call', 'Unable to start a call right now.');
+      }
     });
-  }, []);
+  }, [driverPhone]);
 
   const chatDriver = useCallback(() => {
     router.push(
       getDriverChatPath({
         driverName: trip.driver.name,
         carModel: trip.driver.vehicleLabel.replace(/^White\s+/i, ''),
+        bookingId,
+        perspective: 'rider',
       }),
     );
-  }, [router, trip.driver.name, trip.driver.vehicleLabel]);
+  }, [bookingId, router, trip.driver.name, trip.driver.vehicleLabel]);
 
   const openSafety = useCallback(() => {
     router.push(ROUTES.safetyHub);
@@ -123,23 +215,8 @@ export const useOngoingTrip = (params: UseOngoingTripParams): UseOngoingTripResu
   }, [router]);
 
   const completeTrip = useCallback(() => {
-    resetTo(
-      router,
-      getTripCompletedPath({
-        rideId: params.rideId,
-        rideType: params.rideType,
-        origin: params.origin,
-        destination: params.destination,
-        driverName: params.driverName,
-        carModel: params.carModel,
-        price: params.price,
-        originLat: params.originLat,
-        originLng: params.originLng,
-        destinationLat: params.destinationLat,
-        destinationLng: params.destinationLng,
-      }),
-    );
-  }, [params, router]);
+    void navigateAfterTripCompletion();
+  }, [navigateAfterTripCompletion]);
 
   return {
     trip,

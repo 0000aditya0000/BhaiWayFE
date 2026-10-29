@@ -1,21 +1,16 @@
 import React, { useCallback } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppFooter, IconButton, BhaiWayCoinIcon, AppText as Text } from '@/shared/components';
+import { AppFooter, IconButton, AppText as Text } from '@/shared/components';
 import { triggerLightHaptic } from '@/shared/utils';
+import {
+  WalletTransactionDetailModal,
+  WalletTransactionRow,
+} from '@/features/profile/components';
 import { WALLET_TRANSACTIONS_SCREEN } from '@/features/profile/constants';
 import { useWalletTransactions } from '@/features/profile/hooks';
-import type { WalletTransaction } from '@/features/profile/types';
 import { styles, walletTxTokens } from './WalletTransactionsScreen.styles';
-
-const transactionIcon = (icon: WalletTransaction['icon']) => {
-  if (icon === 'car') return 'car-outline' as const;
-  if (icon === 'card') return 'card-outline' as const;
-  if (icon === 'business') return 'business-outline' as const;
-  return 'star' as const;
-};
 
 export const WalletTransactionsScreen = () => {
   const {
@@ -24,8 +19,17 @@ export const WalletTransactionsScreen = () => {
     filters,
     activeFilter,
     transactions,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    selectedTransaction,
+    isTransactionDetailOpen,
     setFilter,
+    loadMore,
+    retry,
     openTransaction,
+    closeTransaction,
     goBack,
   } = useWalletTransactions();
 
@@ -46,6 +50,7 @@ export const WalletTransactionsScreen = () => {
         <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
           {title}
         </Text>
+        <View style={styles.headerSide} />
       </View>
 
       <ScrollView
@@ -79,55 +84,59 @@ export const WalletTransactionsScreen = () => {
           })}
         </ScrollView>
 
-        <View style={styles.list}>
-          {transactions.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>{WALLET_TRANSACTIONS_SCREEN.emptyTitle}</Text>
-              <Text style={styles.emptyMessage}>{WALLET_TRANSACTIONS_SCREEN.emptyMessage}</Text>
-            </View>
-          ) : (
-            transactions.map((tx) => {
-              const isCredit = tx.type === 'credit';
-              return (
-                <Pressable
+        {loading && transactions.length === 0 ? (
+          <View style={styles.emptyState}>
+            <ActivityIndicator color={walletTxTokens.PRIMARY} />
+          </View>
+        ) : error && transactions.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>{WALLET_TRANSACTIONS_SCREEN.errorTitle}</Text>
+            <Text style={styles.stateText}>{error}</Text>
+            <Pressable style={styles.retryButton} onPress={retry} accessibilityRole="button">
+              <Text style={styles.retryLabel}>{WALLET_TRANSACTIONS_SCREEN.retryLabel}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {transactions.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>{WALLET_TRANSACTIONS_SCREEN.emptyTitle}</Text>
+                <Text style={styles.stateText}>{WALLET_TRANSACTIONS_SCREEN.emptyMessage}</Text>
+              </View>
+            ) : (
+              transactions.map((tx) => (
+                <WalletTransactionRow
                   key={tx.id}
-                  style={({ pressed }) => [styles.card, pressed && { opacity: 0.92 }]}
-                  onPress={() => openTransaction(tx)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${tx.title}, ${tx.amountLabel}, ${tx.type}`}
-                >
-                  <View style={styles.left}>
-                    <View style={isCredit ? styles.iconCredit : styles.iconDebit}>
-                      <Ionicons
-                        name={transactionIcon(tx.icon)}
-                        size={22}
-                        color={isCredit ? walletTxTokens.CREDIT_ICON : walletTxTokens.ERROR}
-                      />
-                    </View>
-                    <View style={styles.meta}>
-                      <Text style={styles.title} numberOfLines={1}>
-                        {tx.title}
-                      </Text>
-                      <Text style={styles.date} numberOfLines={1}>
-                        {tx.dateLabel}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.right}>
-                    <View style={styles.amountRow}>
-                      <BhaiWayCoinIcon size={14} />
-                      <Text style={isCredit ? styles.amountCredit : styles.amountDebit}>
-                        {tx.amountLabel}
-                      </Text>
-                    </View>
-                    <Text style={styles.typeLabel}>{tx.type}</Text>
-                  </View>
-                </Pressable>
-              );
-            })
-          )}
-        </View>
+                  transaction={tx}
+                  onPress={openTransaction}
+                />
+              ))
+            )}
+          </View>
+        )}
+
+        {hasMore ? (
+          <Pressable
+            style={styles.loadMoreButton}
+            onPress={loadMore}
+            disabled={loadingMore}
+            accessibilityRole="button"
+            accessibilityLabel={WALLET_TRANSACTIONS_SCREEN.loadMoreLabel}
+          >
+            {loadingMore ? (
+              <ActivityIndicator color={walletTxTokens.PRIMARY} />
+            ) : (
+              <Text style={styles.loadMoreLabel}>{WALLET_TRANSACTIONS_SCREEN.loadMoreLabel}</Text>
+            )}
+          </Pressable>
+        ) : null}
       </ScrollView>
+
+      <WalletTransactionDetailModal
+        visible={isTransactionDetailOpen}
+        transaction={selectedTransaction}
+        onClose={closeTransaction}
+      />
 
       <AppFooter activeTab="profile" />
     </SafeAreaView>

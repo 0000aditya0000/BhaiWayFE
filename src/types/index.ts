@@ -11,3 +11,4 @@ export type {
   CloudinaryDeleteResponse,
 } from './cloudinary';
 export { CloudinaryUploadError } from './cloudinary';
+export * from './kyc';

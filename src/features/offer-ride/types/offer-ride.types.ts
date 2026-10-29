@@ -1,4 +1,5 @@
 import type { ButtonVariant } from '@/shared/components/Button/Button.types';
+import type { SelectedDrivingRoute } from '../api/routeOptions.types';
 
 export type OutstationRideTypeId = 'regular' | 'assured';
 
@@ -15,6 +16,8 @@ export interface OutstationRideTypeOption {
   highlighted?: boolean;
   badge?: string;
   note?: string;
+  /** Short perk lines shown on the modern ride-type picker. */
+  perks?: readonly string[];
 }
 
 export interface SelectedLocation {
@@ -50,6 +53,10 @@ export interface PublishRideVehicleOption {
   name: string;
   plateNumber: string;
   icon: 'car' | 'car-sport';
+  /** Active flag from GET /vehicles — required for publish UX guidance. */
+  isActive?: boolean;
+  /** RC verified only when backend reports VERIFIED / isRcVerified. */
+  isRcVerified?: boolean;
 }
 
 export interface PublishRideDraft extends PublishRideFormValues {
@@ -61,4 +68,9 @@ export interface PublishRideDraft extends PublishRideFormValues {
   /** Assured rides only. */
   promoCode: string;
   promoApplied: boolean;
+  /**
+   * In-session driver-selected route. Not a long-term identifier — tokens expire.
+   * Cleared when pickup/drop-off coordinates change.
+   */
+  routeSelection: SelectedDrivingRoute | null;
 }

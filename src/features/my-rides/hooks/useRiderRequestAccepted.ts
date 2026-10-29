@@ -68,14 +68,15 @@ export const useRiderRequestAccepted = (): UseRiderRequestAcceptedResult => {
       getDriverChatPath({
         driverName: rider.name,
         carModel: rider.subtitle || `${rider.seatsBooked} seat(s)`,
-        threadId: `driver-${rider.rideId}-${rider.riderId}`,
+        bookingId: rider.riderId,
+        threadId: rider.riderId,
         perspective: 'driver',
         routeLabel: DRIVER_CHAT_SCREEN.defaultRouteLabel,
         tripTimeLabel: DRIVER_CHAT_SCREEN.defaultTripTimeLabel,
         avatarUri: rider.avatarUri,
       }),
     );
-  }, [rider.avatarUri, rider.name, rider.rideId, rider.riderId, rider.seatsBooked, rider.subtitle, router]);
+  }, [rider.avatarUri, rider.name, rider.riderId, rider.seatsBooked, rider.subtitle, router]);
 
   const openRiderProfile = useCallback(() => {
     triggerLightHaptic();

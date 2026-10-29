@@ -3,6 +3,7 @@ import { authSession } from '@/store';
 import type {
   AuthLoginResponse,
   CompleteProfilePayload,
+  Msg91SendPayload,
   RequestOtpPayload,
   RequestOtpResult,
   UserProfile,
@@ -20,7 +21,15 @@ export const verifyOtp = (payload: VerifyOtpPayload): Promise<AuthSession> =>
   httpClient.post<AuthSession>(ENDPOINTS.auth.verifyOtp, payload);
 
 /**
- * Exchange MSG91 widget access-token for BhaiWay JWT.
+ * Acknowledge / send OTP for MSG91 login path.
+ * Docs: POST /auth/msg91/send
+ * Review phone: backend acknowledges without sending SMS.
+ */
+export const sendMsg91Otp = (payload: Msg91SendPayload): Promise<unknown> =>
+  httpClient.post<unknown>(ENDPOINTS.auth.msg91Send, payload);
+
+/**
+ * Exchange MSG91 widget access-token (or review phone+otp) for BhaiWay JWT.
  * Docs: POST /auth/msg91/verify
  * Request/response logs: `[BhaiWay Auth API]` via httpClient.
  */

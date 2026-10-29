@@ -40,6 +40,38 @@ assertEqual(singleVehicle.make, 'Honda', 'make mapped');
 assertEqual(singleVehicle.name, 'Honda City', 'name excludes color');
 assertEqual(singleVehicle.color, 'White', 'color mapped separately');
 assertEqual(singleVehicle.variant, 'ZX', 'variant mapped');
+assertEqual(singleVehicle.rcStatus, 'required', 'default RC status is required');
+
+const verifiedVehicle = mapVehicleResponseToGarageVehicle(
+  {
+    id: 'veh-verified',
+    vehicleType: 'CAR',
+    make: 'Honda',
+    model: 'City',
+    registrationNumber: 'DL01AB1234',
+    seatingCapacity: 5,
+    isActive: true,
+    rcVerificationStatus: 'VERIFIED',
+    ownerMatchStatus: 'MATCHED',
+  },
+  null,
+);
+assertEqual(verifiedVehicle.rcStatus, 'verified', 'per-vehicle VERIFIED maps to verified');
+assertEqual(verifiedVehicle.ownerMatchStatus, 'MATCHED', 'owner match mapped');
+
+const aggregateVerified = mapVehicleResponseToGarageVehicle(
+  {
+    id: 'veh-agg',
+    vehicleType: 'CAR',
+    make: 'Honda',
+    model: 'City',
+    registrationNumber: 'DL01AB1234',
+    seatingCapacity: 5,
+    isActive: true,
+  },
+  'VERIFIED',
+);
+assertEqual(aggregateVerified.rcStatus, 'verified', 'aggregate vehicle VERIFIED maps');
 
 const inactiveVehicle = mapVehicleResponseToGarageVehicle({
   id: 'veh-2',

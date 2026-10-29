@@ -2,6 +2,6 @@ import type { RideResultItem } from '../../types';
 
 export interface RideResultCardProps {
   ride: RideResultItem;
-  onPress: (ride: RideResultItem) => void;
+  /** Opens Ride Details (preview) for Regular and Assured. */
   onBookPress: (ride: RideResultItem) => void;
 }

@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Image, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { IconButton, AppText as Text } from '@/shared/components';
@@ -12,9 +12,19 @@ export const HomeHeader = React.memo(
     brandName,
     location,
     hasUnreadNotifications = false,
+    notificationBadgeCount = null,
+    avatarUri = null,
     onNotificationsPress,
     onProfilePress,
   }: HomeHeaderProps) => {
+    const [photoFailed, setPhotoFailed] = useState(false);
+    const photoUri = avatarUri?.trim() || '';
+    const showPhoto = Boolean(photoUri) && !photoFailed;
+
+    useEffect(() => {
+      setPhotoFailed(false);
+    }, [photoUri]);
+
     const locationLabel = useMemo(() => {
       if (location.label && location.city && location.label !== location.city) {
         return `${location.label}, ${location.city}`;
@@ -41,13 +51,35 @@ export const HomeHeader = React.memo(
             icon="notifications-outline"
             onPress={onNotificationsPress}
             accessibilityLabel="Notifications"
-            showBadge={hasUnreadNotifications}
+            badgeCount={notificationBadgeCount}
+            showBadge={
+              hasUnreadNotifications &&
+              !(typeof notificationBadgeCount === 'number' && notificationBadgeCount > 0)
+            }
           />
-          <IconButton
-            icon="person-circle-outline"
-            onPress={onProfilePress}
-            accessibilityLabel="Profile"
-          />
+          {showPhoto ? (
+            <Pressable
+              onPress={onProfilePress}
+              style={styles.avatarButton}
+              accessibilityRole="button"
+              accessibilityLabel="Profile"
+              hitSlop={8}
+              android_ripple={{ color: 'rgba(29, 78, 216, 0.08)', borderless: true }}
+            >
+              <Image
+                source={{ uri: photoUri }}
+                style={styles.avatarImage}
+                accessibilityIgnoresInvertColors
+                onError={() => setPhotoFailed(true)}
+              />
+            </Pressable>
+          ) : (
+            <IconButton
+              icon="person-circle-outline"
+              onPress={onProfilePress}
+              accessibilityLabel="Profile"
+            />
+          )}
         </View>
       </View>
     );

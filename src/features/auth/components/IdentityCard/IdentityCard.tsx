@@ -39,8 +39,8 @@ export const IdentityCard = ({
           </View>
           <Text style={styles.subtitle}>
             {verified
-              ? 'Your Aadhaar identity is verified. You can continue once required profile details are filled.'
-              : 'Verify with your Aadhaar number. We’ll send an OTP to your linked mobile. You can skip this and do it later.'}
+              ? 'Your identity is verified. You can continue once required profile details are filled.'
+              : 'Verify with Aadhaar or your corporate email. You can skip this and do it later from Profile.'}
           </Text>
 
           {verified ? (
@@ -53,7 +53,7 @@ export const IdentityCard = ({
               onPress={handleVerify}
               style={styles.verifyButton}
               accessibilityRole="button"
-              accessibilityLabel="Verify Aadhaar now (optional)"
+              accessibilityLabel="Verify identity now (optional)"
             >
               <Ionicons name="shield-checkmark" size={16} color={colors.white} />
               <Text style={styles.verifyLabel}>Verify Now</Text>

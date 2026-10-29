@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { OTPInput, AppText as Text } from '@/shared/components';
@@ -19,6 +19,7 @@ export const PickupOtpModal = ({
   onChange,
   onVerify,
   onClose,
+  footerExtra,
 }: PickupOtpModalProps) => {
   const canVerify = value.length === otpLength && !verifying;
 
@@ -102,6 +103,8 @@ export const PickupOtpModal = ({
               <Text style={styles.cancelLabel}>{DRIVER_PICKUP_SCREEN.otpCancelLabel}</Text>
             </Pressable>
           </View>
+
+          {footerExtra ? <View style={styles.footerExtra}>{footerExtra}</View> : null}
         </Pressable>
       </Pressable>
     </Modal>

@@ -24,6 +24,7 @@ export const DEFAULT_PUBLISH_DRAFT: PublishRideDraft = {
   selectedVehicleId: null,
   promoCode: '',
   promoApplied: false,
+  routeSelection: null,
 };
 
 export const PUBLISH_RIDE_SCREEN = {

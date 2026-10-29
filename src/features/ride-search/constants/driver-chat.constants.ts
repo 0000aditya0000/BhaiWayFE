@@ -129,6 +129,8 @@ export const getDriverChatPath = (params: {
   driverName?: string;
   carModel?: string;
   threadId?: string;
+  conversationId?: string;
+  bookingId?: string;
   perspective?: RideChatPerspective;
   routeLabel?: string;
   tripTimeLabel?: string;
@@ -138,7 +140,9 @@ export const getDriverChatPath = (params: {
   params: {
     driverName: params.driverName ?? '',
     carModel: params.carModel ?? '',
-    threadId: params.threadId ?? '',
+    threadId: params.threadId ?? params.conversationId ?? '',
+    conversationId: params.conversationId ?? params.threadId ?? '',
+    bookingId: params.bookingId ?? '',
     perspective: params.perspective ?? 'rider',
     routeLabel: params.routeLabel ?? '',
     tripTimeLabel: params.tripTimeLabel ?? '',

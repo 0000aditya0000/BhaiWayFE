@@ -2,10 +2,12 @@ import type { CommuteBookingFare } from '../../types/commute-review-booking.type
 
 export interface CommutePaymentSummaryProps {
   fare: CommuteBookingFare;
-  promoValue: string;
-  promoApplied: boolean;
-  onPromoChange: (value: string) => void;
-  onApplyPromo: () => void;
-  onPromoFocus?: () => void;
-  onPromoBlur?: () => void;
+  selectedSeats: number;
+  maxSeats: number;
+  /** Server-preview discount points (0 when none). */
+  promoDiscount?: number;
+  /** Payable after coupon — defaults to fare.total when omitted. */
+  payableTotal?: number;
+  onDecrementSeats: () => void;
+  onIncrementSeats: () => void;
 }

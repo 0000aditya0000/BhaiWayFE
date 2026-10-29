@@ -1,6 +1,8 @@
 export { setupGlobalKeyboardDismiss } from './setupGlobalKeyboardDismiss';
 export { logger } from './logger';
 export { sanitizePhoneNumber, formatPhoneNumber, maskPhoneNumber } from './formatter';
+export { toTelHref } from './telHref';
+export { openPhoneCall } from './openPhoneCall';
 export { delay, getErrorMessage, generateId, getSearchParam } from './helpers';
 export {
   BHAIWAY_COIN_IMAGE,
@@ -58,5 +60,19 @@ export {
   showSuccessFeedback,
 } from './feedback';
 export { showAppAlert } from '@/store';
+export { copyTextToClipboard, isClipboardCancelled } from './clipboard';
 export type { AppAlertButton, AppAlertPayload, AppAlertVariant } from '@/store';
 export { UPI_ID_PATTERN, isValidUpiId } from './upi';
+export { shareLocalFile } from './shareLocalFile';
+export type { ShareLocalFileOptions } from './shareLocalFile';
+export {
+  WOMEN_ONLY_RIDE_ERROR_CODE,
+  WOMEN_ONLY_RIDE_MESSAGE,
+  WOMEN_ONLY_BADGE_LABEL,
+  WOMEN_ONLY_FEATURE,
+  resolveWomenOnly,
+  canBookWomenOnlyRide,
+  extractApiErrorCode,
+  isWomenOnlyRideError,
+  formatApiGenderLabel,
+} from './womenOnlyRide';

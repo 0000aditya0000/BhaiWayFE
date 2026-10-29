@@ -138,6 +138,14 @@ export const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     paddingHorizontal: 4,
   },
+  communityMessage: {
+    ...typography.body,
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textMuted,
+    marginBottom: spacing.lg,
+    paddingHorizontal: 4,
+  },
   reviewList: {
     gap: spacing.xl,
   },

@@ -3,7 +3,7 @@ import { ROUTES } from '@/config';
 import type { CommuteOption } from '../types';
 
 export const OFFICE_COMMUTE_INTRO = {
-  title: 'Daily Office Commute',
+  title: 'Office Commute',
   subtitle: 'Publish your office ride or book a seat with verified colleagues.',
 } as const;
 

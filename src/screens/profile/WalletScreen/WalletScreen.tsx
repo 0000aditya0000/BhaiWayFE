@@ -1,40 +1,52 @@
 import React, { useCallback } from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppFooter, IconButton, BhaiWayCoinAmount, BhaiWayCoinIcon, AppText as Text } from '@/shared/components';
+import { AppFooter, IconButton, AppText as Text } from '@/shared/components';
 import { triggerLightHaptic } from '@/shared/utils';
+import {
+  WalletCoinsGlyph,
+  WalletTransactionDetailModal,
+  WalletTransactionRow,
+} from '@/features/profile/components';
 import { WALLET_SCREEN } from '@/features/profile/constants';
 import { useWallet } from '@/features/profile/hooks';
-import type { WalletTransaction } from '@/features/profile/types';
+import { formatCoinString } from '@/features/profile/utils/walletCoin';
 import { styles, walletTokens } from './WalletScreen.styles';
-
-const PROMO_IMAGE =
-  'https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg';
-
-const transactionIcon = (icon: WalletTransaction['icon']) => {
-  if (icon === 'car') return 'car-outline' as const;
-  if (icon === 'card') return 'card-outline' as const;
-  if (icon === 'business') return 'business-outline' as const;
-  return 'star' as const;
-};
 
 export const WalletScreen = () => {
   const {
     summary,
-    balance,
+    loading,
+    error,
     filters,
     activeFilter,
     transactions,
+    transactionsLoading,
+    hasHeldCoins,
+    refreshing,
+    selectedTransaction,
+    isTransactionDetailOpen,
     goBack,
     openNotifications,
     setFilter,
     withdraw,
-    addMoney,
+    openWithdrawalHistory,
+    openPaymentMethods,
+    addCoins,
     viewAll,
-    openPromo,
+    refresh,
+    retry,
     openTransaction,
+    closeTransaction,
   } = useWallet();
 
   const handleBack = useCallback(() => {
@@ -42,21 +54,119 @@ export const WalletScreen = () => {
     goBack();
   }, [goBack]);
 
+  const handleRefresh = useCallback(() => {
+    void refresh();
+  }, [refresh]);
+
+  const renderBalanceSection = () => {
+    if (loading && !summary) {
+      return (
+        <View style={styles.loadingCard}>
+          <ActivityIndicator size="large" color={walletTokens.PRIMARY} />
+        </View>
+      );
+    }
+
+    if (error && !summary) {
+      return (
+        <View style={styles.errorCard}>
+          <Ionicons name="cloud-offline-outline" size={32} color={walletTokens.ON_SURFACE_VARIANT} />
+          <Text style={styles.errorTitle}>{WALLET_SCREEN.loadErrorTitle}</Text>
+          <Text style={styles.errorMessage}>{WALLET_SCREEN.loadErrorMessage}</Text>
+          <Pressable style={styles.retryButton} onPress={retry} accessibilityRole="button">
+            <Text style={styles.retryLabel}>{WALLET_SCREEN.retryLabel}</Text>
+          </Pressable>
+        </View>
+      );
+    }
+
+    if (!summary) {
+      return null;
+    }
+
+    return (
+      <>
+        <LinearGradient
+          colors={['#4B61C4', '#374BB1', '#2B3A8C']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroGlowOne} pointerEvents="none" />
+          <View style={styles.heroGlowTwo} pointerEvents="none" />
+
+          <View style={styles.heroTopRow}>
+            <View style={styles.heroWalletBadge}>
+              <Ionicons name="wallet-outline" size={18} color={walletTokens.ON_PRIMARY} />
+              <Text style={styles.heroWalletLabel}>BhaiWay Wallet</Text>
+            </View>
+            <Text style={styles.heroRateHint}>{WALLET_SCREEN.coinRateHint}</Text>
+          </View>
+
+          <Text style={styles.heroBalanceLabel}>{WALLET_SCREEN.totalBalanceLabel}</Text>
+          <View style={styles.heroBalanceRow}>
+            <WalletCoinsGlyph size={26} color="#F5D76E" />
+            <Text style={styles.heroBalanceValue}>{formatCoinString(summary.balanceCoins)}</Text>
+            <Text style={styles.heroBalanceSuffix}>{WALLET_SCREEN.coinsSuffix}</Text>
+          </View>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statChip}>
+              <Text style={styles.statLabel}>{WALLET_SCREEN.availableLabel}</Text>
+              <Text style={styles.statValue}>{formatCoinString(summary.availableCoins)}</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statChip}>
+              <Text style={styles.statLabel}>{WALLET_SCREEN.heldLabel}</Text>
+              <Text style={styles.statValue}>{formatCoinString(summary.heldCoins)}</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statChip}>
+              <Text style={styles.statLabel}>{WALLET_SCREEN.withdrawableLabel}</Text>
+              <Text style={styles.statValue}>{formatCoinString(summary.withdrawableCoins)}</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        {hasHeldCoins ? (
+          <View style={styles.heldNotice}>
+            <Ionicons name="information-circle-outline" size={18} color={walletTokens.PRIMARY} />
+            <Text style={styles.heldNoticeText}>{WALLET_SCREEN.heldNotice}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.bucketsCard}>
+          <Text style={styles.bucketsTitle}>{WALLET_SCREEN.bucketsTitle}</Text>
+          <View style={styles.bucketGrid}>
+            {[summary.buckets.purchased, summary.buckets.promotional, summary.buckets.driverEarned].map(
+              (bucket) => (
+                <View key={bucket.label} style={styles.bucketTile}>
+                  <Text style={styles.bucketLabel}>{bucket.label}</Text>
+                  <Text style={styles.bucketValue}>{bucket.availableLabel}</Text>
+                  {bucket.heldLabel !== '0' ? (
+                    <Text style={styles.bucketHeld}>{bucket.heldLabel} held</Text>
+                  ) : null}
+                </View>
+              ),
+            )}
+          </View>
+        </View>
+      </>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <IconButton
-            icon="arrow-back"
-            onPress={handleBack}
-            color={walletTokens.PRIMARY}
-            accessibilityLabel="Go back"
-          />
-        </View>
+        <IconButton
+          icon="arrow-back"
+          onPress={handleBack}
+          color={walletTokens.PRIMARY}
+          accessibilityLabel="Go back"
+        />
         <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
-          {WALLET_SCREEN.brandTitle}
+          {WALLET_SCREEN.title}
         </Text>
-
         <IconButton
           icon="notifications-outline"
           onPress={openNotifications}
@@ -69,68 +179,71 @@ export const WalletScreen = () => {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={walletTokens.PRIMARY}
+          />
+        }
       >
-        <View style={styles.balanceCard}>
-          <View style={styles.balanceGlow} pointerEvents="none" />
-          <View>
-            <Text style={styles.balanceLabel}>{WALLET_SCREEN.balanceLabel}</Text>
-            <BhaiWayCoinAmount
-              amount={balance}
-              size={28}
-              textStyle={styles.balanceValue}
-            />
-          </View>
-          <View style={styles.balanceFooter}>
-            <View style={styles.walletNameRow}>
-              <Ionicons name="diamond" size={20} color={walletTokens.ON_PRIMARY} />
-              <Text style={styles.walletName}>{summary.walletName}</Text>
-            </View>
-            <View style={styles.walletIdBlock}>
-              <Text style={styles.walletIdLabel}>{WALLET_SCREEN.walletIdLabel}</Text>
-              <Text style={styles.walletIdValue}>{summary.walletId}</Text>
-            </View>
-          </View>
-        </View>
+        {renderBalanceSection()}
 
         <View style={styles.actionsRow}>
           <Pressable
-            style={({ pressed }) => [styles.withdrawButton, pressed && { transform: [{ scale: 0.97 }] }]}
+            style={({ pressed }) => [styles.actionPrimary, pressed && styles.actionPressed]}
+            onPress={addCoins}
+            accessibilityRole="button"
+            accessibilityLabel={WALLET_SCREEN.addCoinsLabel}
+          >
+            <View style={styles.actionIconPrimary}>
+              <Ionicons name="add" size={20} color={walletTokens.ON_PRIMARY} />
+            </View>
+            <Text style={styles.actionPrimaryLabel}>{WALLET_SCREEN.addCoinsLabel}</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.actionSecondary, pressed && styles.actionPressed]}
             onPress={withdraw}
             accessibilityRole="button"
             accessibilityLabel={WALLET_SCREEN.withdrawLabel}
           >
-            <Ionicons name="business-outline" size={18} color={walletTokens.ON_PRIMARY} />
-            <Text style={styles.actionLabelPrimary} numberOfLines={1}>
-              {WALLET_SCREEN.withdrawLabel}
-            </Text>
+            <View style={styles.actionIconSecondary}>
+              <Ionicons name="arrow-up-outline" size={18} color={walletTokens.PRIMARY} />
+            </View>
+            <Text style={styles.actionSecondaryLabel}>{WALLET_SCREEN.withdrawLabel}</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.actionsRow}>
+          <Pressable
+            style={({ pressed }) => [styles.actionSecondary, pressed && styles.actionPressed, { flex: 1 }]}
+            onPress={openWithdrawalHistory}
+            accessibilityRole="button"
+            accessibilityLabel={WALLET_SCREEN.withdrawalHistoryLabel}
+          >
+            <View style={styles.actionIconSecondary}>
+              <Ionicons name="time-outline" size={18} color={walletTokens.PRIMARY} />
+            </View>
+            <Text style={styles.actionSecondaryLabel}>{WALLET_SCREEN.withdrawalHistoryLabel}</Text>
           </Pressable>
           <Pressable
-            style={({ pressed }) => [styles.addMoneyButton, pressed && { transform: [{ scale: 0.97 }] }]}
-            onPress={addMoney}
+            style={({ pressed }) => [styles.actionSecondary, pressed && styles.actionPressed, { flex: 1 }]}
+            onPress={openPaymentMethods}
             accessibilityRole="button"
-            accessibilityLabel={WALLET_SCREEN.addMoneyLabel}
+            accessibilityLabel={WALLET_SCREEN.paymentMethodsLabel}
           >
-            <Ionicons name="add" size={18} color={walletTokens.PRIMARY} />
-            <Text style={styles.actionLabelOutline} numberOfLines={1}>
-              {WALLET_SCREEN.addMoneyLabel}
-            </Text>
+            <View style={styles.actionIconSecondary}>
+              <Ionicons name="card-outline" size={18} color={walletTokens.PRIMARY} />
+            </View>
+            <Text style={styles.actionSecondaryLabel}>{WALLET_SCREEN.paymentMethodsLabel}</Text>
           </Pressable>
         </View>
 
         <View style={styles.transactionsSection}>
           <View style={styles.transactionsHeader}>
-            <Text style={styles.transactionsTitle} numberOfLines={1}>
-              {WALLET_SCREEN.transactionsTitle}
-            </Text>
-            <Pressable
-              onPress={viewAll}
-              accessibilityRole="button"
-              accessibilityLabel={WALLET_SCREEN.viewAllLabel}
-              hitSlop={8}
-            >
-              <Text style={styles.viewAllLabel} numberOfLines={1}>
-                {WALLET_SCREEN.viewAllLabel}
-              </Text>
+            <Text style={styles.transactionsTitle}>{WALLET_SCREEN.transactionsTitle}</Text>
+            <Pressable onPress={viewAll} hitSlop={8} accessibilityRole="button">
+              <Text style={styles.viewAllLabel}>{WALLET_SCREEN.viewAllLabel}</Text>
             </Pressable>
           </View>
 
@@ -148,7 +261,6 @@ export const WalletScreen = () => {
                   onPress={() => setFilter(filter.id)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
-                  accessibilityLabel={filter.label}
                 >
                   <Text style={[styles.filterLabel, active && styles.filterLabelActive]}>
                     {filter.label}
@@ -159,75 +271,34 @@ export const WalletScreen = () => {
           </ScrollView>
 
           <View style={styles.transactionList}>
-            {transactions.length === 0 ? (
+            {transactionsLoading && transactions.length === 0 ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No transactions in this filter.</Text>
+                <ActivityIndicator color={walletTokens.PRIMARY} />
+              </View>
+            ) : transactions.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="receipt-outline" size={36} color={walletTokens.OUTLINE_VARIANT} />
+                <Text style={styles.emptyTitle}>{WALLET_SCREEN.emptyTransactionsTitle}</Text>
+                <Text style={styles.emptyText}>{WALLET_SCREEN.emptyTransactionsMessage}</Text>
               </View>
             ) : (
-              transactions.map((tx) => {
-                const isCredit = tx.type === 'credit';
-                return (
-                  <Pressable
-                    key={tx.id}
-                    style={({ pressed }) => [
-                      styles.transactionCard,
-                      pressed && { opacity: 0.92, borderColor: 'rgba(55, 75, 177, 0.3)' },
-                    ]}
-                    onPress={() => openTransaction(tx)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${tx.title} ${tx.amountLabel}`}
-                  >
-                    <View style={styles.transactionLeft}>
-                      <View
-                        style={
-                          isCredit ? styles.transactionIconCredit : styles.transactionIconDebit
-                        }
-                      >
-                        <Ionicons
-                          name={transactionIcon(tx.icon)}
-                          size={22}
-                          color={isCredit ? walletTokens.CREDIT_ICON : walletTokens.ERROR}
-                        />
-                      </View>
-                      <View style={styles.transactionMeta}>
-                        <Text style={styles.transactionTitle}>{tx.title}</Text>
-                        <Text style={styles.transactionDate}>{tx.dateLabel}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.transactionRight}>
-                      <View style={styles.amountRow}>
-                        <BhaiWayCoinIcon size={14} />
-                        <Text style={isCredit ? styles.amountCredit : styles.amountDebit}>
-                          {tx.amountLabel}
-                        </Text>
-                      </View>
-                      <Text style={styles.typeLabel}>{tx.type}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })
+              transactions.map((tx) => (
+                <WalletTransactionRow
+                  key={tx.id}
+                  transaction={tx}
+                  onPress={openTransaction}
+                />
+              ))
             )}
           </View>
         </View>
-
-        <Pressable
-          style={({ pressed }) => [styles.promoCard, pressed && { opacity: 0.95 }]}
-          onPress={openPromo}
-          accessibilityRole="button"
-          accessibilityLabel={WALLET_SCREEN.promoTitle}
-        >
-          <Image
-            source={{ uri: PROMO_IMAGE }}
-            style={styles.promoImage}
-            resizeMode="cover"
-            accessibilityIgnoresInvertColors
-          />
-          <View style={styles.promoOverlay}>
-            <Text style={styles.promoEyebrow}>{WALLET_SCREEN.promoEyebrow}</Text>
-            <Text style={styles.promoTitle}>{WALLET_SCREEN.promoTitle}</Text>
-          </View>
-        </Pressable>
       </ScrollView>
+
+      <WalletTransactionDetailModal
+        visible={isTransactionDetailOpen}
+        transaction={selectedTransaction}
+        onClose={closeTransaction}
+      />
 
       <AppFooter activeTab="profile" />
     </SafeAreaView>

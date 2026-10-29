@@ -128,6 +128,7 @@ export const WelcomeScreen = () => {
               >
                 BhaiWay
               </Text>
+              <Text style={styles.tagline}>You Daily Commute Re-Imagined</Text>
             </View>
 
             <Text

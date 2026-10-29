@@ -10,8 +10,9 @@ import {
   ScreenHeader,
   AppText as Text,
 } from '@/shared/components';
+import { formatCoinString } from '@/features/profile/utils/walletCoin';
 import { colors } from '@/shared/theme';
-import { triggerLightHaptic } from '@/shared/utils';
+import { formatBhaiWayCoins, triggerLightHaptic } from '@/shared/utils';
 import { PaymentMethodList } from '@/features/ride-search/components';
 import { OFFER_RIDE_PAYMENT_SCREEN } from '@/features/offer-ride/constants';
 import { useOfferRidePayment } from '@/features/offer-ride/hooks';
@@ -22,10 +23,10 @@ export const OfferRidePaymentScreen = () => {
     selectedId,
     setSelectedId,
     confirmAndPublish,
+    publishing,
+    depositCoins,
+    walletAvailableCoins,
     onAddCoins,
-    onAddUpi,
-    onAddCard,
-    onSeeAllBanks,
     goBack,
   } = useOfferRidePayment();
 
@@ -33,6 +34,8 @@ export const OfferRidePaymentScreen = () => {
     triggerLightHaptic();
     goBack();
   }, [goBack]);
+
+  const depositLabel = depositCoins ? formatBhaiWayCoins(Number(depositCoins)) : null;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -52,19 +55,36 @@ export const OfferRidePaymentScreen = () => {
               label={OFFER_RIDE_PAYMENT_SCREEN.continueLabel}
               onPress={confirmAndPublish}
               showArrow
+              loading={publishing}
+              disabled={publishing}
               accessibilityLabel={OFFER_RIDE_PAYMENT_SCREEN.continueLabel}
             />
           </View>
         }
       >
+        {depositLabel ? (
+          <View style={styles.assuredNotice}>
+            <Ionicons name="shield-checkmark" size={20} color={colors.primary} />
+            <View style={styles.assuredNoticeText}>
+              <Text style={styles.assuredNoticeTitle}>
+                {OFFER_RIDE_PAYMENT_SCREEN.depositNoticeTitle} · {depositLabel}
+              </Text>
+              <Text style={styles.assuredNoticeBody}>
+                {OFFER_RIDE_PAYMENT_SCREEN.depositNoticeBody}
+                {walletAvailableCoins
+                  ? `\nAvailable: ${formatCoinString(walletAvailableCoins)} Coins`
+                  : ''}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         <PaymentMethodList
           selectedId={selectedId}
           onSelect={setSelectedId}
           onAddCoins={onAddCoins}
-          onAddUpi={onAddUpi}
-          onAddCard={onAddCard}
-          onSeeAllBanks={onSeeAllBanks}
           showPayAfterRide={false}
+          walletAvailableCoins={walletAvailableCoins}
         />
 
         <View style={styles.secureRow}>

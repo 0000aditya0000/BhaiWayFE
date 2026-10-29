@@ -268,6 +268,16 @@ export const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: withdrawTokens.OUTLINE_VARIANT,
   },
+  submitError: {
+    maxWidth: layout.maxContentWidth,
+    alignSelf: 'center',
+    width: '100%',
+    marginBottom: spacing.sm,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#B3261E',
+    textAlign: 'center',
+  },
   proceedButton: {
     width: '100%',
     maxWidth: layout.maxContentWidth,

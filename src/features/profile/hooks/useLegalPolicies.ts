@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
@@ -23,19 +24,16 @@ export const useLegalPolicies = (): UseLegalPoliciesResult => {
     router.replace(ROUTES.profile);
   }, [router]);
 
-  const openPolicy = useCallback(
-    (id: LegalPolicyId) => {
-      triggerLightHaptic();
-
-      if (id === 'deletion') {
-        router.push(ROUTES.deleteAccount);
-        return;
-      }
-
-      showAppAlert(LEGAL_SCREEN.comingSoonTitle, LEGAL_SCREEN.comingSoonMessage);
-    },
-    [router],
-  );
+  const openPolicy = useCallback((id: LegalPolicyId) => {
+    triggerLightHaptic();
+    const item = LEGAL_POLICY_ITEMS.find((policy) => policy.id === id);
+    if (!item?.url) {
+      return;
+    }
+    void Linking.openURL(item.url).catch(() => {
+      showAppAlert(LEGAL_SCREEN.openFailedTitle, LEGAL_SCREEN.openFailedMessage);
+    });
+  }, []);
 
   return {
     items: LEGAL_POLICY_ITEMS,

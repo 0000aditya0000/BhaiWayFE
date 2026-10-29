@@ -10,5 +10,6 @@ export interface RideTypeCardProps {
   highlighted?: boolean;
   badge?: string;
   note?: string;
+  perks?: readonly string[];
   onSelect: () => void;
 }

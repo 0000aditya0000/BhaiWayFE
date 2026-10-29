@@ -6,6 +6,7 @@ export const FUNDS_ADDED_SCREEN = {
   statusTitle: 'New Balance',
   updatedLabel: 'Updated',
   goToWalletLabel: 'Go to Wallet',
+  continueBookingLabel: 'Continue Booking',
   bookRideLabel: 'Book a Ride',
   receiptLabel: 'View Transaction Receipt',
   defaultAmountLabel: '1,000',
@@ -15,14 +16,12 @@ export const FUNDS_ADDED_SCREEN = {
 export const getFundsAddedPath = (params: {
   amountLabel?: string;
   balanceLabel?: string;
-  amount?: number;
-  balance?: number;
+  amountCoins?: string;
 }) => ({
   pathname: '/funds-added' as const,
   params: {
     amountLabel: params.amountLabel ?? '',
     balanceLabel: params.balanceLabel ?? '',
-    amount: params.amount != null ? String(params.amount) : '',
-    balance: params.balance != null ? String(params.balance) : '',
+    amountCoins: params.amountCoins ?? '',
   },
 });

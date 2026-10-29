@@ -1,17 +1,14 @@
-import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
-import {
-  formatWalletTransactionAmountLabel,
-  walletTransactionsSheetStore,
-  walletTransactionsSheetSync,
-  type WalletTransactionsSheetRow,
-} from '@/DemoData';
-import { triggerLightHaptic, showAppAlert } from '@/shared/utils';
+import { listWalletTransactions, mapWalletApiError } from '../api/wallet.api';
+import { triggerLightHaptic } from '@/shared/utils';
 import { WALLET_TRANSACTIONS_SCREEN } from '../constants/wallet-transactions.constants';
 import type { WalletTransaction, WalletTransactionFilter } from '../types';
+import { mapWalletTransactionDto } from '../utils/mapWalletBalance';
+import { useWalletTransactionDetail } from './useWalletTransactionDetail';
 
 export interface UseWalletTransactionsResult {
   title: string;
@@ -19,47 +16,87 @@ export interface UseWalletTransactionsResult {
   filters: typeof WALLET_TRANSACTIONS_SCREEN.filters;
   activeFilter: WalletTransactionFilter;
   transactions: readonly WalletTransaction[];
+  loading: boolean;
+  loadingMore: boolean;
+  error: string | null;
+  hasMore: boolean;
+  selectedTransaction: WalletTransaction | null;
+  isTransactionDetailOpen: boolean;
   setFilter: (filter: WalletTransactionFilter) => void;
+  loadMore: () => void;
+  retry: () => void;
   openTransaction: (transaction: WalletTransaction) => void;
+  closeTransaction: () => void;
   goBack: () => void;
 }
 
-const mapRow = (row: WalletTransactionsSheetRow): WalletTransaction => ({
-  id: String(row.transactionId),
-  title: row.title,
-  dateLabel: row.dateLabel,
-  amountLabel: formatWalletTransactionAmountLabel(row.amount, row.type),
-  type: row.type,
-  icon: row.icon,
-});
-
-const getTxSnapshot = (): string =>
-  walletTransactionsSheetStore
-    .getForCurrentUser()
-    .map((row) => `${row.transactionId}:${row.amount}:${row.type}:${row.title}`)
-    .join('|');
-
-const subscribeTx = (onStoreChange: () => void): (() => void) =>
-  walletTransactionsSheetStore.subscribe(() => onStoreChange());
+const PAGE_SIZE = 20;
 
 export const useWalletTransactions = (): UseWalletTransactionsResult => {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<WalletTransactionFilter>('all');
-  const txSnapshot = useSyncExternalStore(subscribeTx, getTxSnapshot);
+  const [items, setItems] = useState<WalletTransaction[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inflightRef = useRef(false);
+  const {
+    selectedTransaction,
+    isDetailOpen,
+    openTransaction,
+    closeTransaction,
+  } = useWalletTransactionDetail();
+
+  const fetchPage = useCallback(async (pageToLoad: number, append: boolean) => {
+    if (inflightRef.current) {
+      return;
+    }
+    inflightRef.current = true;
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
+
+    try {
+      const result = await listWalletTransactions({ page: pageToLoad, limit: PAGE_SIZE });
+      const mapped = result.items.map(mapWalletTransactionDto);
+      setItems((prev) => (append ? [...prev, ...mapped] : mapped));
+      setPage(result.page);
+      setTotalPages(result.totalPages);
+    } catch (err) {
+      setError(mapWalletApiError(err));
+      if (!append) {
+        setItems([]);
+      }
+    } finally {
+      inflightRef.current = false;
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      void walletTransactionsSheetSync.pullIntoLocal().catch(() => undefined);
-    }, []),
+      void fetchPage(1, false);
+    }, [fetchPage]),
   );
 
+  useEffect(() => {
+    void fetchPage(1, false);
+  }, [fetchPage]);
+
   const transactions = useMemo(() => {
-    const all = walletTransactionsSheetStore.getForCurrentUser().map(mapRow);
     if (activeFilter === 'all') {
-      return all;
+      return items;
     }
-    return all.filter((tx) => tx.type === activeFilter);
-  }, [activeFilter, txSnapshot]);
+    return items.filter((tx) => tx.type === activeFilter);
+  }, [activeFilter, items]);
+
+  const hasMore = page < totalPages;
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -74,13 +111,16 @@ export const useWalletTransactions = (): UseWalletTransactionsResult => {
     setActiveFilter(filter);
   }, []);
 
-  const openTransaction = useCallback((transaction: WalletTransaction) => {
-    triggerLightHaptic();
-    showAppAlert(
-      transaction.title,
-      `${transaction.amountLabel}\n${transaction.dateLabel}\n${transaction.type}`,
-    );
-  }, []);
+  const loadMore = useCallback(() => {
+    if (!hasMore || loadingMore || loading) {
+      return;
+    }
+    void fetchPage(page + 1, true);
+  }, [fetchPage, hasMore, loading, loadingMore, page]);
+
+  const retry = useCallback(() => {
+    void fetchPage(1, false);
+  }, [fetchPage]);
 
   return {
     title: WALLET_TRANSACTIONS_SCREEN.title,
@@ -88,8 +128,17 @@ export const useWalletTransactions = (): UseWalletTransactionsResult => {
     filters: WALLET_TRANSACTIONS_SCREEN.filters,
     activeFilter,
     transactions,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    selectedTransaction,
+    isTransactionDetailOpen: isDetailOpen,
     setFilter,
+    loadMore,
+    retry,
     openTransaction,
+    closeTransaction,
     goBack,
   };
 };

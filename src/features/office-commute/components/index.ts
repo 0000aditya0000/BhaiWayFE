@@ -11,6 +11,8 @@ export type {
   CommuteRideResultCardProps,
   CommuteRequestState,
 } from './CommuteRideResultCard';
+export { CommuteRideResultFilters } from './CommuteRideResultFilters';
+export type { CommuteRideResultFiltersProps } from './CommuteRideResultFilters';
 export { CommuteBookingMapHero } from './CommuteBookingMapHero';
 export type { CommuteBookingMapHeroProps } from './CommuteBookingMapHero';
 export { CommuteRideAlongsSection } from './CommuteRideAlongsSection';

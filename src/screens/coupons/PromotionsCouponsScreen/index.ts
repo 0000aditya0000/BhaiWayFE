@@ -1,0 +1,1 @@
+export { PromotionsCouponsScreen } from './PromotionsCouponsScreen';

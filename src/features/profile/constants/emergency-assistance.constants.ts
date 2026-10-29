@@ -8,6 +8,9 @@ export const EMERGENCY_ASSISTANCE_SCREEN = {
   holdingLabel: 'HOLDING...',
   rideSectionLabel: 'Active Ride Details',
   rideStatusLabel: 'IN PROGRESS',
+  noActiveRideLabel: 'NO ACTIVE RIDE',
+  riderCounterpartLabel: 'Driver',
+  driverCounterpartLabel: 'Passenger',
   locationLabel: 'Current Location',
   mapLabel: 'MAP',
   contactsHeading: 'EMERGENCY CONTACTS',
@@ -25,6 +28,20 @@ export const EMERGENCY_ASSISTANCE_SCREEN = {
   tapWindowMs: 2000,
   tapsRequired: 3,
 } as const;
+
+export const EMPTY_EMERGENCY_RIDE: EmergencyRideSummary = {
+  hasActiveRide: false,
+  role: null,
+  driverName: 'No active ride',
+  vehicleLabel: '—',
+  plateNumber: '—',
+  locationLabel: 'Start or join a ride to see live trip details here.',
+  avatarUri: '',
+  statusLabel: 'NONE',
+};
+
+/** @deprecated Use EMPTY_EMERGENCY_RIDE. */
+export const DEFAULT_EMERGENCY_RIDE = EMPTY_EMERGENCY_RIDE;
 
 export const EMERGENCY_TIPS = [
   'Stay inside the vehicle if it is safe to do so. Lock the doors until help arrives.',
@@ -60,13 +77,3 @@ export const EMERGENCY_CONTACTS: readonly EmergencyContact[] = [
     tone: 'primary',
   },
 ] as const;
-
-export const DEFAULT_EMERGENCY_RIDE: EmergencyRideSummary = {
-  driverName: 'Vikram Singh',
-  vehicleLabel: 'White Honda City',
-  plateNumber: 'MH 01 AB 1234',
-  locationLabel: 'Western Express Highway, Goregaon East',
-  avatarUri:
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuA1SQYcvPlwrjqnqgYX_epHS88WVBpuf3BJfNo9pgl4JVrsGlctoFxd_jTzTmR2UWT5-djGfIaJ1UqKX-tSIttPhjaajkgBGl31RDf2AD5-V-MAQSKME0I-pXND_kTkfKQ8TYQ1hBa9zc0YAXaupgLzcmdUDIR3xKY925S6HX9QN-CDH8uHu9YRhVSOMI4MFk1_MP4aUXYY1JJTTG88FjDDmXO6_ObWQBNJ2raiEtfUi_XY_frSyGSROV1ZgdSrKOx3pNvajELB4rc',
-  statusLabel: 'IN PROGRESS',
-};

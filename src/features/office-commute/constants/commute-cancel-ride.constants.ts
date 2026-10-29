@@ -13,12 +13,12 @@ export interface CommuteCancelReasonOption {
 export const COMMUTE_CANCEL_RIDE_SCREEN = {
   title: 'Cancel Ride',
   heading: 'Are you sure you want to cancel your ride?',
-  subtitle: 'Your office commute is confirmed. You can cancel before the trip starts.',
+  subtitle: 'Your office commute booking can be cancelled before the trip starts.',
   rideDetailsLabel: 'Ride Details',
   badge: 'Office Commute',
   policyTitle: 'Cancellation Policy',
   policyText:
-    'Note: Refunds for office commute bookings follow BhaiWay cancellation policy based on timing.',
+    'Office Commute bookings receive a full refund when cancelled. There are no cancellation penalties.',
   reasonTitle: 'Reason for Cancellation',
   otherPlaceholder: 'Please tell us more (optional)',
   confirmLabel: 'Confirm Cancellation',
@@ -35,6 +35,7 @@ export const COMMUTE_CANCEL_REASONS: readonly CommuteCancelReasonOption[] = [
 ] as const;
 
 export const getCommuteCancelRidePath = (params: {
+  bookingId: string;
   rideId: string;
   origin?: string;
   destination?: string;
@@ -43,6 +44,7 @@ export const getCommuteCancelRidePath = (params: {
 }) => ({
   pathname: '/office-commute/cancel-ride' as const,
   params: {
+    bookingId: params.bookingId,
     rideId: params.rideId,
     origin: params.origin ?? '',
     destination: params.destination ?? '',

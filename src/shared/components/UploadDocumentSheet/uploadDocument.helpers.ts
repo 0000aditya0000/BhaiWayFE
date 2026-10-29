@@ -1,11 +1,12 @@
-
 import * as ImagePicker from 'expo-image-picker';
-import { showAppAlert } from '@/store';
 import { Platform } from 'react-native';
+
+import { showAppAlert } from '@/store';
 
 import type { UploadedDocument } from '../UploadDocumentSheet/UploadDocumentSheet.types';
 
 const DEFAULT_OPTIONS: ImagePicker.ImagePickerOptions = {
+  // Images only — never request video / broad media library access.
   mediaTypes: ['images'],
   quality: 0.85,
   allowsEditing: false,
@@ -47,6 +48,15 @@ const withTimeout = async <T,>(promise: Promise<T>, ms: number, label: string): 
   }
 };
 
+/**
+ * Android gallery selection uses the system Photo Picker via
+ * `launchImageLibraryAsync` — no READ_MEDIA_* / media-library permission.
+ * iOS still requests photo-library permission when required.
+ */
+export const shouldRequestMediaLibraryPermissionForGallery = (
+  platformOS: typeof Platform.OS = Platform.OS,
+): boolean => platformOS === 'ios';
+
 export const pickDocumentFromCamera = async (
   options?: PickDocumentOptions,
 ): Promise<UploadedDocument | null> => {
@@ -79,6 +89,7 @@ export const pickDocumentFromCamera = async (
       ImagePicker.launchCameraAsync({
         ...DEFAULT_OPTIONS,
         ...pickerOptions,
+        mediaTypes: ['images'],
         allowsEditing: false,
         aspect: undefined,
       }),
@@ -108,21 +119,23 @@ export const pickDocumentFromGallery = async (
   const { waitAfterModalMs = 0, ...pickerOptions } = options ?? {};
 
   try {
-    const current = await ImagePicker.getMediaLibraryPermissionsAsync();
-    let permission = current;
+    if (shouldRequestMediaLibraryPermissionForGallery()) {
+      const current = await ImagePicker.getMediaLibraryPermissionsAsync();
+      let permission = current;
 
-    if (!current.granted) {
-      permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    }
+      if (!current.granted) {
+        permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      }
 
-    if (!permission.granted) {
-      showAppAlert(
-        'Photos permission needed',
-        permission.canAskAgain === false
-          ? 'Photo access is blocked. Enable it in Settings → BhaiWay → Photos.'
-          : 'Allow photo library access to choose a profile photo.',
-      );
-      return null;
+      if (!permission.granted) {
+        showAppAlert(
+          'Photos permission needed',
+          permission.canAskAgain === false
+            ? 'Photo access is blocked. Enable it in Settings → BhaiWay → Photos.'
+            : 'Allow photo library access to choose a profile photo.',
+        );
+        return null;
+      }
     }
 
     if (waitAfterModalMs > 0) {
@@ -133,6 +146,8 @@ export const pickDocumentFromGallery = async (
       ImagePicker.launchImageLibraryAsync({
         ...DEFAULT_OPTIONS,
         ...pickerOptions,
+        // Force images-only even if a caller overrides mediaTypes.
+        mediaTypes: ['images'],
         // Gallery crop is OK; camera crop is not.
         allowsEditing: pickerOptions.allowsEditing ?? true,
       }),

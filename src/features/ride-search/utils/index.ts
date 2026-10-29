@@ -44,3 +44,42 @@ export {
   resolveSearchDateParam,
   toCivilDateFromDate,
 } from './rideSearch.mapper';
+export {
+  mapDriverRatingFromSearch,
+  mapDriverRecentRidesFromSearch,
+  mapVehicleColorFromSearch,
+  mapVehicleLabelFromSearch,
+} from './mapDriverPassengerCard';
+export {
+  mapPreferenceFlagsToChips,
+  mapPreferenceFlagsToRules,
+  mapRideSourceToPreferenceChips,
+  mapRideSourceToPreferenceRules,
+  resolveRidePreferenceFlags,
+} from './mapRidePreferences';
+export type { RidePreferenceFlags } from './mapRidePreferences';
+export {
+  bookingVehicleFromPublicRide,
+  enrichBookingsWithPublicRideVehicles,
+  hasBookingVehicleSnapshot,
+  resolveBookingVehicleLabel,
+  resolveBookingVehiclePlate,
+  resolveVehicleLabelForRide,
+  resolveVehiclePlateForRide,
+  vehicleSnapshotFromRideId,
+} from './bookingVehicle';
+export { rideVehicleCache } from './rideVehicleCache';
+export type { RideVehicleRecord } from './rideVehicleCache';
+export {
+  classifyRiderLocationFreshness,
+  formatLastLocationReceivedAt,
+  isNewerLocationTimestamp,
+  RIDER_LOCATION_STALE_MS,
+} from './liveTrackingFreshness';
+export type { RiderLocationFreshness } from './liveTrackingFreshness';
+export {
+  resolveContactSnapshotPhone,
+  resolveDriverContactPhone,
+  resolvePassengerContactPhone,
+  resolveRidePeerContactPhone,
+} from './bookingContactPhone';

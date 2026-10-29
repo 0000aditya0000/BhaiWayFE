@@ -1,15 +1,14 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
-import {
-  formatBhaiWayWalletLabel,
-  getBhaiWayWalletBalance,
-} from '@/DemoData';
 import { useSessionUser } from '@/shared/hooks';
-import { formatBhaiWayCoins, getSearchParam, triggerLightHaptic } from '@/shared/utils';
+import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { DEFAULT_PROFILE_AVATAR } from '../constants/profile.constants';
 import { FUNDS_ADDED_SCREEN } from '../constants/funds-added.constants';
+import { walletTopUpReturnStore } from '../store/walletTopUpReturnStore';
+import { formatCoinString } from '../utils/walletCoin';
+import { useWalletBalance } from './useWalletBalance';
 
 export interface UseFundsAddedResult {
   brandTitle: string;
@@ -24,6 +23,8 @@ export interface UseFundsAddedResult {
   bookRideLabel: string;
   receiptLabel: string;
   avatarUri: string;
+  /** True when top-up was started from a booking / payment screen. */
+  returnToBooking: boolean;
   goToWallet: () => void;
   bookRide: () => void;
   viewReceipt: () => void;
@@ -34,12 +35,18 @@ export interface UseFundsAddedResult {
 export const useFundsAdded = (): UseFundsAddedResult => {
   const router = useRouter();
   const user = useSessionUser();
+  const { summary } = useWalletBalance();
   const params = useLocalSearchParams<{
     amountLabel?: string;
     balanceLabel?: string;
-    amount?: string;
-    balance?: string;
+    amountCoins?: string;
   }>();
+
+  const returnTarget = useSyncExternalStore(
+    walletTopUpReturnStore.subscribe,
+    walletTopUpReturnStore.get,
+    walletTopUpReturnStore.get,
+  );
 
   const avatarUri = useMemo(
     () => user?.avatarUri ?? DEFAULT_PROFILE_AVATAR,
@@ -51,32 +58,42 @@ export const useFundsAdded = (): UseFundsAddedResult => {
     if (fromParam) {
       return fromParam;
     }
-    const amount = Number(getSearchParam(params.amount));
-    if (Number.isFinite(amount) && amount > 0) {
-      return formatBhaiWayCoins(amount);
+    const coins = getSearchParam(params.amountCoins);
+    if (coins) {
+      return formatCoinString(coins);
     }
     return FUNDS_ADDED_SCREEN.defaultAmountLabel;
-  }, [params.amount, params.amountLabel]);
+  }, [params.amountCoins, params.amountLabel]);
 
   const balanceLabel = useMemo(() => {
     const fromParam = getSearchParam(params.balanceLabel);
     if (fromParam) {
       return fromParam;
     }
-    const balance = Number(getSearchParam(params.balance));
-    if (Number.isFinite(balance) && balance >= 0) {
-      return formatBhaiWayCoins(balance);
+    if (summary) {
+      return formatCoinString(summary.balanceCoins);
     }
-    return formatBhaiWayWalletLabel(getBhaiWayWalletBalance());
-  }, [params.balance, params.balanceLabel]);
+    return FUNDS_ADDED_SCREEN.defaultBalanceLabel;
+  }, [params.balanceLabel, summary]);
+
+  const returnToBooking = Boolean(returnTarget?.pathname);
 
   const goToWallet = useCallback(() => {
     triggerLightHaptic();
+    const pending = walletTopUpReturnStore.consume();
+    if (pending?.pathname) {
+      router.replace({
+        pathname: pending.pathname as '/',
+        params: pending.params,
+      });
+      return;
+    }
     router.replace(ROUTES.wallet);
   }, [router]);
 
   const bookRide = useCallback(() => {
     triggerLightHaptic();
+    walletTopUpReturnStore.clear();
     router.replace(ROUTES.rideSearch);
   }, [router]);
 
@@ -104,10 +121,13 @@ export const useFundsAdded = (): UseFundsAddedResult => {
     statusLabel: FUNDS_ADDED_SCREEN.statusLabel,
     statusTitle: FUNDS_ADDED_SCREEN.statusTitle,
     updatedLabel: FUNDS_ADDED_SCREEN.updatedLabel,
-    goToWalletLabel: FUNDS_ADDED_SCREEN.goToWalletLabel,
+    goToWalletLabel: returnToBooking
+      ? FUNDS_ADDED_SCREEN.continueBookingLabel
+      : FUNDS_ADDED_SCREEN.goToWalletLabel,
     bookRideLabel: FUNDS_ADDED_SCREEN.bookRideLabel,
     receiptLabel: FUNDS_ADDED_SCREEN.receiptLabel,
     avatarUri,
+    returnToBooking,
     goToWallet,
     bookRide,
     viewReceipt,

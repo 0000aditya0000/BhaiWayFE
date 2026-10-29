@@ -61,7 +61,8 @@ export const useRiderProfile = (): UseRiderProfileResult => {
       getDriverChatPath({
         driverName: profile.name,
         carModel: `${profile.jobTitle} @ ${profile.company}`,
-        threadId: `driver-${profile.rideId}-${profile.riderId}`,
+        bookingId: profile.riderId,
+        threadId: profile.riderId,
         perspective: 'driver',
         avatarUri: profile.avatarUri,
       }),

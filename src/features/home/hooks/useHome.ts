@@ -1,21 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useSessionUser } from '@/shared/hooks';
-import { getErrorMessage, logger } from '@/shared/utils';
-import { DEFAULT_HOME_LOCATION, HOME_GREETING } from '../constants';
-import { homeService } from '../services';
-import type { HomeLocation, ServiceCardData } from '../types';
-import { getFirstName, mapDashboardToViewData, resolveUserHomeLocation } from '../utils';
+import { logger } from '@/shared/utils';
+import { DEFAULT_HOME_LOCATION, HOME_CATEGORIES } from '../constants';
+import type { HomeCategory, HomeLocation } from '../types';
+import { getFirstName, resolveUserHomeLocation } from '../utils';
+
+const loadLocalCategories = (): HomeCategory[] =>
+  HOME_CATEGORIES.filter((category) => category.enabled);
 
 export interface UseHomeResult {
   loading: boolean;
   refreshing: boolean;
   error: string | null;
   firstName: string;
-  greetingSubtitle: string;
   user: ReturnType<typeof useSessionUser>;
   location: HomeLocation;
-  serviceCards: ServiceCardData[];
+  categories: HomeCategory[];
   refresh: () => Promise<void>;
   retry: () => Promise<void>;
 }
@@ -23,7 +24,7 @@ export interface UseHomeResult {
 export const useHome = (): UseHomeResult => {
   const user = useSessionUser();
   const [location, setLocation] = useState<HomeLocation>(DEFAULT_HOME_LOCATION);
-  const [serviceCards, setServiceCards] = useState<ServiceCardData[]>([]);
+  const [categories, setCategories] = useState<HomeCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,18 +53,16 @@ export const useHome = (): UseHomeResult => {
       setError(null);
 
       try {
-        const dashboard = await homeService.fetchDashboard();
-        const viewData = mapDashboardToViewData(dashboard);
-        setServiceCards(viewData.serviceCards);
+        setCategories(loadLocalCategories());
       } catch (loadError) {
         logger.error('Failed to load home dashboard', loadError);
-        setError(getErrorMessage(loadError));
+        setCategories(loadLocalCategories());
+        setError(null);
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
 
-      // Location is best-effort and must not block Home from rendering.
       void loadUserLocation();
     },
     [loadUserLocation],
@@ -86,10 +85,9 @@ export const useHome = (): UseHomeResult => {
     refreshing,
     error,
     firstName,
-    greetingSubtitle: HOME_GREETING.subtitle,
     user,
     location,
-    serviceCards,
+    categories,
     refresh,
     retry,
   };

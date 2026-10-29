@@ -2,6 +2,8 @@ export type {
   ProfileMenuActionId,
   ProfileBadge,
   ProfileMenuItem,
+  MyRatingReview,
+  MyRatingsDirection,
   DriverEarningBreakdown,
   MasterProfileData,
 } from './profile.types';
@@ -39,6 +41,7 @@ export type {
   WalletTransactionType,
   WalletTransactionFilter,
   WalletTransaction,
+  WalletBucketSummary,
   WalletSummary,
 } from './wallet.types';
 export type {

@@ -1,9 +1,9 @@
 # BhaiWay Backend API Documentation
 
 **Environment:** Staging  
-**Base URL:** `https://bhaiway-backend.onrender.com`  
-**Swagger UI:** `https://bhaiway-backend.onrender.com/api/docs`  
-**Swagger JSON:** `https://bhaiway-backend.onrender.com/api/docs-json`  
+**Base URL:** `https://api.bhaiway.com`  
+**Swagger UI:** `https://api.bhaiway.com/api/docs`  
+**Swagger JSON:** `https://api.bhaiway.com/api/docs-json`  
 **Authentication:** JWT Bearer for protected endpoints
 
 > **Important:** Swagger/OpenAPI is the authoritative API contract for exact field names, enum values, validation constraints, and response schemas. This document is a frontend-friendly companion with endpoint purpose, representative request/response examples, business rules, and integration notes.
@@ -635,13 +635,13 @@ Use one API client/interceptor to attach the JWT automatically.
 ## 11. Current staging links
 
 **API Base**
-`https://bhaiway-backend.onrender.com`
+`https://api.bhaiway.com`
 
 **Swagger**
-`https://bhaiway-backend.onrender.com/api/docs`
+`https://api.bhaiway.com/api/docs`
 
 **Swagger JSON**
-`https://bhaiway-backend.onrender.com/api/docs-json`
+`https://api.bhaiway.com/api/docs-json`
 
 ---
 

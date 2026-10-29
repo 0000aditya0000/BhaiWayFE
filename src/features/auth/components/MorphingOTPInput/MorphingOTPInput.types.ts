@@ -10,4 +10,5 @@ export interface MorphingOTPInputProps {
   /** Drives orbit → converge → green check / reset. */
   status?: MorphingOtpStatus;
   editable?: boolean;
+  accessibilityLabel?: string;
 }

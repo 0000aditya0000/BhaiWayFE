@@ -11,7 +11,7 @@ export const PROFILE_SUCCESS_SCREEN = {
     defaultMaskedNumber: '•••• 4242',
     defaultBankName: 'Linked Bank',
     primaryLabel: 'Continue to Withdrawal',
-    secondaryLabel: 'View My Accounts',
+    secondaryLabel: 'View Payment Methods',
   },
   withdrawal: {
     kind: 'withdrawal-initiated' as const satisfies ProfileSuccessKind,

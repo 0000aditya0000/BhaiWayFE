@@ -1,60 +1,63 @@
-import type { ReferralHistoryItem, ReferralPerk } from '../types';
+import type { ReferralPerk } from '../types';
 
 export const REFER_EARN_SCREEN = {
-  title: 'Refer & Earn',
-  heroTitle: 'Invite Friends,',
-  heroHighlight: 'Earn Rewards',
-  heroSubtitle:
-    'Refer your coworkers to BhaiWay and get 50 fuel credits for every successful signup.',
-  exclusiveLabel: 'Your Exclusive Link',
-  shareCodeTitle: 'Share your code',
-  copyLabel: 'COPY',
-  copiedLabel: 'COPIED',
-  shareLabel: 'SHARE NOW',
-  statusTitle: 'Referral Status',
-  totalEarnedLabel: 'Total Earned: 150',
-  viewAllLabel: 'VIEW ALL HISTORY',
-  helpTitle: 'Refer & Earn Help',
+  title: 'Referrals & Rewards',
+  tabReferrals: 'Referrals',
+  tabRewards: 'Rewards',
+  heroTitle: 'Invite friends to BhaiWay',
+  heroSubtitle: 'Share your code — you both get 50 BhaiWay Coins when they join.',
+  exclusiveLabel: 'Your referral code',
+  shareCodeTitle: 'Share & earn',
+  copyLabel: 'Copy',
+  copiedLabel: 'Copied',
+  copySuccessTitle: 'Copied',
+  copySuccessMessage: 'Referral code copied',
+  shareLabel: 'Share invite',
+  shareFailedTitle: 'Unable to share',
+  shareFailedMessage: 'Unable to share right now. Please try again.',
+  statsReferralsLabel: 'Referrals',
+  statsCoinsLabel: 'Coins earned',
+  statusTitle: 'Referral activity',
+  emptyTitle: 'No referrals yet',
+  emptySubtitle: 'Invite friends and earn 50 Coins when they join BhaiWay.',
+  inviteLabel: 'Invite friends',
+  loadingLabel: 'Loading referrals…',
+  retryLabel: 'Retry',
+  helpTitle: 'Referrals & Rewards',
   helpMessage:
-    'Share your referral code with coworkers. You earn 50 fuel credits when they successfully sign up on BhaiWay.',
+    'Share your referral code with friends. When they register with your code, you both receive 50 promotional BhaiWay Coins. Driver reward campaigns for Office Commute appear on the Rewards tab.',
+  rewardsHelpTitle: 'Driver Rewards',
+  rewardsHelpMessage:
+    'Complete qualifying Office Commute trips to unlock campaign milestones. Claim prizes from active campaigns and track status in claim history.',
   shareMessage: (code: string) =>
-    `Join me on BhaiWay! Use my referral code ${code} and we both get 50 fuel credits.`,
-  viewAllTitle: 'Coming Soon',
-  viewAllMessage: 'Full referral history will be available soon.',
+    [
+      'Join me on BhaiWay!',
+      '',
+      `Use my referral code ${code} when you register and we both get 50 BhaiWay Coins.`,
+      '',
+      'Happy riding with BhaiWay!',
+    ].join('\n'),
 } as const;
 
-export const REFERRAL_CODE = 'ARJUN2023';
+/** Signup phone screen — optional referral field. */
+export const REFERRAL_CODE_FIELD = {
+  label: 'Have a referral code?',
+  placeholder: 'Enter referral code',
+  hint: 'Optional',
+  invalid: 'Please check your referral code.',
+} as const;
 
 export const REFERRAL_PERKS: readonly ReferralPerk[] = [
-  { id: 'fuel', label: '50 Fuel Credits', icon: 'flame-outline', tone: 'primary' },
-  { id: 'unlimited', label: 'Unlimited Referrals', icon: 'people-outline', tone: 'neutral' },
-] as const;
-
-export const REFERRAL_HISTORY: readonly ReferralHistoryItem[] = [
-  {
-    id: 'r1',
-    name: 'Rohan M.',
-    detail: 'Joined via link • 12 Oct 2023',
-    amountLabel: '50 Earned',
-    status: 'successful',
-  },
-  {
-    id: 'r2',
-    name: 'Priya S.',
-    detail: 'Invited via Slack • 14 Oct 2023',
-    amountLabel: 'Pending',
-    status: 'waiting',
-  },
-  {
-    id: 'r3',
-    name: 'Amit K.',
-    detail: 'Joined via link • 08 Oct 2023',
-    amountLabel: '50 Earned',
-    status: 'successful',
-  },
+  { id: 'coins', label: '50 Coins each', icon: 'gift-outline', tone: 'primary' },
+  { id: 'unlimited', label: 'Unlimited referrals', icon: 'people-outline', tone: 'neutral' },
 ] as const;
 
 export const REFERRAL_STATUS_LABEL = {
-  successful: 'SUCCESSFUL',
-  waiting: 'WAITING',
+  REWARDED: 'Rewarded',
 } as const;
+
+/** @deprecated Demo constant removed — use GET /referrals/summary. */
+export const REFERRAL_CODE = '';
+
+/** @deprecated Demo history removed — use GET /referrals. */
+export const REFERRAL_HISTORY = [] as const;

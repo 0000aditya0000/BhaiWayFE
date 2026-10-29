@@ -29,6 +29,8 @@ export interface EnvConfig {
   readonly bypassGoogleMaps: boolean;
   readonly cloudinaryCloudName: string;
   readonly cloudinaryUploadPreset: string;
+  /** Dev-only mock gateway webhook secret (matches backend PAYMENT_GATEWAY_WEBHOOK_SECRET). */
+  readonly mockPaymentWebhookSecret: string;
 }
 
 const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, string | undefined>;
@@ -80,7 +82,9 @@ const readBoolean = (value: string | undefined, fallback: boolean): boolean => {
  */
 const googleMapsApiKey = firstNonEmpty(
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+  process.env.GOOGLE_MAPS_API_KEY,
   process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY,
+  process.env.GOOGLE_PLACES_API_KEY,
   extra.googleMapsApiKey,
   extra.googlePlacesApiKey,
   iosMapsKey,
@@ -89,7 +93,9 @@ const googleMapsApiKey = firstNonEmpty(
 
 const googlePlacesApiKey = firstNonEmpty(
   process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY,
+  process.env.GOOGLE_PLACES_API_KEY,
   process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+  process.env.GOOGLE_MAPS_API_KEY,
   extra.googlePlacesApiKey,
   extra.googleMapsApiKey,
   iosMapsKey,
@@ -119,7 +125,7 @@ export const env: EnvConfig = {
     process.env.EXPO_PUBLIC_API_URL ??
     process.env.EXPO_PUBLIC_API_BASE_URL ??
     extra.apiBaseUrl ??
-    'https://api.bhaiway.dev/v1',
+    'https://api.bhaiway.com',
   apiTimeoutMs: Number(process.env.EXPO_PUBLIC_API_TIMEOUT_MS ?? extra.apiTimeoutMs ?? 15000),
   enableLogging: environment !== 'production',
   // Default ON in development so auth/home work without a live backend.
@@ -155,5 +161,10 @@ export const env: EnvConfig = {
   cloudinaryUploadPreset: firstNonEmpty(
     process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
     extra.cloudinaryUploadPreset,
+  ),
+  mockPaymentWebhookSecret: firstNonEmpty(
+    process.env.EXPO_PUBLIC_MOCK_PAYMENT_WEBHOOK_SECRET,
+    process.env.EXPO_PUBLIC_MOCK_PAYMENT_GATEWAY_SIGNATURE,
+    extra.mockPaymentWebhookSecret,
   ),
 };

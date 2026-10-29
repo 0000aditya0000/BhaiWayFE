@@ -1,12 +1,14 @@
-import type { SupportCategory, SupportTicket } from '../types';
-
+/**
+ * Legacy help-support UI constants.
+ * Production ticket flows live in `@/features/support`.
+ * Kept for SupportChatScreen / email copy only — no dummy tickets.
+ */
 export const HELP_SUPPORT_SCREEN = {
   title: 'Help & Support',
   searchPlaceholder: 'How can we help you today?',
   categoriesHeading: 'Support Categories',
   recentHeading: 'Recent Issues',
   viewAllLabel: 'View All',
-  chatLabel: 'Chat with Support',
   emailLabel: 'Email Us',
   comingSoonTitle: 'Coming Soon',
   comingSoonMessage: 'This support option will be available soon.',
@@ -14,51 +16,14 @@ export const HELP_SUPPORT_SCREEN = {
   emailErrorMessage: 'Please email us at support@bhaiway.app',
 } as const;
 
-export const SUPPORT_CATEGORIES: readonly SupportCategory[] = [
-  {
-    id: 'booking',
-    title: 'Booking & Rides',
-    subtitle: 'Manage your trips and ride requests',
-    icon: 'calendar-outline',
-  },
-  {
-    id: 'payments',
-    title: 'Payments & Wallet',
-    subtitle: 'Refunds, credits, and payment methods',
-    icon: 'wallet-outline',
-  },
-  {
-    id: 'safety',
-    title: 'Safety & Trust',
-    subtitle: 'Emergency help and safety guidelines',
-    icon: 'shield-checkmark-outline',
-  },
-  {
-    id: 'account',
-    title: 'Account Settings',
-    subtitle: 'Privacy, profile, and security settings',
-    icon: 'settings-outline',
-  },
-] as const;
+/** @deprecated Use SUPPORT_HOME_CATEGORIES from `@/features/support`. */
+export const SUPPORT_CATEGORIES = [] as const;
 
-export const SUPPORT_TICKETS: readonly SupportTicket[] = [
-  {
-    id: 'bw-88291',
-    title: 'Ride #BW-88291 - Payment Issue',
-    submittedLabel: 'Submitted on Oct 12, 2023',
-    status: 'resolved',
-    icon: 'receipt-outline',
-  },
-  {
-    id: 'behavior-1',
-    title: 'Rider Behavior Report',
-    submittedLabel: 'Submitted on Oct 14, 2023',
-    status: 'in_progress',
-    icon: 'person-outline',
-  },
-] as const;
+/** @deprecated Production never seeds tickets — use GET /support/tickets. */
+export const SUPPORT_TICKETS = [] as const;
 
 export const SUPPORT_TICKET_STATUS_LABEL = {
   resolved: 'Resolved',
   in_progress: 'In Progress',
+  created: 'Created',
 } as const;

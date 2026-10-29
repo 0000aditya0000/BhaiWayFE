@@ -93,9 +93,16 @@ export const authService = {
   completeProfile: (payload: CompleteProfilePayload): Promise<UserProfile> =>
     profileImpl.completeProfile(payload),
 
+  updateProfile: (payload: CompleteProfilePayload): Promise<UserProfile> =>
+    userImpl.updateProfile(payload),
+
+  updateProfilePhoto: (profilePhoto: string | null): Promise<UserProfile> =>
+    userImpl.updateProfilePhoto(profilePhoto),
+
   getMe: () => userImpl.getMe(),
 
-  hydrateAuthenticatedUser: (): Promise<boolean> => hydrateAuthenticatedUserFromServer(),
+  hydrateAuthenticatedUser: (options?: { force?: boolean }): Promise<boolean> =>
+    hydrateAuthenticatedUserFromServer(options),
 
   establishAuthSession: (
     session: AuthSession,

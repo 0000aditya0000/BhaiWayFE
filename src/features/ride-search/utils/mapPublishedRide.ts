@@ -34,20 +34,32 @@ const mapPreferences = (raw: string): RidePreference[] =>
 /** Map a PublishedRides sheet row into a search result card. */
 export const mapPublishedRideToResult = (row: PublishedRidesSheetRow): RideResultItem => {
   const owner = userDetailsSheetStore.findByMobile(row.mobile);
+  const vehicleLabel = row.vehicleName?.trim() || 'Car';
   return {
     id: `pub-${row.rideId}`,
     rideType: row.rideType,
     driver: {
       id: `driver-${row.userId || normalizeMobile(row.mobile) || row.rideId}`,
       name: owner?.userName?.trim() || 'BhaiWay Driver',
-      rating: 4.8,
+      rating: 0,
+      totalRatings: 0,
       verified: true,
-      yearsDriving: 3,
       avatarUri: owner?.profilePicture?.trim() || undefined,
+      recentRides: [],
+    },
+    vehicle: {
+      id: '',
+      label: vehicleLabel,
+      color: owner?.vehicleColor?.trim() || '',
+      vehicleType: '',
+      seatingCapacity: 0,
+      make: '',
+      model: vehicleLabel,
+      variant: '',
     },
     price: parsePrice(row.pricePerSeat),
     departureTime: row.departureTime || '—',
-    carModel: row.vehicleName || 'Car',
+    carModel: vehicleLabel,
     seatsLeft: Math.max(0, row.availableSeats),
     ac: true,
     luggage: row.preferences.toLowerCase().includes('luggage') ? 'Medium' : 'Small',

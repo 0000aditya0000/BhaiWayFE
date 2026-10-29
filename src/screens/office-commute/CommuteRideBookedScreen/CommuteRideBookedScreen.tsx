@@ -17,11 +17,15 @@ import { AppFooter, AppText as Text } from '@/shared/components';
 import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { COMMUTE_RIDE_BOOKED_SCREEN } from '@/features/office-commute/constants';
 import { useCommuteRideBooked } from '@/features/office-commute/hooks';
+import { NoShowClaimPanel, useNoShowClaim } from '@/features/no-show';
 import { styles } from './CommuteRideBookedScreen.styles';
 
 export const CommuteRideBookedScreen = () => {
   const params = useLocalSearchParams<{
     rideId?: string;
+    bookingId?: string;
+    seats?: string;
+    status?: string;
     origin?: string;
     destination?: string;
     driverName?: string;
@@ -31,9 +35,11 @@ export const CommuteRideBookedScreen = () => {
     originLng?: string;
     destinationLat?: string;
     destinationLng?: string;
+    claimId?: string;
   }>();
 
   const priceParam = Number(getSearchParam(params.price));
+  const seatsParam = Number(getSearchParam(params.seats));
   const originLat = Number(getSearchParam(params.originLat));
   const originLng = Number(getSearchParam(params.originLng));
   const destinationLat = Number(getSearchParam(params.destinationLat));
@@ -48,15 +54,29 @@ export const CommuteRideBookedScreen = () => {
     openRideOptions,
   } = useCommuteRideBooked({
     rideId: getSearchParam(params.rideId) || 'ride-default',
+    bookingId: getSearchParam(params.bookingId),
     origin: getSearchParam(params.origin),
     destination: getSearchParam(params.destination),
     driverName: getSearchParam(params.driverName),
     carModel: getSearchParam(params.carModel),
     price: Number.isFinite(priceParam) ? priceParam : undefined,
+    seats: Number.isFinite(seatsParam) && seatsParam > 0 ? seatsParam : 1,
+    status: getSearchParam(params.status),
     originLat: Number.isFinite(originLat) ? originLat : undefined,
     originLng: Number.isFinite(originLng) ? originLng : undefined,
     destinationLat: Number.isFinite(destinationLat) ? destinationLat : undefined,
     destinationLng: Number.isFinite(destinationLng) ? destinationLng : undefined,
+  });
+
+  const noShow = useNoShowClaim({
+    role: 'passenger',
+    rideId: details.rideId,
+    bookingId: details.bookingId,
+    claimId: getSearchParam(params.claimId),
+    bookingStatus: details.status,
+    pickupStatus: details.status === 'PICKED_UP' ? 'PICKED_UP' : undefined,
+    isRideOwner: false,
+    enabled: details.isConfirmed && !details.isCancelled,
   });
 
   const checkScale = useSharedValue(0.6);
@@ -113,9 +133,15 @@ export const CommuteRideBookedScreen = () => {
             <Ionicons name="checkmark-circle" size={40} color="#000000" />
           </Animated.View>
           <Text style={styles.title} accessibilityRole="header">
-            {COMMUTE_RIDE_BOOKED_SCREEN.title}
+            {details.isPending
+              ? COMMUTE_RIDE_BOOKED_SCREEN.titlePending
+              : COMMUTE_RIDE_BOOKED_SCREEN.titleConfirmed}
           </Text>
-          <Text style={styles.subtitle}>{COMMUTE_RIDE_BOOKED_SCREEN.subtitle}</Text>
+          <Text style={styles.subtitle}>
+            {details.isPending
+              ? COMMUTE_RIDE_BOOKED_SCREEN.subtitlePending
+              : COMMUTE_RIDE_BOOKED_SCREEN.subtitleConfirmed}
+          </Text>
         </View>
 
         <View style={styles.driverCard}>
@@ -217,6 +243,22 @@ export const CommuteRideBookedScreen = () => {
             <Ionicons name="locate-outline" size={20} color="#191C1D" />
           </Pressable>
         </View>
+
+        <NoShowClaimPanel
+          reportLabel={noShow.reportLabel}
+          pendingBody={noShow.pendingBody}
+          canReport={noShow.canReport}
+          canRespond={noShow.canRespond}
+          isClaimant={noShow.isClaimant}
+          submitting={noShow.submitting}
+          responding={noShow.responding}
+          claim={noShow.claim}
+          remainingMs={noShow.remainingMs}
+          onReport={noShow.report}
+          onApprove={noShow.approve}
+          onReject={noShow.reject}
+          onOpenSupport={noShow.openSupport}
+        />
 
         <View style={styles.actions}>
           <Pressable

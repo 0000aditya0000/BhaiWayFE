@@ -1,20 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking } from 'react-native';
-
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
-import { triggerErrorHaptic, triggerLightHaptic, triggerSuccessHaptic, showAppAlert } from '@/shared/utils';
 import {
-  DEFAULT_EMERGENCY_RIDE,
+  triggerErrorHaptic,
+  triggerLightHaptic,
+  triggerSuccessHaptic,
+  showAppAlert,
+} from '@/shared/utils';
+import {
+  EMPTY_EMERGENCY_RIDE,
   EMERGENCY_ASSISTANCE_SCREEN,
   EMERGENCY_CONTACTS,
   EMERGENCY_TIPS,
 } from '../constants';
 import type { EmergencyContact, EmergencyRideSummary } from '../types';
+import { resolveEmergencyActiveRide } from '../utils/resolveEmergencyActiveRide';
 
 export interface UseEmergencyAssistanceResult {
   ride: EmergencyRideSummary;
+  rideLoading: boolean;
   contacts: readonly EmergencyContact[];
   tips: readonly string[];
   isHolding: boolean;
@@ -27,10 +34,13 @@ export interface UseEmergencyAssistanceResult {
   registerTap: () => void;
   callContact: (contact: EmergencyContact) => void;
   openMap: () => void;
+  refreshRide: () => void;
 }
 
 export const useEmergencyAssistance = (): UseEmergencyAssistanceResult => {
   const router = useRouter();
+  const [ride, setRide] = useState<EmergencyRideSummary>(EMPTY_EMERGENCY_RIDE);
+  const [rideLoading, setRideLoading] = useState(true);
   const [isHolding, setIsHolding] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const [tapCount, setTapCount] = useState(0);
@@ -40,6 +50,7 @@ export const useEmergencyAssistance = (): UseEmergencyAssistanceResult => {
   const holdDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tapResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const triggeredRef = useRef(false);
+  const requestIdRef = useRef(0);
 
   const clearHoldTimers = useCallback(() => {
     if (holdIntervalRef.current) {
@@ -55,6 +66,33 @@ export const useEmergencyAssistance = (): UseEmergencyAssistanceResult => {
       holdDelayRef.current = null;
     }
   }, []);
+
+  const loadRide = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
+    setRideLoading(true);
+    try {
+      const next = await resolveEmergencyActiveRide();
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+      setRide(next);
+    } catch {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+      setRide(EMPTY_EMERGENCY_RIDE);
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setRideLoading(false);
+      }
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadRide();
+    }, [loadRide]),
+  );
 
   useEffect(
     () => () => {
@@ -178,7 +216,8 @@ export const useEmergencyAssistance = (): UseEmergencyAssistanceResult => {
   }, []);
 
   return {
-    ride: DEFAULT_EMERGENCY_RIDE,
+    ride,
+    rideLoading,
     contacts: EMERGENCY_CONTACTS,
     tips: EMERGENCY_TIPS,
     isHolding,
@@ -191,5 +230,8 @@ export const useEmergencyAssistance = (): UseEmergencyAssistanceResult => {
     registerTap,
     callContact,
     openMap,
+    refreshRide: () => {
+      void loadRide();
+    },
   };
 };

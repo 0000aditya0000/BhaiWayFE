@@ -4,62 +4,73 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppFooter, Button, KeyboardAwareScrollView, ScreenHeader, AppText as Text } from '@/shared/components';
-import { getSearchParam } from '@/shared/utils';
-import { PaymentMethodList } from '@/features/ride-search/components';
-import { usePaymentOptions } from '@/features/ride-search/hooks';
-import type { RideType } from '@/features/ride-search/types';
+import {
+  AppFooter,
+  Button,
+  KeyboardAwareScrollView,
+  ScreenHeader,
+  AppText as Text,
+} from '@/shared/components';
+import { formatBhaiWayCoins, getSearchParam } from '@/shared/utils';
 import { COMMUTE_PAYMENT_SCREEN } from '@/features/office-commute/constants';
+import { useCommutePayment } from '@/features/office-commute/hooks/useCommutePayment';
 import { styles } from './CommutePaymentScreen.styles';
-
-const isRideType = (value: string): value is RideType =>
-  value === 'regular' || value === 'assured';
 
 export const CommutePaymentScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{
     rideId?: string;
-    rideType?: string;
+    seats?: string;
+    riderPricePerSeat?: string;
     origin?: string;
     destination?: string;
     driverName?: string;
     carModel?: string;
-    price?: string;
+    couponCode?: string;
+    couponChargeScope?: string;
+    couponDiscount?: string;
     originLat?: string;
     originLng?: string;
     destinationLat?: string;
     destinationLng?: string;
   }>();
 
-  const rideTypeParam = getSearchParam(params.rideType);
-  const rideType: RideType = isRideType(rideTypeParam) ? rideTypeParam : 'regular';
-  const priceParam = Number(getSearchParam(params.price));
+  const seatsParam = Number(getSearchParam(params.seats));
+  const riderPriceParam = Number(getSearchParam(params.riderPricePerSeat));
+  const couponCode = getSearchParam(params.couponCode);
+  const couponChargeScopeRaw = getSearchParam(params.couponChargeScope);
+  const couponChargeScope =
+    couponChargeScopeRaw === 'ASSURED_SECURITY_DEPOSIT' || couponChargeScopeRaw === 'RIDE_FARE'
+      ? couponChargeScopeRaw
+      : null;
+  const couponDiscount = getSearchParam(params.couponDiscount);
   const originLat = Number(getSearchParam(params.originLat));
   const originLng = Number(getSearchParam(params.originLng));
   const destinationLat = Number(getSearchParam(params.destinationLat));
   const destinationLng = Number(getSearchParam(params.destinationLng));
 
   const {
-    selectedId,
-    setSelectedId,
-    continuePayment,
+    totalFareLabel,
+    walletAvailableCoins,
+    submitting,
+    confirmPayment,
     onAddCoins,
-    onAddUpi,
-    onAddCard,
-    onSeeAllBanks,
-  } = usePaymentOptions({
+  } = useCommutePayment({
     rideId: getSearchParam(params.rideId) || 'ride-default',
-    rideType,
+    seats: Number.isFinite(seatsParam) && seatsParam > 0 ? seatsParam : 1,
+    riderPricePerSeat:
+      Number.isFinite(riderPriceParam) && riderPriceParam > 0 ? riderPriceParam : 0,
     origin: getSearchParam(params.origin),
     destination: getSearchParam(params.destination),
     driverName: getSearchParam(params.driverName),
     carModel: getSearchParam(params.carModel),
-    price: Number.isFinite(priceParam) ? priceParam : undefined,
+    couponCode: couponCode || null,
+    couponChargeScope,
+    couponDiscount: couponDiscount || null,
     originLat: Number.isFinite(originLat) ? originLat : undefined,
     originLng: Number.isFinite(originLng) ? originLng : undefined,
     destinationLat: Number.isFinite(destinationLat) ? destinationLat : undefined,
     destinationLng: Number.isFinite(destinationLng) ? destinationLng : undefined,
-    successPath: '/office-commute/booked',
   });
 
   const handleBack = useCallback(() => {
@@ -67,6 +78,10 @@ export const CommutePaymentScreen = () => {
       router.back();
     }
   }, [router]);
+
+  const walletLabel = walletAvailableCoins
+    ? formatBhaiWayCoins(Number(walletAvailableCoins), { spaced: false })
+    : '—';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -84,22 +99,29 @@ export const CommutePaymentScreen = () => {
           <View style={styles.footer}>
             <Button
               label={COMMUTE_PAYMENT_SCREEN.continueLabel}
-              onPress={continuePayment}
+              onPress={confirmPayment}
+              loading={submitting}
               showArrow
-              accessibilityLabel="Continue to booking confirmation"
+              accessibilityLabel="Pay and request commute ride"
             />
           </View>
         }
       >
-        <PaymentMethodList
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          onAddCoins={onAddCoins}
-          onAddUpi={onAddUpi}
-          onAddCard={onAddCard}
-          onSeeAllBanks={onSeeAllBanks}
-          showPayAfterRide
-        />
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>{COMMUTE_PAYMENT_SCREEN.fareTitle}</Text>
+          <Text style={styles.summaryAmount}>{totalFareLabel}</Text>
+          <Text style={styles.summaryHint}>{COMMUTE_PAYMENT_SCREEN.totalLabel}</Text>
+          <View style={styles.walletRow}>
+            <Text style={styles.walletLabel}>{COMMUTE_PAYMENT_SCREEN.walletLabel}</Text>
+            <Text style={styles.walletValue}>{walletLabel}</Text>
+          </View>
+          <Button
+            label="Add Coins"
+            variant="secondary"
+            onPress={onAddCoins}
+            accessibilityLabel="Add coins to wallet"
+          />
+        </View>
 
         <View style={styles.secureRow}>
           <Ionicons name="shield-checkmark-outline" size={18} color="#5C5F61" />

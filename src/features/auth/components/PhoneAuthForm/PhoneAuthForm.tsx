@@ -9,6 +9,7 @@ import {
   Button,
   Header,
   IconButton,
+  Input,
   KeyboardAwareScrollView,
   PhoneInput,
   AppText as Text,
@@ -25,7 +26,19 @@ export const PhoneAuthForm = ({
   subtitle,
 }: PhoneAuthFormProps) => {
   const router = useRouter();
-  const { phoneNumber, setPhoneNumber, isValid, loading, submit } = usePhoneAuth(flow);
+  const {
+    phoneNumber,
+    setPhoneNumber,
+    referralCode,
+    setReferralCode,
+    showReferralField,
+    referralFieldLabel,
+    referralFieldPlaceholder,
+    referralFieldHint,
+    isValid,
+    loading,
+    submit,
+  } = usePhoneAuth(flow);
   const showHeader = Boolean(title);
 
   const handleBack = useCallback(() => {
@@ -52,6 +65,24 @@ export const PhoneAuthForm = ({
       <Animated.View entering={FadeInDown.delay(120).duration(400)} style={styles.inputWrapper}>
         <PhoneInput value={phoneNumber} onChangeText={setPhoneNumber} autoFocus />
       </Animated.View>
+
+      {showReferralField ? (
+        <Animated.View
+          entering={FadeInDown.delay(160).duration(400)}
+          style={styles.referralWrapper}
+        >
+          <Input
+            label={referralFieldLabel}
+            value={referralCode}
+            onChangeText={setReferralCode}
+            placeholder={referralFieldPlaceholder}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            accessibilityLabel={referralFieldLabel}
+          />
+          <Text style={styles.referralHint}>{referralFieldHint}</Text>
+        </Animated.View>
+      ) : null}
 
       <Animated.View entering={FadeInDown.delay(220).duration(400)} style={styles.buttonWrapper}>
         <Button

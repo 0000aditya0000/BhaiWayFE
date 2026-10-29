@@ -1,0 +1,1 @@
+export { CorporateIdentityScreen } from './CorporateIdentityScreen';

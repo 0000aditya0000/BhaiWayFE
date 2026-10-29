@@ -17,6 +17,7 @@ import { styles } from './CommuteCancelRideScreen.styles';
 
 export const CommuteCancelRideScreen = () => {
   const params = useLocalSearchParams<{
+    bookingId?: string;
     rideId?: string;
     origin?: string;
     destination?: string;
@@ -36,6 +37,7 @@ export const CommuteCancelRideScreen = () => {
     confirmCancellation,
     goBack,
   } = useCommuteCancelRide({
+    bookingId: getSearchParam(params.bookingId) || '',
     rideId: getSearchParam(params.rideId) || 'commute-ride',
     origin: getSearchParam(params.origin),
     destination: getSearchParam(params.destination),

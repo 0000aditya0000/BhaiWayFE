@@ -4,6 +4,6 @@ export interface CommuteBookingMapHeroProps {
   routeCoordinates: Array<{ latitude: number; longitude: number }>;
   distanceLabel: string;
   durationLabel: string;
-  matchPercent: number;
+  matchPercent: number | null;
   matchCaption: string;
 }

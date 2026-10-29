@@ -1,1 +1,1 @@
-export { HelpSupportScreen as default } from '@/features/profile';
+export { HelpSupportScreen as default } from '@/features/support';

@@ -11,6 +11,7 @@ import {
   type PublishedRideSummary,
 } from '../store/publishedRideStore';
 import type { RidePreferenceId } from '../types';
+import { mapRideStatusLabel } from '../utils/mapRideStatusLabel';
 
 export interface PublishedPreferenceChip {
   id: RidePreferenceId;
@@ -21,6 +22,9 @@ export interface PublishedPreferenceChip {
 export interface UseOfferRidePublishedResult {
   summary: PublishedRideSummary;
   isAssured: boolean;
+  successTitle: string;
+  successSubtitle: string;
+  statusLabel: string | null;
   pickupLabel: string;
   dropoffLabel: string;
   departureLabel: string;
@@ -71,6 +75,30 @@ export const useOfferRidePublished = (): UseOfferRidePublishedResult => {
 
   const isAssured = summary.rideType === 'assured';
 
+  const successCopy = useMemo(
+    () =>
+      isAssured
+        ? {
+            title: RIDE_PUBLISHED_SCREEN.assuredTitle,
+            subtitle: RIDE_PUBLISHED_SCREEN.assuredSubtitle,
+          }
+        : {
+            title: RIDE_PUBLISHED_SCREEN.title,
+            subtitle: RIDE_PUBLISHED_SCREEN.subtitle,
+          },
+    [isAssured],
+  );
+
+  const statusLabel = useMemo(() => {
+    if (!isAssured) {
+      return null;
+    }
+    return (
+      summary.statusLabel ??
+      mapRideStatusLabel(summary.backendStatus, 'ASSURED')
+    );
+  }, [isAssured, summary.backendStatus, summary.statusLabel]);
+
   const preferenceChips = useMemo(
     () =>
       RIDE_PREFERENCE_OPTIONS.filter((option) => summary.preferences[option.id]).map(
@@ -112,6 +140,9 @@ export const useOfferRidePublished = (): UseOfferRidePublishedResult => {
   return {
     summary,
     isAssured,
+    successTitle: successCopy.title,
+    successSubtitle: successCopy.subtitle,
+    statusLabel,
     pickupLabel: summary.pickupLabel || RIDE_PUBLISHED_SCREEN.fallbackPickup,
     dropoffLabel: summary.dropoffLabel || RIDE_PUBLISHED_SCREEN.fallbackDrop,
     departureLabel: summary.departureLabel,

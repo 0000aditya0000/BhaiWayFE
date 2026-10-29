@@ -1,0 +1,1 @@
+export { CorporateIdentityVerifyScreen } from './CorporateIdentityVerifyScreen';

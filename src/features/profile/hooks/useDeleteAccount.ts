@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
+import { unregisterCurrentPushDevice } from '@/features/notifications/push/pushRegistration';
 import { triggerLightHaptic, triggerSuccessHaptic } from '@/shared/utils';
 import { authSession, showAppAlert } from '@/store';
 import { DELETE_ACCOUNT_REASONS, DELETE_ACCOUNT_SCREEN } from '../constants';
@@ -56,8 +57,11 @@ export const useDeleteAccount = (): UseDeleteAccountResult => {
         style: 'destructive',
         onPress: () => {
           triggerSuccessHaptic();
-          authSession.clear();
-          router.replace(ROUTES.accountDeleted);
+          void (async () => {
+            await unregisterCurrentPushDevice();
+            authSession.clear();
+            router.replace(ROUTES.accountDeleted);
+          })();
         },
       },
     ]);

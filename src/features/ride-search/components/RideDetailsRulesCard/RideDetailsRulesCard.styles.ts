@@ -56,4 +56,11 @@ export const styles = StyleSheet.create({
     color: colors.textPrimary,
     paddingTop: 6,
   },
+  emptyLabel: {
+    ...typography.body,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textSecondary,
+    paddingTop: spacing.xs,
+  },
 });

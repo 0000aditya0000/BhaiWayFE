@@ -1,12 +1,13 @@
-export type ReferralStatus = 'successful' | 'waiting';
+export type ReferralStatus = 'REWARDED' | string;
 
 export interface ReferralPerk {
   id: string;
   label: string;
-  icon: 'flame-outline' | 'people-outline';
+  icon: 'gift-outline' | 'people-outline' | 'flame-outline';
   tone: 'primary' | 'neutral';
 }
 
+/** @deprecated Prefer ReferralListItemUi from referrals.mapper. */
 export interface ReferralHistoryItem {
   id: string;
   name: string;

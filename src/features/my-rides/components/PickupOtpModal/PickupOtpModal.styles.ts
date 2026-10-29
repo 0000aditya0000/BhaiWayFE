@@ -19,6 +19,7 @@ export const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 400,
+    maxHeight: '88%',
     backgroundColor: colors.white,
     borderRadius: layout.radiusXl,
     padding: spacing.xxl,
@@ -108,5 +109,8 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: '600',
     color: ON_SURFACE_VARIANT,
+  },
+  footerExtra: {
+    marginTop: spacing.lg,
   },
 });

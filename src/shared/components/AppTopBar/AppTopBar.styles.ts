@@ -27,7 +27,11 @@ export const styles = StyleSheet.create({
   },
   /** Absolutely centered so title stays in the middle of the screen. */
   center: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: layout.minTouchTarget + spacing.md,

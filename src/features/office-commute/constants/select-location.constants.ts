@@ -21,11 +21,15 @@ export const DEFAULT_PUBLISH_COMMUTE_DRAFT: PublishCommuteDraft = {
   officeLocation: '',
   startLocationDetail: null,
   officeLocationDetail: null,
+  departureDate: '',
   departureTime: '09:00',
   seats: 3,
   recurringDays: [],
   returningBack: false,
+  returnDepartureTime: '',
   pricePerSeat: '',
+  routeSelection: null,
+  returnRouteSelection: null,
 };
 
 export const SELECT_COMMUTE_LOCATION_SCREEN = {

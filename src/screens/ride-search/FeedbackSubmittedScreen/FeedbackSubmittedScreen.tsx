@@ -23,7 +23,7 @@ export const FeedbackSubmittedScreen = () => {
   const params = useLocalSearchParams<{ rating?: string }>();
   const ratingParam = Number(getSearchParam(params.rating));
 
-  const { rating, goHome, viewReceipt, openNotifications, openSearch } = useFeedbackSubmitted({
+  const { goHome, viewReceipt, openNotifications, openSearch } = useFeedbackSubmitted({
     rating: Number.isFinite(ratingParam) ? ratingParam : 5,
   });
 
@@ -126,41 +126,6 @@ export const FeedbackSubmittedScreen = () => {
                   {FEEDBACK_SUBMITTED_SCREEN.viewReceiptLabel}
                 </Text>
               </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryIconWallet}>
-                <Ionicons name="wallet-outline" size={22} color="#5C6276" />
-              </View>
-              <View>
-                <Text style={styles.summaryLabel}>
-                  {FEEDBACK_SUBMITTED_SCREEN.paymentMethodLabel}
-                </Text>
-                <Text style={styles.summaryValue}>
-                  {FEEDBACK_SUBMITTED_SCREEN.paymentMethodValue}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryIconRating}>
-                <Ionicons name="star" size={22} color="#0038B6" />
-              </View>
-              <View>
-                <Text style={styles.summaryLabel}>{FEEDBACK_SUBMITTED_SCREEN.ratingLabel}</Text>
-                <View style={styles.starsRow}>
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Ionicons
-                      key={`star-${index}`}
-                      name={index < rating ? 'star' : 'star-outline'}
-                      size={16}
-                      color="#374BB1"
-                    />
-                  ))}
-                </View>
-              </View>
             </View>
           </View>
         </View>

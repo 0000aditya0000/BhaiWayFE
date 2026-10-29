@@ -1,20 +1,26 @@
 import React, { useCallback } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppFooter, IconButton, AppText as Text, AppTextInput as TextInput } from '@/shared/components';
 import { triggerLightHaptic } from '@/shared/utils';
+import { HELP_SUPPORT_SCREEN } from '@/features/support/constants';
+import { useHelpSupportHome } from '@/features/support/hooks';
 import {
-  HELP_SUPPORT_SCREEN,
-  SUPPORT_TICKET_STATUS_LABEL,
-} from '@/features/profile/constants';
-import { useHelpSupport } from '@/features/profile/hooks';
-import type { SupportTicketStatus } from '@/features/profile/types';
+  formatSupportDateTime,
+  formatSupportStatusLabel,
+} from '@/features/support/utils';
 import { helpTokens, styles } from './HelpSupportScreen.styles';
 
-const statusStyles = (status: SupportTicketStatus) => {
-  if (status === 'resolved') {
+const statusStyles = (status: string) => {
+  const key = status.trim().toUpperCase();
+  if (key === 'RESOLVED') {
     return {
       badge: styles.statusResolved,
       label: styles.statusLabelResolved,
@@ -31,14 +37,17 @@ export const HelpSupportScreen = () => {
     query,
     setQuery,
     categories,
-    tickets,
+    recentTickets,
+    loadingRecent,
+    recentError,
     goBack,
     openCategory,
     openTicket,
     viewAllTickets,
-    chatWithSupport,
+    raiseTicket,
     emailSupport,
-  } = useHelpSupport();
+    retryRecent,
+  } = useHelpSupportHome();
 
   const handleGoBack = useCallback(() => {
     triggerLightHaptic();
@@ -126,39 +135,58 @@ export const HelpSupportScreen = () => {
           </View>
 
           <View style={styles.ticketsList}>
-            {tickets.map((ticket) => {
-              const statusStyle = statusStyles(ticket.status);
-              return (
-                <Pressable
-                  key={ticket.id}
-                  style={({ pressed }) => [
-                    styles.ticketCard,
-                    pressed && { transform: [{ scale: 1.01 }] },
-                  ]}
-                  onPress={() => openTicket(ticket.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${ticket.title}. ${SUPPORT_TICKET_STATUS_LABEL[ticket.status]}`}
-                >
-                  <View style={styles.ticketLeft}>
-                    <View style={styles.ticketIcon}>
-                      <Ionicons name={ticket.icon} size={22} color={helpTokens.SECONDARY} />
-                    </View>
-                    <View style={styles.ticketMeta}>
-                      <Text style={styles.ticketTitle}>{ticket.title}</Text>
-                      <Text style={styles.ticketDate}>{ticket.submittedLabel}</Text>
-                    </View>
-                  </View>
-                  <View style={[styles.statusBadge, statusStyle.badge]}>
-                    <Text style={[styles.statusLabel, statusStyle.label]}>
-                      {SUPPORT_TICKET_STATUS_LABEL[ticket.status]}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-            {tickets.length === 0 ? (
+            {loadingRecent ? (
+              <ActivityIndicator color={helpTokens.PRIMARY} />
+            ) : recentError ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>No recent issues match your search.</Text>
+                <Text style={styles.emptyText}>{recentError}</Text>
+                <Pressable onPress={retryRecent} accessibilityRole="button">
+                  <Text style={styles.viewAll}>Retry</Text>
+                </Pressable>
+              </View>
+            ) : (
+              recentTickets.map((ticket) => {
+                const statusStyle = statusStyles(String(ticket.status));
+                return (
+                  <Pressable
+                    key={ticket.id}
+                    style={({ pressed }) => [
+                      styles.ticketCard,
+                      pressed && { transform: [{ scale: 1.01 }] },
+                    ]}
+                    onPress={() => openTicket(ticket.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${ticket.reference}. ${formatSupportStatusLabel(String(ticket.status))}`}
+                  >
+                    <View style={styles.ticketLeft}>
+                      <View style={styles.ticketIcon}>
+                        <Ionicons
+                          name="ticket-outline"
+                          size={22}
+                          color={helpTokens.SECONDARY}
+                        />
+                      </View>
+                      <View style={styles.ticketMeta}>
+                        <Text style={styles.ticketTitle} numberOfLines={1}>
+                          {ticket.reference}
+                        </Text>
+                        <Text style={styles.ticketDate} numberOfLines={1}>
+                          {ticket.subject || formatSupportDateTime(ticket.createdAt)}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={[styles.statusBadge, statusStyle.badge]}>
+                      <Text style={[styles.statusLabel, statusStyle.label]}>
+                        {formatSupportStatusLabel(String(ticket.status))}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })
+            )}
+            {!loadingRecent && !recentError && recentTickets.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>{HELP_SUPPORT_SCREEN.emptyRecent}</Text>
               </View>
             ) : null}
           </View>
@@ -167,15 +195,15 @@ export const HelpSupportScreen = () => {
         <View style={styles.contactActions}>
           <Pressable
             style={({ pressed }) => [
-              styles.chatButton,
+              styles.primaryActionButton,
               pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
             ]}
-            onPress={chatWithSupport}
+            onPress={raiseTicket}
             accessibilityRole="button"
-            accessibilityLabel={HELP_SUPPORT_SCREEN.chatLabel}
+            accessibilityLabel={HELP_SUPPORT_SCREEN.raiseTicketLabel}
           >
-            <Ionicons name="chatbubble-outline" size={22} color="#FFFFFF" />
-            <Text style={styles.chatLabel}>{HELP_SUPPORT_SCREEN.chatLabel}</Text>
+            <Ionicons name="add-circle-outline" size={22} color="#FFFFFF" />
+            <Text style={styles.primaryActionLabel}>{HELP_SUPPORT_SCREEN.raiseTicketLabel}</Text>
           </Pressable>
 
           <Pressable

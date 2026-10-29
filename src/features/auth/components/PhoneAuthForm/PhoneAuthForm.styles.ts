@@ -38,6 +38,15 @@ export const styles = StyleSheet.create({
   inputWrapper: {
     marginBottom: spacing.xxxl,
   },
+  referralWrapper: {
+    marginBottom: spacing.xxl,
+    gap: spacing.sm,
+  },
+  referralHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
   buttonWrapper: {
     marginTop: 'auto',
     paddingTop: spacing.xxl,

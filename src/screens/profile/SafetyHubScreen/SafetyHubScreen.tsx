@@ -24,7 +24,6 @@ export const SafetyHubScreen = () => {
     manageContacts,
     triggerSos,
     openReport,
-    chatWithSupport,
   } = useSafetyHub();
 
   const glow = useSharedValue(0.25);
@@ -173,22 +172,6 @@ export const SafetyHubScreen = () => {
           ))}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{SAFETY_HUB_SCREEN.contactHeading}</Text>
-          <Pressable
-            style={({ pressed }) => [
-              styles.chatButton,
-              pressed && { opacity: 0.92, transform: [{ scale: 0.97 }] },
-            ]}
-            onPress={chatWithSupport}
-            accessibilityRole="button"
-            accessibilityLabel={SAFETY_HUB_SCREEN.chatLabel}
-          >
-            <Ionicons name="chatbubble" size={22} color={safetyTokens.ON_PRIMARY_CONTAINER} />
-            <Text style={styles.chatLabel}>{SAFETY_HUB_SCREEN.chatLabel}</Text>
-          </Pressable>
-          <Text style={styles.responseTime}>{SAFETY_HUB_SCREEN.responseTimeLabel}</Text>
-        </View>
       </ScrollView>
 
       <AppFooter activeTab="profile" />

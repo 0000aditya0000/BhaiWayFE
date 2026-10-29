@@ -1,10 +1,17 @@
-import { useCallback, useMemo, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
 import { savedUpiStore } from '@/features/ride-search/store';
 import { useSessionUser } from '@/shared/hooks';
-import { isValidUpiId, delay, triggerLightHaptic, triggerSuccessHaptic, showAppAlert } from '@/shared/utils';
+import {
+  getSearchParam,
+  isValidUpiId,
+  delay,
+  triggerLightHaptic,
+  triggerSuccessHaptic,
+  showAppAlert,
+} from '@/shared/utils';
 import { DEFAULT_PROFILE_AVATAR } from '../constants/profile.constants';
 import { LINK_UPI_SCREEN } from '../constants/link-upi.constants';
 import { getUpiLinkedSuccessPath } from '../constants/upi-linked-success.constants';
@@ -30,6 +37,10 @@ export interface UseLinkUpiResult {
   saving: boolean;
   canSave: boolean;
   avatarUri: string;
+  isEditMode: boolean;
+  screenTitle: string;
+  settingsSubtitle: string;
+  saveLabel: string;
   setUpiId: (value: string) => void;
   verifyUpi: () => void;
   saveUpi: () => void;
@@ -40,16 +51,48 @@ export interface UseLinkUpiResult {
 export const useLinkUpi = (): UseLinkUpiResult => {
   const router = useRouter();
   const user = useSessionUser();
+  const params = useLocalSearchParams<{
+    mode?: string;
+    savedUpiId?: string;
+    returnTo?: string;
+  }>();
   const [upiId, setUpiIdState] = useState('');
   const [verified, setVerified] = useState(false);
   const [verifiedName, setVerifiedName] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
+
+  const isEditMode = getSearchParam(params.mode) === 'edit';
+  const savedUpiId = getSearchParam(params.savedUpiId);
+  const returnToPaymentMethods = getSearchParam(params.returnTo) === 'payment-methods';
 
   const avatarUri = useMemo(
     () => user?.avatarUri ?? DEFAULT_PROFILE_AVATAR,
     [user?.avatarUri],
   );
+
+  const screenTitle = isEditMode ? LINK_UPI_SCREEN.editTitle : LINK_UPI_SCREEN.title;
+  const settingsSubtitle = isEditMode
+    ? LINK_UPI_SCREEN.editSettingsSubtitle
+    : LINK_UPI_SCREEN.settingsSubtitle;
+  const saveLabel = isEditMode ? LINK_UPI_SCREEN.editSaveLabel : LINK_UPI_SCREEN.saveLabel;
+
+  useEffect(() => {
+    if (!isEditMode || !savedUpiId || prefilled) {
+      return;
+    }
+
+    const existing = savedUpiStore.getById(savedUpiId);
+    if (!existing) {
+      return;
+    }
+
+    setUpiIdState(existing.upiId);
+    setVerified(true);
+    setVerifiedName(existing.label);
+    setPrefilled(true);
+  }, [isEditMode, prefilled, savedUpiId]);
 
   const canSave = useMemo(
     () => verified && isValidUpiId(upiId) && !saving && !verifying,
@@ -67,8 +110,12 @@ export const useLinkUpi = (): UseLinkUpiResult => {
       router.back();
       return;
     }
+    if (returnToPaymentMethods) {
+      router.replace(ROUTES.paymentMethods);
+      return;
+    }
     router.replace(ROUTES.addMoney);
-  }, [router]);
+  }, [returnToPaymentMethods, router]);
 
   const openProfile = useCallback(() => {
     triggerLightHaptic();
@@ -109,7 +156,9 @@ export const useLinkUpi = (): UseLinkUpiResult => {
 
     setSaving(true);
     void delay(700).then(() => {
-      const saved = savedUpiStore.add(trimmed, verifiedName || undefined);
+      const saved = isEditMode && savedUpiId
+        ? savedUpiStore.update(savedUpiId, trimmed, verifiedName || undefined)
+        : savedUpiStore.add(trimmed, verifiedName || undefined);
       setSaving(false);
 
       if (!saved) {
@@ -118,9 +167,23 @@ export const useLinkUpi = (): UseLinkUpiResult => {
       }
 
       triggerSuccessHaptic();
+
+      if (isEditMode || returnToPaymentMethods) {
+        router.replace(ROUTES.paymentMethods);
+        return;
+      }
+
       router.replace(getUpiLinkedSuccessPath({ upiId: saved.upiId }));
     });
-  }, [router, upiId, verified, verifiedName]);
+  }, [
+    isEditMode,
+    returnToPaymentMethods,
+    router,
+    savedUpiId,
+    upiId,
+    verified,
+    verifiedName,
+  ]);
 
   return {
     upiId,
@@ -130,6 +193,10 @@ export const useLinkUpi = (): UseLinkUpiResult => {
     saving,
     canSave,
     avatarUri,
+    isEditMode,
+    screenTitle,
+    settingsSubtitle,
+    saveLabel,
     setUpiId,
     verifyUpi,
     saveUpi,

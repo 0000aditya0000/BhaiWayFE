@@ -6,7 +6,7 @@ import { authSession } from '@/store';
 import { getErrorMessage, showAppAlert } from '@/shared/utils';
 
 import type { RideTypeTabId } from '../components/ResultFilterChips';
-import { searchRides } from '../api';
+import { searchRides, isValidSearchCoordinate } from '../api';
 import { departureTimeToMinutes, getPassengerLabel } from '../constants';
 import type { RideResultItem, RideResultSortId, RideSearchSummary } from '../types';
 import {
@@ -15,6 +15,7 @@ import {
   resolveSearchDateParam,
   toCivilDateFromDate,
 } from '../utils';
+import { mapRideTypeTabToApiRideType } from '../utils/assuredDeposit.utils';
 
 const shortPlaceName = (value: string): string => {
   const segment = value.split(',')[0]?.trim();
@@ -53,6 +54,10 @@ export interface UseRideResultParams {
   date?: string;
   dateLabel?: string;
   passengers?: string | number;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
+  dropoffLatitude?: number;
+  dropoffLongitude?: number;
 }
 
 export interface UseRideResultResult {
@@ -94,7 +99,7 @@ export const useRideResult = (params: UseRideResultParams): UseRideResultResult 
   const searchingRef = useRef(false);
 
   const loadRides = useCallback(
-    async (mode: 'initial' | 'refresh') => {
+    async (mode: 'initial' | 'refresh', filter: RideTypeTabId) => {
       const source = params.origin?.trim() ?? '';
       const destination = params.destination?.trim() ?? '';
 
@@ -128,14 +133,31 @@ export const useRideResult = (params: UseRideResultParams): UseRideResultResult 
       }
 
       try {
+        const pickupOk = isValidSearchCoordinate(
+          params.pickupLatitude,
+          params.pickupLongitude,
+        );
+        const dropoffOk = isValidSearchCoordinate(
+          params.dropoffLatitude,
+          params.dropoffLongitude,
+        );
+
         const response = await searchRides({
           source,
           destination,
           date: searchDate,
           seats: passengers,
-          rideType: 'REGULAR',
+          rideType: mapRideTypeTabToApiRideType(filter),
           page: 1,
           limit: 20,
+          ...(pickupOk && dropoffOk
+            ? {
+                pickupLatitude: params.pickupLatitude,
+                pickupLongitude: params.pickupLongitude,
+                dropoffLatitude: params.dropoffLatitude,
+                dropoffLongitude: params.dropoffLongitude,
+              }
+            : {}),
         });
 
         if (generation !== searchGenerationRef.current) {
@@ -168,21 +190,28 @@ export const useRideResult = (params: UseRideResultParams): UseRideResultResult 
         }
       }
     },
-    [params.destination, params.origin, passengers, router, searchDate],
+    [
+      params.destination,
+      params.dropoffLatitude,
+      params.dropoffLongitude,
+      params.origin,
+      params.pickupLatitude,
+      params.pickupLongitude,
+      passengers,
+      router,
+      searchDate,
+    ],
   );
 
   useEffect(() => {
-    void loadRides('initial');
-  }, [loadRides]);
+    void loadRides('initial', activeFilter);
+  }, [activeFilter, loadRides]);
 
-  const rides = useMemo(() => {
-    const filtered = sourceRides.filter((ride) => ride.rideType === activeFilter);
-    return sortRides(filtered, sortId);
-  }, [activeFilter, sortId, sourceRides]);
+  const rides = useMemo(() => sortRides(sourceRides, sortId), [sortId, sourceRides]);
 
   const refresh = useCallback(() => {
-    void loadRides('refresh');
-  }, [loadRides]);
+    void loadRides('refresh', activeFilter);
+  }, [activeFilter, loadRides]);
 
   return {
     summary,

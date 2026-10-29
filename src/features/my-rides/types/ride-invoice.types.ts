@@ -15,6 +15,8 @@ export interface RideInvoiceDriver {
 
 export interface RideInvoiceSummary {
   id: string;
+  bookingId: string;
+  rideId: string;
   invoiceId: string;
   dateLabel: string;
   statusLabel: string;
@@ -28,4 +30,18 @@ export interface RideInvoiceSummary {
   fareLines: readonly RideInvoiceFareLine[];
   paymentMethodLabel: string;
   avatarUri: string;
+  cancelledAtLabel?: string;
+  /** Post-trip PAY_LATER settlement — when eligible, show Pay Now CTA. */
+  payLaterSettlement?: {
+    eligible: boolean;
+    outstandingFareLabel: string;
+    rideType: 'regular' | 'assured';
+    rideId: string;
+    bookingId: string;
+    pickupLabel: string;
+    dropoffLabel: string;
+    driverName: string;
+    carModel: string;
+    price: number;
+  };
 }

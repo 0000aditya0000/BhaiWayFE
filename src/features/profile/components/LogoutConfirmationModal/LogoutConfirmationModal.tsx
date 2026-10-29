@@ -6,7 +6,7 @@ import { styles } from './LogoutConfirmationModal.styles';
 import type { LogoutConfirmationModalProps } from './LogoutConfirmationModal.types';
 import { AppText as Text } from '@/shared/components';
 
-const logoSource = require('../../../auth/assets/logo.png');
+const logoSource = require('../../../../../assets/icon.png');
 
 export const LogoutConfirmationModal = ({
   visible,

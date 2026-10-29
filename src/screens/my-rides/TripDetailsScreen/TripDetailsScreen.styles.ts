@@ -28,7 +28,7 @@ export const styles = StyleSheet.create({
     gap: spacing.xl,
   },
   mapCard: {
-    height: 192,
+    height: 200,
     borderRadius: layout.radiusXl,
     overflow: 'hidden',
     backgroundColor: colors.divider,
@@ -207,12 +207,19 @@ export const styles = StyleSheet.create({
   initialsBonus: {
     backgroundColor: '#DDE1FF',
   },
+  initialsMeta: {
+    backgroundColor: '#F1F2F4',
+  },
   initialsText: {
     ...typography.caption,
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '700',
     color: colors.textSecondary,
+  },
+  earningsTextCol: {
+    flex: 1,
+    gap: 2,
   },
   personName: {
     ...typography.body,
@@ -233,6 +240,12 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
+  metaLineLabel: {
+    ...typography.body,
+    fontSize: 16,
+    lineHeight: 24,
+    color: colors.textSecondary,
+  },
   amount: {
     ...typography.body,
     fontSize: 16,
@@ -245,6 +258,12 @@ export const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '600',
     color: colors.primary,
+  },
+  metaAmount: {
+    ...typography.body,
+    fontSize: 16,
+    lineHeight: 24,
+    color: colors.textMuted,
   },
   totalRow: {
     marginTop: spacing.lg,
@@ -288,5 +307,44 @@ export const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: '700',
     color: colors.textMuted,
+  },
+  centerState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    gap: spacing.md,
+  },
+  centerStateTitle: {
+    ...typography.title,
+    fontSize: 18,
+    textAlign: 'center',
+    color: colors.textPrimary,
+  },
+  centerStateText: {
+    ...typography.body,
+    textAlign: 'center',
+    color: colors.textMuted,
+  },
+  retryBtn: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    borderRadius: layout.radiusMd,
+    backgroundColor: colors.primary,
+  },
+  retryLabel: {
+    ...typography.button,
+    color: colors.white,
+  },
+  cancelledAt: {
+    ...typography.caption,
+    color: '#B91C1C',
+    marginTop: -spacing.sm,
+  },
+  emptyEarnings: {
+    ...typography.body,
+    color: colors.textMuted,
+    paddingVertical: spacing.sm,
   },
 });

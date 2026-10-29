@@ -1,9 +1,14 @@
 import React, { useCallback } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { APP_CONFIG } from '@/config';
+import {
+  RatingCommentInput,
+  RatingStars,
+  RATING_TASK_COPY,
+} from '@/features/ratings';
 import {
   AppFooter,
   Avatar,
@@ -14,70 +19,43 @@ import { colors } from '@/shared/theme';
 import { triggerLightHaptic } from '@/shared/utils';
 import { RATE_PASSENGERS_SCREEN } from '@/features/my-rides/constants';
 import { useRatePassengers } from '@/features/my-rides/hooks';
-import type { PassengerRatingValue } from '@/features/my-rides/types';
 import { styles } from './RatePassengersScreen.styles';
-
-const STAR_VALUES = [1, 2, 3, 4, 5] as const;
-
-const PassengerStars = ({
-  value,
-  onChange,
-  name,
-}: {
-  value: PassengerRatingValue;
-  onChange: (next: PassengerRatingValue) => void;
-  name: string;
-}) => (
-  <View style={styles.starsRow} accessibilityLabel={`Rate ${name}`}>
-    {STAR_VALUES.map((star) => {
-      const filled = star <= value;
-      return (
-        <Pressable
-          key={star}
-          style={({ pressed }) => [
-            styles.starButton,
-            pressed && { transform: [{ scale: 1.2 }] },
-          ]}
-          onPress={() => onChange(star)}
-          accessibilityRole="button"
-          accessibilityLabel={`${star} star${star === 1 ? '' : 's'} for ${name}`}
-        >
-          <Ionicons
-            name={filled ? 'star' : 'star-outline'}
-            size={28}
-            color={filled ? '#FFB800' : '#E1E3E4'}
-          />
-        </Pressable>
-      );
-    })}
-  </View>
-);
 
 export const RatePassengersScreen = () => {
   const {
-    passengers,
-    ratings,
+    loading,
+    error,
+    currentTaskName,
+    currentTaskPhoto,
+    routeLabel,
+    progressLabel,
+    rating,
+    comment,
+    submitting,
+    skipping,
     canSubmit,
+    isComplete,
     setRating,
-    submitRatings,
-    openNotifications,
+    setComment,
+    submitCurrent,
+    skipCurrent,
+    refresh,
     goBack,
   } = useRatePassengers();
 
   const handleBack = useCallback(() => {
-    triggerLightHaptic();
     goBack();
   }, [goBack]);
 
-  const handleNotifications = useCallback(() => {
-    triggerLightHaptic();
-    openNotifications();
-  }, [openNotifications]);
-
   const handleSubmit = useCallback(() => {
-    triggerLightHaptic();
-    submitRatings();
-  }, [submitRatings]);
+    submitCurrent();
+  }, [submitCurrent]);
+
+  const handleSkip = useCallback(() => {
+    skipCurrent();
+  }, [skipCurrent]);
+
+  const busy = submitting || skipping;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -90,71 +68,125 @@ export const RatePassengersScreen = () => {
         />
         <Text style={styles.brandName}>{APP_CONFIG.name}</Text>
         <View style={{ flex: 1 }} />
-        <IconButton
-          icon="notifications-outline"
-          onPress={handleNotifications}
-          color={colors.textMuted}
-          accessibilityLabel="Open notifications"
-        />
       </View>
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.intro}>
           <Text style={styles.title} accessibilityRole="header">
-            {RATE_PASSENGERS_SCREEN.title}
+            {RATING_TASK_COPY.driverHeading}
           </Text>
-          <Text style={styles.subtitle}>{RATE_PASSENGERS_SCREEN.subtitle}</Text>
+          <Text style={styles.subtitle}>{RATING_TASK_COPY.driverSubtitle}</Text>
+          {progressLabel ? (
+            <Text style={styles.progress}>{progressLabel}</Text>
+          ) : null}
         </View>
 
-        <View style={styles.list}>
-          {passengers.map((passenger) => (
-            <View key={passenger.id} style={styles.card}>
-              <View style={styles.passengerRow}>
-                <Avatar
-                  size={64}
-                  uri={passenger.avatarUri}
-                  accessibilityLabel={`${passenger.name} photo`}
-                  style={styles.avatar}
-                />
-                <View style={styles.passengerMeta}>
-                  <Text style={styles.passengerName} numberOfLines={1}>
-                    {passenger.name}
-                  </Text>
-                  <Text style={styles.passengerRole} numberOfLines={1}>
-                    {passenger.roleLabel}
-                  </Text>
-                </View>
-              </View>
-
-              <PassengerStars
-                name={passenger.name}
-                value={ratings[passenger.id] ?? 0}
-                onChange={(value) => setRating(passenger.id, value)}
+        {loading ? (
+          <View style={styles.centerState}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : error ? (
+          <View style={styles.centerState}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Pressable
+              style={styles.retryBtn}
+              onPress={() => {
+                triggerLightHaptic();
+                refresh();
+              }}
+            >
+              <Text style={styles.retryLabel}>Try again</Text>
+            </Pressable>
+          </View>
+        ) : isComplete ? (
+          <View style={styles.centerState}>
+            <Text style={styles.title}>{RATING_TASK_COPY.doneTitle}</Text>
+            <Text style={styles.subtitle}>{RATING_TASK_COPY.doneMessage}</Text>
+          </View>
+        ) : (
+          <View style={styles.card}>
+            <View style={styles.passengerRow}>
+              <Avatar
+                size={72}
+                uri={currentTaskPhoto || undefined}
+                accessibilityLabel={`${currentTaskName} photo`}
+                style={styles.avatar}
               />
+              <View style={styles.passengerMeta}>
+                <Text style={styles.passengerName} numberOfLines={1}>
+                  {currentTaskName}
+                </Text>
+                {routeLabel ? (
+                  <Text style={styles.passengerRole} numberOfLines={2}>
+                    {routeLabel}
+                  </Text>
+                ) : null}
+              </View>
             </View>
-          ))}
-        </View>
 
-        <View style={styles.footerBlock}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.submitBtn,
-              !canSubmit && styles.submitBtnDisabled,
-              pressed && canSubmit && { opacity: 0.92 },
-            ]}
-            onPress={handleSubmit}
-            accessibilityRole="button"
-            accessibilityLabel={RATE_PASSENGERS_SCREEN.submitLabel}
-            accessibilityState={{ disabled: !canSubmit }}
-          >
-            <Text style={styles.submitLabel}>{RATE_PASSENGERS_SCREEN.submitLabel}</Text>
-          </Pressable>
-          <Text style={styles.hint}>{RATE_PASSENGERS_SCREEN.submitHint}</Text>
-        </View>
+            <RatingStars
+              value={rating}
+              onChange={setRating}
+              size={34}
+              disabled={busy}
+              accessibilityLabel={`Rate ${currentTaskName}`}
+            />
+
+            <RatingCommentInput
+              value={comment}
+              onChange={setComment}
+              disabled={busy}
+            />
+          </View>
+        )}
+
+        {!loading && !error && !isComplete ? (
+          <View style={styles.footerBlock}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.submitBtn,
+                (!canSubmit || busy) && styles.submitBtnDisabled,
+                pressed && canSubmit && !busy && { opacity: 0.92 },
+              ]}
+              onPress={handleSubmit}
+              disabled={!canSubmit || busy}
+              accessibilityRole="button"
+              accessibilityLabel={RATING_TASK_COPY.submitLabel}
+            >
+              {submitting ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <>
+                  <Text style={styles.submitLabel}>{RATING_TASK_COPY.submitLabel}</Text>
+                  <Ionicons name="arrow-forward" size={20} color={colors.white} />
+                </>
+              )}
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.skipBtn,
+                busy && styles.submitBtnDisabled,
+                pressed && !busy && { opacity: 0.85 },
+              ]}
+              onPress={handleSkip}
+              disabled={busy}
+              accessibilityRole="button"
+              accessibilityLabel={RATING_TASK_COPY.skipLabel}
+            >
+              <Text style={styles.skipLabel}>
+                {skipping ? RATING_TASK_COPY.skippingLabel : RATING_TASK_COPY.skipLabel}
+              </Text>
+            </Pressable>
+
+            <Text style={styles.hint}>{RATE_PASSENGERS_SCREEN.submitHint}</Text>
+          </View>
+        ) : null}
       </ScrollView>
 
       <AppFooter activeTab="rides" />

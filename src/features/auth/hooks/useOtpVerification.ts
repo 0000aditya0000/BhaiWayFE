@@ -5,6 +5,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { APP_CONFIG, ROUTES } from '@/config';
 import { applySheetProfileToSession, hydrateSessionFromSheet } from '@/DemoData';
+import {
+  isReferralCodeAuthError,
+  mapReferralError,
+  normalizeOptionalReferralCode,
+} from '@/features/profile/utils/referrals.mapper';
 import { useCountdown } from '@/shared/hooks';
 import {
   getErrorMessage,
@@ -44,6 +49,7 @@ export const useOtpVerification = (): UseOtpVerificationResult => {
   const phoneNumber = getSearchParam(params.phone);
   const flow: AuthFlow = getSearchParam(params.flow) === 'login' ? 'login' : 'signup';
   const [verificationId, setVerificationId] = useState(() => getSearchParam(params.verificationId));
+  const referralCode = normalizeOptionalReferralCode(getSearchParam(params.referralCode));
 
   const [code, setCodeValue] = useState('');
   const [loading, setLoading] = useState(false);
@@ -81,7 +87,12 @@ export const useOtpVerification = (): UseOtpVerificationResult => {
     const verifyStartedAt = Date.now();
 
     try {
-      const session = await authService.verifyOtp({ verificationId, code, phoneNumber });
+      const session = await authService.verifyOtp({
+        verificationId,
+        code,
+        phoneNumber,
+        referralCode,
+      });
 
       const elapsed = Date.now() - verifyStartedAt;
       const remainingSpin = Math.max(0, MORPHING_OTP_TIMING.spinnerMinMs - elapsed);
@@ -107,15 +118,20 @@ export const useOtpVerification = (): UseOtpVerificationResult => {
 
       router.push(ROUTES.completeProfile);
     } catch (verifyError) {
-      const message = getErrorMessage(verifyError);
+      const message = isReferralCodeAuthError(verifyError)
+        ? mapReferralError(verifyError)
+        : getErrorMessage(verifyError);
       setStatus('error');
       setError(message);
       triggerErrorHaptic();
+      if (isReferralCodeAuthError(verifyError)) {
+        showAppAlert('Referral code', message);
+      }
     } finally {
       setLoading(false);
       verifyingRef.current = false;
     }
-  }, [code, flow, isValid, phoneNumber, router, verificationId]);
+  }, [code, flow, isValid, phoneNumber, referralCode, router, verificationId]);
 
   const resend = useCallback(async () => {
     if (!canResend || verifyingRef.current) {

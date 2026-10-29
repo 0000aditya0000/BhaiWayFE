@@ -80,7 +80,11 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     backgroundColor: 'rgba(239, 244, 255, 0.78)',
   },
   copy: {

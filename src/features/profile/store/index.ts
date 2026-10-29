@@ -1,3 +1,10 @@
 export { trustedContactsStore } from './trustedContactsStore';
 export { aadhaarVerificationStore } from './aadhaarVerificationStore';
 export { verificationStore } from './verificationStore';
+export { walletStore } from './walletStore';
+export { assuredDepositPenaltyStore } from './assuredDepositPenaltyStore';
+export { userMeSummaryStore } from './userMeSummaryStore';
+export { pendingTopUpOrderStore } from './pendingTopUpOrderStore';
+export { walletTopUpReturnStore } from './walletTopUpReturnStore';
+export type { WalletTopUpReturnTarget } from './walletTopUpReturnStore';
+export { aadhaarRewardUiStore } from './aadhaarRewardUiStore';

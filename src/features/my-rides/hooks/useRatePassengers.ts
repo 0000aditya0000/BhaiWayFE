@@ -1,94 +1,142 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
 import {
+  RATING_TASK_COPY,
+  useRatingTaskFlow,
+} from '@/features/ratings';
+import {
   getSearchParam,
-  showAppAlert,
+  resetTo,
   triggerLightHaptic,
   triggerSuccessHaptic,
 } from '@/shared/utils';
-import {
-  RATE_PASSENGERS_SCREEN,
-  getRatePassengersMock,
-  getRatingsSubmittedPath,
-} from '../constants';
-import type { PassengerRatingValue, RatePassengersSummary } from '../types';
+import { getRatingsSubmittedPath } from '../constants';
 
 export interface UseRatePassengersResult {
-  passengers: RatePassengersSummary['passengers'];
-  ratings: Record<string, PassengerRatingValue>;
+  rideId: string;
+  loading: boolean;
+  error: string | null;
+  currentTaskName: string;
+  currentTaskPhoto: string;
+  routeLabel: string;
+  progressLabel: string;
+  rating: number;
+  comment: string;
+  submitting: boolean;
+  skipping: boolean;
   canSubmit: boolean;
-  setRating: (passengerId: string, value: PassengerRatingValue) => void;
-  submitRatings: () => void;
-  openNotifications: () => void;
+  isComplete: boolean;
+  setRating: (value: number) => void;
+  setComment: (value: string) => void;
+  submitCurrent: () => void;
+  skipCurrent: () => void;
+  refresh: () => void;
   goBack: () => void;
 }
 
 export const useRatePassengers = (): UseRatePassengersResult => {
   const router = useRouter();
-  const params = useLocalSearchParams<{ rideId?: string }>();
-  const rideId = getSearchParam(params.rideId) || 'driver-trip-1';
+  const params = useLocalSearchParams<{ rideId?: string; destination?: string }>();
+  const rideId = getSearchParam(params.rideId).trim();
+  const destination = getSearchParam(params.destination).trim();
+  const exitHandledRef = useRef(false);
 
-  const summary = useMemo(() => getRatePassengersMock({ rideId }), [rideId]);
+  const {
+    loading,
+    error,
+    currentTask,
+    totalCount,
+    currentIndex,
+    rating,
+    comment,
+    submitting,
+    skipping,
+    isComplete,
+    submittedItems,
+    setRating,
+    setComment,
+    submitCurrent,
+    skipCurrent,
+    refresh,
+    canSubmit,
+  } = useRatingTaskFlow({
+    rideId,
+    audience: 'driver-passenger',
+    enabled: Boolean(rideId),
+  });
 
-  const [ratings, setRatings] = useState<Record<string, PassengerRatingValue>>(() =>
-    Object.fromEntries(summary.passengers.map((p) => [p.id, 0 as PassengerRatingValue])),
-  );
+  useEffect(() => {
+    if (loading || !isComplete || exitHandledRef.current) {
+      return;
+    }
 
-  const canSubmit = useMemo(
-    () => summary.passengers.every((p) => (ratings[p.id] ?? 0) > 0),
-    [ratings, summary.passengers],
-  );
+    exitHandledRef.current = true;
+    triggerSuccessHaptic();
 
-  const setRating = useCallback((passengerId: string, value: PassengerRatingValue) => {
-    triggerLightHaptic();
-    setRatings((prev) => ({ ...prev, [passengerId]: value }));
-  }, []);
-
-  const submitRatings = useCallback(() => {
-    if (!canSubmit) {
-      showAppAlert(
-        RATE_PASSENGERS_SCREEN.incompleteTitle,
-        RATE_PASSENGERS_SCREEN.incompleteMessage,
+    if (submittedItems.length > 0) {
+      // Clear trip-completed + rate stack so Back cannot reopen the same reviews.
+      resetTo(
+        router,
+        getRatingsSubmittedPath({
+          rideId,
+          items: submittedItems,
+        }),
       );
       return;
     }
-    triggerSuccessHaptic();
-    router.replace(
-      getRatingsSubmittedPath({
-        rideId,
-        items: summary.passengers.map((passenger) => ({
-          id: passenger.id,
-          name: passenger.name,
-          avatarUri: passenger.avatarUri,
-          rating: ratings[passenger.id] ?? 0,
-        })),
-      }),
-    );
-  }, [canSubmit, ratings, rideId, router, summary.passengers]);
 
-  const openNotifications = useCallback(() => {
+    resetTo(router, ROUTES.myRides);
+  }, [isComplete, loading, rideId, router, submittedItems]);
+
+  const handleSubmit = useCallback(() => {
     triggerLightHaptic();
-    router.push(ROUTES.notifications);
-  }, [router]);
+    void submitCurrent();
+  }, [submitCurrent]);
+
+  const handleSkip = useCallback(() => {
+    triggerLightHaptic();
+    void skipCurrent();
+  }, [skipCurrent]);
 
   const goBack = useCallback(() => {
     triggerLightHaptic();
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-    router.replace(ROUTES.myRides);
+    resetTo(router, ROUTES.myRides);
   }, [router]);
 
+  const routeLabel =
+    currentTask?.ride != null
+      ? RATING_TASK_COPY.routeLabel(
+          currentTask.ride.source,
+          currentTask.ride.destination,
+        )
+      : destination;
+
   return {
-    passengers: summary.passengers,
-    ratings,
+    rideId,
+    loading,
+    error,
+    currentTaskName: currentTask?.userName ?? '',
+    currentTaskPhoto: currentTask?.userPhoto ?? '',
+    routeLabel,
+    progressLabel:
+      totalCount > 0
+        ? RATING_TASK_COPY.progressLabel(currentIndex, totalCount)
+        : '',
+    rating,
+    comment,
+    submitting,
+    skipping,
     canSubmit,
+    isComplete,
     setRating,
-    submitRatings,
-    openNotifications,
+    setComment,
+    submitCurrent: handleSubmit,
+    skipCurrent: handleSkip,
+    refresh: () => {
+      void refresh();
+    },
     goBack,
   };
 };

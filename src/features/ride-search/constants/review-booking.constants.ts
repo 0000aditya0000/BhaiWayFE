@@ -12,20 +12,34 @@ export const REVIEW_BOOKING_SCREEN = {
   applyLabel: 'Apply',
   promoSuccess: 'Promo code BHAIWAY10 applied successfully!',
   assuredTitle: 'Assured Booking',
-  assuredSubtitle: 'Refundable fee',
-  assuredSelected: 'SELECTED',
+  assuredSubtitle: 'Security deposit (wallet hold)',
+  assuredSelected: 'REQUIRED',
   assuredNote:
-    'Note: You are booking an assured ride, if you cancel, the assured booking amount will not be refunded.',
+    'Note: You are booking an assured ride. The security deposit is held from your wallet and is separate from the ride fare. If you cancel, the deposit may not be refunded.',
+  assuredPenaltyPreviousCancellationMessage: (percentage: number) =>
+    `Your security deposit is ${percentage}% for this ride because you cancelled your previous Assured ride.`,
+  assuredPenaltyNextBookingOnly:
+    'This applies to your next Assured booking only.',
   fareTitle: 'FARE DETAILS',
   rideFareLabel: 'Ride Fare',
   platformFeeLabel: 'Platform Fee',
   promoDiscountLabel: 'Promo Discount',
-  assuredFeeLabel: 'Assured Booking Fee',
+  assuredFeeLabel: 'Security Deposit',
   totalLabel: 'Total Amount',
+  seatsTitle: 'SEATS TO BOOK',
   confirmLabel: 'Confirm & Pay',
+  confirmRegularLabel: 'Continue',
+  loadingLabel: 'Loading ride details…',
+  loadErrorTitle: 'Unable to load ride',
+  loadErrorRetry: 'Retry',
+  unavailableTitle: 'Ride unavailable',
+  unavailableBody:
+    'This Assured ride is no longer available to book. Please search again.',
 } as const;
 
+/** @deprecated Mock UI only — live Assured deposit comes from GET /rides/public/:id */
 export const ASSURED_BOOKING_FEE = 50;
+/** @deprecated UI mock only — production Assured deposit comes from GET /rides/public/:id */
 export const DEFAULT_PROMO_CODE = 'BHAIWAY10';
 export const DEFAULT_PROMO_DISCOUNT = 24;
 
@@ -67,9 +81,10 @@ const ASSURED_PASSENGERS = [
 
 const buildFare = (rideType: RideType): ReviewBookingData['fare'] => {
   const rideFare = 240;
-  const platformFee = 15;
+  // Regular rides: no platform fee. Assured mock keeps legacy fee for UI continuity.
+  const platformFee = rideType === 'assured' ? 15 : 0;
   const promoDiscount = 0;
-  const assuredFee = rideType === 'assured' ? ASSURED_BOOKING_FEE : 0;
+  const assuredFee = 0;
 
   return {
     rideFare,
@@ -101,7 +116,10 @@ export const getReviewBookingPath = (params: {
   destination?: string;
   driverName?: string;
   carModel?: string;
+  /** pricePerSeat from search — not total fare */
   price?: number;
+  seats?: number;
+  availableSeats?: number;
   dateLabel?: string;
   departureTime?: string;
   originLat?: number;
@@ -118,6 +136,8 @@ export const getReviewBookingPath = (params: {
     driverName: params.driverName ?? '',
     carModel: params.carModel ?? '',
     price: params.price != null ? String(params.price) : '',
+    seats: params.seats != null ? String(params.seats) : '',
+    availableSeats: params.availableSeats != null ? String(params.availableSeats) : '',
     dateLabel: params.dateLabel ?? '',
     departureTime: params.departureTime ?? '',
     originLat: params.originLat != null ? String(params.originLat) : '',

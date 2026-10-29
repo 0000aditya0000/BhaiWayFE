@@ -3,15 +3,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
-import { listVehicles } from '@/features/profile/api';
-import {
-  formatBhaiWayCoins,
-  getErrorMessage,
-  showAppAlert,
-  triggerLightHaptic,
-  triggerSuccessHaptic,
-} from '@/shared/utils';
+import { driverRidesRefreshStore } from '@/features/my-rides/store/driverRidesRefreshStore';
+import { getMyVerifications, listVehicles } from '@/features/profile/api';
+import { formatBhaiWayCoins, getErrorMessage, showAppAlert, triggerLightHaptic, triggerSuccessHaptic } from '@/shared/utils';
 import { authSession } from '@/store';
+import { rideCoordsCache } from '@/shared/maps';
 import { createRide } from '../api';
 import {
   RIDE_PREFERENCE_OPTIONS,
@@ -24,10 +20,19 @@ import type {
   RidePreferenceId,
 } from '../types';
 import {
+  computeAssuredDriverDepositCoins,
+  validateAssuredDraftCoordinates,
+} from '../utils/assuredPublish.utils';
+import {
+  evaluatePublishVerificationReadiness,
+  isExplicitRouteSelection,
+  isRouteSelectionTokenError,
   mapCreateRideError,
   mapDraftToCreateRideDto,
   mapRideResponseToPublishedSummary,
   mapVehicleResponseToPublishOption,
+  primaryPublishBlockMessage,
+  toRouteEndpoints,
 } from '../utils';
 
 export interface UseRidePreferencesResult {
@@ -112,24 +117,25 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
 
   const isAssured = draft.rideType === 'assured';
 
-  const refundableAmountLabel = useMemo(
-    () =>
-      formatBhaiWayCoins(Number(RIDE_PREFERENCES_SCREEN.assuredRefundableAmount), {
-        spaced: false,
-        minimumFractionDigits: 2,
-      }),
-    [],
-  );
+  const refundableAmountLabel = useMemo(() => {
+    if (!isAssured) {
+      return formatBhaiWayCoins(0, { spaced: false, minimumFractionDigits: 0 });
+    }
+    const coins = computeAssuredDriverDepositCoins(draft);
+    return coins
+      ? formatBhaiWayCoins(Number(coins), { spaced: false, minimumFractionDigits: 0 })
+      : '—';
+  }, [draft, isAssured]);
 
   const totalToPayLabel = useMemo(() => {
     if (!isAssured) {
-      return formatBhaiWayCoins(0, { spaced: false, minimumFractionDigits: 2 });
+      return formatBhaiWayCoins(0, { spaced: false, minimumFractionDigits: 0 });
     }
-    return formatBhaiWayCoins(Number(RIDE_PREFERENCES_SCREEN.assuredRefundableAmount), {
-      spaced: false,
-      minimumFractionDigits: 2,
-    });
-  }, [isAssured]);
+    const coins = computeAssuredDriverDepositCoins(draft);
+    return coins
+      ? formatBhaiWayCoins(Number(coins), { spaced: false, minimumFractionDigits: 0 })
+      : '—';
+  }, [draft, isAssured]);
 
   const primaryCtaLabel = isAssured
     ? RIDE_PREFERENCES_SCREEN.confirmPayLabel
@@ -194,6 +200,23 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
     }
 
     if (current.rideType === 'assured') {
+      const coordCheck = validateAssuredDraftCoordinates(current);
+      if (!coordCheck.ok) {
+        showAppAlert('Location required', coordCheck.message);
+        return;
+      }
+
+      const mappedAssured = mapDraftToCreateRideDto(current);
+      if (!mappedAssured.ok) {
+        if (mappedAssured.message.includes('driving route') || mappedAssured.message.includes('map')) {
+          showAppAlert('Select a route', mappedAssured.message);
+          router.push(ROUTES.offerRideSelectRoute);
+          return;
+        }
+        showAppAlert('Check ride details', mappedAssured.message);
+        return;
+      }
+
       triggerLightHaptic();
       router.push(ROUTES.offerRidePayment);
       return;
@@ -205,6 +228,11 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
 
     const mapped = mapDraftToCreateRideDto(current);
     if (!mapped.ok) {
+      if (mapped.message.includes('driving route') || mapped.message.includes('map')) {
+        showAppAlert('Select a route', mapped.message);
+        router.push(ROUTES.offerRideSelectRoute);
+        return;
+      }
       showAppAlert('Check ride details', mapped.message);
       return;
     }
@@ -220,8 +248,44 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
           return;
         }
 
+        const selected =
+          vehicles.find((item) => item.id === current.selectedVehicleId) ?? null;
+        const verifications = await getMyVerifications().catch(() => null);
+        const readiness = evaluatePublishVerificationReadiness({
+          identityStatus: verifications?.identity.status,
+          vehicleVerificationStatus: verifications?.vehicle.status,
+          drivingLicenseStatus: verifications?.drivingLicense.status,
+          vehicleIsRcVerified: selected?.isRcVerified,
+          vehicleIsActive: selected?.isActive ?? true,
+          hasSelectedVehicle: Boolean(current.selectedVehicleId),
+        });
+        const blockMessage = primaryPublishBlockMessage(readiness);
+        if (blockMessage) {
+          showAppAlert('Verification required', blockMessage);
+          return;
+        }
+
         const created = await createRide(mapped.payload);
         console.log('[Publish Ride] POST /rides response', created);
+
+        const origin = current.originLocation;
+        const destination = current.destinationLocation;
+        await rideCoordsCache.save({
+          rideId: created.id,
+          origin:
+            origin && Number.isFinite(origin.latitude) && Number.isFinite(origin.longitude)
+              ? { latitude: origin.latitude!, longitude: origin.longitude! }
+              : null,
+          destination:
+            destination &&
+            Number.isFinite(destination.latitude) &&
+            Number.isFinite(destination.longitude)
+              ? { latitude: destination.latitude!, longitude: destination.longitude! }
+              : null,
+          originAddress: current.origin || origin?.address,
+          destinationAddress: current.destination || destination?.address,
+        });
+
         const vehicle =
           vehicles.find((item) => item.id === created.vehicleId) ??
           vehicles.find((item) => item.id === current.selectedVehicleId) ??
@@ -234,6 +298,9 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
           }),
         );
         publishRideDraft.reset(current.rideType);
+        driverRidesRefreshStore.bump();
+        const { invalidateRidesMyCache } = await import('@/network/resourceCache');
+        invalidateRidesMyCache();
         triggerSuccessHaptic();
         router.replace(ROUTES.offerRidePublished);
       } catch (error) {
@@ -241,6 +308,13 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
           authSession.clear();
           showAppAlert('Session expired', mapCreateRideError(error));
           router.replace(ROUTES.welcome);
+          return;
+        }
+
+        if (isRouteSelectionTokenError(error)) {
+          publishRideDraft.update({ routeSelection: null });
+          showAppAlert('Select a route', mapCreateRideError(error));
+          router.push(ROUTES.offerRideSelectRoute);
           return;
         }
 
@@ -269,7 +343,19 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
     preferenceOptions: RIDE_PREFERENCE_OPTIONS,
     vehicles,
     notesLength: draft.notes.length,
-    canPublish: Boolean(draft.selectedVehicleId) && vehicles.length > 0 && !publishing,
+    canPublish:
+      Boolean(draft.selectedVehicleId) &&
+      vehicles.length > 0 &&
+      !publishing &&
+      isExplicitRouteSelection(
+        draft.routeSelection,
+        toRouteEndpoints(
+          draft.originLocation?.latitude,
+          draft.originLocation?.longitude,
+          draft.destinationLocation?.latitude,
+          draft.destinationLocation?.longitude,
+        ),
+      ),
     publishing,
     refundableAmountLabel,
     totalToPayLabel,

@@ -1,0 +1,31 @@
+export const RATING_TASK_COPY = {
+  driverHeading: 'Rate your passengers',
+  passengerHeading: 'How was your trip?',
+  driverSubtitle: 'Your feedback helps keep the community safe and respectful.',
+  passengerSubtitle: 'Rate your driver. Comments are optional.',
+  progressLabel: (current: number, total: number) => `${current} of ${total}`,
+  commentLabel: 'Add a comment (optional)',
+  commentPlaceholder: 'Share your experience...',
+  submitLabel: 'Submit rating',
+  submittingLabel: 'Submitting...',
+  skipLabel: 'Skip for now',
+  skippingLabel: 'Skipping...',
+  skipSuccessTitle: 'Skipped',
+  skipSuccessMessage: 'You can rate later from My Rides when you are ready.',
+  submitSuccessTitle: 'Thank you!',
+  submitSuccessMessage: 'Your rating was submitted.',
+  ratingRequiredTitle: 'Rating required',
+  ratingRequiredMessage: 'Please select 1 to 5 stars before submitting.',
+  loadFailedTitle: 'Could not load ratings',
+  loadFailedMessage: 'Please check your connection and try again.',
+  submitFailedTitle: 'Could not submit rating',
+  skipFailedTitle: 'Could not skip rating',
+  emptyTitle: 'No ratings pending',
+  emptyMessage: 'You are all caught up for now.',
+  doneTitle: 'All done',
+  doneMessage: 'Thanks for sharing your feedback.',
+  routeLabel: (source: string, destination: string) =>
+    [source, destination].filter(Boolean).join(' → '),
+} as const;
+
+export const RATING_COMMENT_MAX_LENGTH = 500;

@@ -1,20 +1,39 @@
-import React, { useCallback, useEffect, useRef } from 'react';
-import { View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import MapView, { Marker, type Region } from 'react-native-maps';
+import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppFooter, BrandTopBar, IconButton, AppText as Text } from '@/shared/components';
-import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
-import { triggerLightHaptic } from '@/shared/utils';
+import {
+  isGoogleMapsBypassed,
+  isValidMapCoordinate,
+  MapBypassSurface,
+  type MapLatLng,
+} from '@/shared/maps';
+import { spacing } from '@/shared/theme';
+import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { ArrivalConfirmedModal, PickupOtpModal, SwipeToComplete } from '@/features/my-rides/components';
 import { DRIVER_PICKUP_MAP_DELTA, DRIVER_PICKUP_SCREEN } from '@/features/my-rides/constants';
 import {
   DRIVER_PICKUP_OTP_SWIPE_THRESHOLD,
   useDriverPickup,
 } from '@/features/my-rides/hooks';
+import {
+  NoShowClaimPanel,
+  resolvePassengerNoShowBookingId,
+  useNoShowClaim,
+} from '@/features/no-show';
+import { useLocalSearchParams } from 'expo-router';
 import { styles } from './DriverPickupScreen.styles';
+
+const EDGE_PADDING = {
+  top: spacing.xl,
+  right: 48,
+  bottom: spacing.xl + 40,
+  left: spacing.xl,
+};
 
 const toRegion = (latitude: number, longitude: number): Region => ({
   latitude,
@@ -24,6 +43,7 @@ const toRegion = (latitude: number, longitude: number): Region => ({
 
 export const DriverPickupScreen = () => {
   const mapRef = useRef<MapView>(null);
+  const params = useLocalSearchParams<{ rideId?: string; claimId?: string }>();
   const {
     stop,
     stopTitle,
@@ -36,6 +56,10 @@ export const DriverPickupScreen = () => {
     confirmedVisible,
     isLastStop,
     swipeResetKey,
+    driverCoordinate,
+    routeCoordinates,
+    etaLabel,
+    distanceLabel,
     requestRiderOtp,
     setOtpValue,
     verifyOtp,
@@ -43,21 +67,74 @@ export const DriverPickupScreen = () => {
     continueAfterConfirmed,
     goBack,
     openNotifications,
+    openGoogleMaps,
   } = useDriverPickup();
+
+  const currentBookingId = resolvePassengerNoShowBookingId(stop.id);
+  const noShow = useNoShowClaim({
+    role: 'driver',
+    rideId: getSearchParam(params.rideId),
+    bookingId: currentBookingId,
+    claimId: getSearchParam(params.claimId),
+    bookingStatus: currentBookingId ? 'CONFIRMED' : undefined,
+    isRideOwner: true,
+    enabled: Boolean(currentBookingId),
+  });
+
+  const hasDriver = isValidMapCoordinate(driverCoordinate);
+  const hasPickup = isValidMapCoordinate(stop.coordinate);
+
+  const fitCoordinates = useMemo(() => {
+    const points: MapLatLng[] = [];
+    if (hasDriver && driverCoordinate) {
+      points.push(driverCoordinate);
+    }
+    if (hasPickup) {
+      points.push(stop.coordinate);
+    }
+    return points;
+  }, [driverCoordinate, hasDriver, hasPickup, stop.coordinate]);
+
+  const polyline = useMemo(() => {
+    if (routeCoordinates.length >= 2) {
+      return routeCoordinates;
+    }
+    if (hasDriver && driverCoordinate && hasPickup) {
+      return [driverCoordinate, stop.coordinate];
+    }
+    return [];
+  }, [
+    driverCoordinate,
+    hasDriver,
+    hasPickup,
+    routeCoordinates,
+    stop.coordinate,
+  ]);
 
   const initialRegionRef = useRef(
     toRegion(stop.coordinate.latitude, stop.coordinate.longitude),
   );
 
-  useEffect(() => {
+  const fitRoute = useCallback(() => {
     if (isGoogleMapsBypassed()) {
       return;
     }
-    mapRef.current?.animateToRegion(
-      toRegion(stop.coordinate.latitude, stop.coordinate.longitude),
-      450,
-    );
-  }, [stop.coordinate.latitude, stop.coordinate.longitude, stop.id]);
+    const valid = fitCoordinates.filter(isValidMapCoordinate);
+    if (valid.length >= 2) {
+      mapRef.current?.fitToCoordinates(valid, {
+        edgePadding: EDGE_PADDING,
+        animated: true,
+      });
+      return;
+    }
+    if (valid.length === 1) {
+      mapRef.current?.animateToRegion(toRegion(valid[0].latitude, valid[0].longitude), 450);
+    }
+  }, [fitCoordinates]);
+
+  useEffect(() => {
+    fitRoute();
+  }, [fitRoute, stop.id]);
 
   const handleThresholdReach = useCallback(() => {
     triggerLightHaptic();
@@ -89,6 +166,11 @@ export const DriverPickupScreen = () => {
     openNotifications();
   }, [openNotifications]);
 
+  const handleOpenMaps = useCallback(() => {
+    triggerLightHaptic();
+    openGoogleMaps();
+  }, [openGoogleMaps]);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <BrandTopBar
@@ -109,34 +191,66 @@ export const DriverPickupScreen = () => {
             style={styles.map}
             title={stopTitle}
             subtitle={stop.locationLabel}
-            points={[{ ...stop.coordinate, label: stop.passengerName || 'Pickup' }]}
+            points={[
+              { ...stop.coordinate, label: 'Pickup' },
+              ...(hasDriver && driverCoordinate
+                ? [{ ...driverCoordinate, label: 'You' }]
+                : []),
+            ]}
           />
         ) : (
           <MapView
             ref={mapRef}
             style={styles.map}
             initialRegion={initialRegionRef.current}
+            onMapReady={fitRoute}
             showsCompass={false}
             toolbarEnabled={false}
             rotateEnabled={false}
             pitchEnabled={false}
-            showsUserLocation
+            showsUserLocation={false}
             showsMyLocationButton={false}
           >
-            <Marker
-              coordinate={stop.coordinate}
-              tracksViewChanges={false}
-              anchor={{ x: 0.5, y: 1 }}
-              title={stop.passengerName}
-              description={stop.locationLabel}
-            >
-              <View style={styles.pickupMarker}>
-                <View style={styles.pickupBadge}>
-                  <Text style={styles.pickupBadgeText}>Pickup</Text>
+            {polyline.length >= 2 ? (
+              <>
+                <Polyline
+                  coordinates={polyline}
+                  strokeColor="rgba(75, 97, 196, 0.25)"
+                  strokeWidth={6}
+                />
+                <Polyline coordinates={polyline} strokeColor="#4B61C4" strokeWidth={4} />
+              </>
+            ) : null}
+
+            {hasPickup ? (
+              <Marker
+                coordinate={stop.coordinate}
+                tracksViewChanges={false}
+                anchor={{ x: 0.5, y: 1 }}
+                title={stop.passengerName}
+                description={stop.locationLabel}
+              >
+                <View style={styles.pickupMarker}>
+                  <View style={styles.pickupBadge}>
+                    <Text style={styles.pickupBadgeText}>Pickup</Text>
+                  </View>
+                  <Ionicons name="location" size={40} color="#4B61C4" />
                 </View>
-                <Ionicons name="location" size={40} color="#4B61C4" />
-              </View>
-            </Marker>
+              </Marker>
+            ) : null}
+
+            {hasDriver && driverCoordinate ? (
+              <Marker
+                coordinate={driverCoordinate}
+                tracksViewChanges={false}
+                anchor={{ x: 0.5, y: 0.5 }}
+                title="You"
+              >
+                <View style={styles.carMarker}>
+                  <Ionicons name="car" size={16} color="#4B61C4" />
+                </View>
+              </Marker>
+            ) : null}
           </MapView>
         )}
         <LinearGradient
@@ -170,15 +284,56 @@ export const DriverPickupScreen = () => {
               <Ionicons name="location" size={22} color="#4B61C4" />
             </View>
             <View style={styles.locationText}>
-              <Text style={styles.locationLabel}>{stop.locationLabel}</Text>
+              <Text style={styles.locationLabel} numberOfLines={2}>
+                {stop.locationLabel}
+              </Text>
               <Text style={styles.etaLabel}>{stop.etaLabel}</Text>
             </View>
           </View>
-        </View>
 
-        <View style={styles.spacer} pointerEvents="none" />
+          <View style={styles.etaRow}>
+            <View style={styles.etaChip}>
+              <Text style={styles.etaChipLabel}>{DRIVER_PICKUP_SCREEN.etaHeading}</Text>
+              <Text style={styles.etaChipValue}>{etaLabel}</Text>
+            </View>
+            <View style={styles.etaChip}>
+              <Text style={styles.etaChipLabel}>Distance</Text>
+              <Text style={styles.etaChipValue}>{distanceLabel}</Text>
+            </View>
+          </View>
 
-        <View style={styles.swipeWrap}>
+          <Pressable
+            style={({ pressed }) => [styles.mapsButton, pressed && { opacity: 0.9 }]}
+            onPress={handleOpenMaps}
+            accessibilityRole="button"
+            accessibilityLabel={DRIVER_PICKUP_SCREEN.navigateMapsLabel}
+          >
+            <Ionicons name="navigate" size={18} color="#374BB1" />
+            <Text style={styles.mapsButtonLabel}>
+              {DRIVER_PICKUP_SCREEN.navigateMapsLabel}
+            </Text>
+          </Pressable>
+
+          {noShow.claim ? (
+            <View style={{ marginTop: spacing.md }}>
+              <NoShowClaimPanel
+                reportLabel={noShow.reportLabel}
+                pendingBody={noShow.pendingBody}
+                canReport={false}
+                canRespond={noShow.canRespond}
+                isClaimant={noShow.isClaimant}
+                submitting={noShow.submitting}
+                responding={noShow.responding}
+                claim={noShow.claim}
+                remainingMs={noShow.remainingMs}
+                onReport={noShow.report}
+                onApprove={noShow.approve}
+                onReject={noShow.reject}
+                onOpenSupport={noShow.openSupport}
+              />
+            </View>
+          ) : null}
+
           <SwipeToComplete
             key={swipeResetKey}
             label={DRIVER_PICKUP_SCREEN.swipeLabel}
@@ -200,10 +355,30 @@ export const DriverPickupScreen = () => {
           value={otpValue}
           error={otpError}
           verifying={otpVerifying}
-          hintOtp={stop.otp}
+          hintOtp={requiresOtp && stop.otp ? stop.otp : undefined}
           onChange={setOtpValue}
           onVerify={handleVerify}
           onClose={handleCloseOtp}
+          footerExtra={
+            noShow.canReport || noShow.claim ? (
+              <NoShowClaimPanel
+                reportLabel={noShow.reportLabel}
+                pendingBody={noShow.pendingBody}
+                canReport={noShow.canReport}
+                canRespond={noShow.canRespond}
+                isClaimant={noShow.isClaimant}
+                submitting={noShow.submitting}
+                responding={noShow.responding}
+                claim={noShow.claim}
+                remainingMs={noShow.remainingMs}
+                compact
+                onReport={noShow.report}
+                onApprove={noShow.approve}
+                onReject={noShow.reject}
+                onOpenSupport={noShow.openSupport}
+              />
+            ) : null
+          }
         />
       ) : null}
 

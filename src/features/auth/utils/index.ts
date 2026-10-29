@@ -8,6 +8,8 @@ export {
   mapProfileResponseToUserProfile,
   splitFullName,
   toCreateProfileRequest,
+  toUpdateProfileRequest,
+  resolveProfilePhotoForApi,
 } from './completeProfile.mapper';
 
 export {
@@ -16,3 +18,10 @@ export {
   resolveGreetingFirstName,
   resolveProfileFullName,
 } from './usersMe.mapper';
+
+export {
+  buildMsg91VerifyPayload,
+  isPlayReviewPhone,
+  normalizeAuthPhoneDigits,
+} from './playReviewLogin';
+export type { BuildMsg91VerifyPayloadInput } from './playReviewLogin';

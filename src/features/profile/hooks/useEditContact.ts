@@ -1,9 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
+import { useUpload } from '@/hooks/useUpload';
 import type { UploadedDocument } from '@/shared/components';
-import { delay, generateId, getSearchParam, triggerLightHaptic, triggerSuccessHaptic, showAppAlert } from '@/shared/utils';
+import {
+  getSearchParam,
+  triggerLightHaptic,
+  triggerSuccessHaptic,
+  showAppAlert,
+} from '@/shared/utils';
+import {
+  createTrustedContact,
+  deleteTrustedContact,
+  getTrustedContact,
+  updateTrustedContact,
+} from '../api/trustedContacts.api';
+import type { TrustedContactRelationship } from '../api/trustedContacts.types';
 import {
   CONTACT_RELATIONS,
   EDIT_CONTACT_SCREEN,
@@ -11,25 +24,32 @@ import {
 import { trustedContactsStore } from '../store';
 import type {
   ContactFormMode,
-  ContactRelation,
   EditContactForm,
   EditContactSubmitState,
 } from '../types';
-
-const isRelation = (value: string): value is ContactRelation =>
-  (CONTACT_RELATIONS as readonly string[]).includes(value);
+import {
+  asTrustedContactRelationship,
+  isPersistablePhotoUrl,
+  mapTrustedContactDtoToUi,
+  mapTrustedContactError,
+  toCreatePayload,
+  toUpdatePayload,
+  validateTrustedContactForm,
+} from '../utils/trustedContacts.mapper';
 
 export interface UseEditContactResult {
   mode: ContactFormMode;
   title: string;
   subtitle: string;
   form: EditContactForm;
-  relations: readonly ContactRelation[];
+  relations: readonly TrustedContactRelationship[];
   submitState: EditContactSubmitState;
   uploadSheetVisible: boolean;
+  uploadingPhoto: boolean;
+  loadingContact: boolean;
   saveLabel: string;
   setName: (value: string) => void;
-  setRelation: (value: ContactRelation) => void;
+  setRelation: (value: TrustedContactRelationship) => void;
   setPhone: (value: string) => void;
   openUpload: () => void;
   closeUpload: () => void;
@@ -46,44 +66,74 @@ export const useEditContact = (): UseEditContactResult => {
     getSearchParam(params.mode) === 'edit' ? 'edit' : 'add';
   const contactId = getSearchParam(params.id);
 
-  const existing = useMemo(
-    () => (contactId ? trustedContactsStore.getById(contactId) : undefined),
-    [contactId],
-  );
-
-  const [form, setForm] = useState<EditContactForm>(() => {
-    if (mode === 'edit' && existing) {
-      return {
-        id: existing.id,
-        name: existing.name,
-        relation: isRelation(existing.relation) ? existing.relation : 'Other',
-        phoneLabel: existing.phoneLabel,
-        avatarUri: existing.avatarUri ?? null,
-      };
-    }
-    return {
-      id: null,
-      name: '',
-      relation: 'Friend',
-      phoneLabel: '',
-      avatarUri: EDIT_CONTACT_SCREEN.defaultAvatarUri,
-    };
+  const [form, setForm] = useState<EditContactForm>({
+    id: null,
+    name: '',
+    relation: 'FRIEND',
+    phoneLabel: '',
+    avatarUri: null,
+    photoUrl: null,
   });
-
   const [submitState, setSubmitState] = useState<EditContactSubmitState>('idle');
   const [uploadSheetVisible, setUploadSheetVisible] = useState(false);
+  const [loadingContact, setLoadingContact] = useState(mode === 'edit');
+
+  const { isUploading, uploadLocalFile } = useUpload({
+    kind: 'generic',
+    showAlerts: false,
+  });
 
   useEffect(() => {
-    if (mode === 'edit' && existing) {
+    if (mode !== 'edit' || !contactId) {
+      setLoadingContact(false);
+      return;
+    }
+
+    const cached = trustedContactsStore.getById(contactId);
+    if (cached) {
       setForm({
-        id: existing.id,
-        name: existing.name,
-        relation: isRelation(existing.relation) ? existing.relation : 'Other',
-        phoneLabel: existing.phoneLabel,
-        avatarUri: existing.avatarUri ?? null,
+        id: cached.id,
+        name: cached.name,
+        relation: asTrustedContactRelationship(cached.relationship) ?? 'FRIEND',
+        phoneLabel: cached.phoneLabel,
+        avatarUri: cached.avatarUri ?? null,
+        photoUrl: isPersistablePhotoUrl(cached.photoUrl) ? cached.photoUrl! : null,
       });
     }
-  }, [existing, mode]);
+
+    let cancelled = false;
+    void (async () => {
+      setLoadingContact(true);
+      try {
+        const dto = await getTrustedContact(contactId);
+        if (cancelled) {
+          return;
+        }
+        const ui = mapTrustedContactDtoToUi(dto);
+        trustedContactsStore.upsert(ui);
+        setForm({
+          id: ui.id,
+          name: ui.name,
+          relation: ui.relationship ?? 'FRIEND',
+          phoneLabel: ui.phoneLabel,
+          avatarUri: ui.avatarUri ?? null,
+          photoUrl: isPersistablePhotoUrl(ui.photoUrl) ? ui.photoUrl! : null,
+        });
+      } catch (err) {
+        if (!cancelled) {
+          showAppAlert('Unable to load contact', mapTrustedContactError(err));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingContact(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [contactId, mode]);
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -97,7 +147,7 @@ export const useEditContact = (): UseEditContactResult => {
     setForm((prev) => ({ ...prev, name: value }));
   }, []);
 
-  const setRelation = useCallback((value: ContactRelation) => {
+  const setRelation = useCallback((value: TrustedContactRelationship) => {
     setForm((prev) => ({ ...prev, relation: value }));
   }, []);
 
@@ -114,41 +164,95 @@ export const useEditContact = (): UseEditContactResult => {
     setUploadSheetVisible(false);
   }, []);
 
-  const applyAvatar = useCallback((document: UploadedDocument) => {
-    setForm((prev) => ({ ...prev, avatarUri: document.uri }));
-  }, []);
+  const applyAvatar = useCallback(
+    (document: UploadedDocument) => {
+      // Preview immediately; upload to Cloudinary before we persist photoUrl.
+      setForm((prev) => ({ ...prev, avatarUri: document.uri }));
+      void (async () => {
+        try {
+          const uploaded = await uploadLocalFile({
+            uri: document.uri,
+            fileName: document.fileName || 'contact-photo.jpg',
+            mimeType: document.mimeType || 'image/jpeg',
+          });
+          if (uploaded?.secureUrl && isPersistablePhotoUrl(uploaded.secureUrl)) {
+            setForm((prev) => ({
+              ...prev,
+              avatarUri: uploaded.secureUrl,
+              photoUrl: uploaded.secureUrl,
+            }));
+            return;
+          }
+          showAppAlert(
+            EDIT_CONTACT_SCREEN.uploadFailedTitle,
+            EDIT_CONTACT_SCREEN.uploadFailedMessage,
+          );
+          setForm((prev) => ({ ...prev, avatarUri: prev.photoUrl, photoUrl: prev.photoUrl }));
+        } catch {
+          showAppAlert(
+            EDIT_CONTACT_SCREEN.uploadFailedTitle,
+            EDIT_CONTACT_SCREEN.uploadFailedMessage,
+          );
+          setForm((prev) => ({
+            ...prev,
+            avatarUri: isPersistablePhotoUrl(prev.photoUrl) ? prev.photoUrl : null,
+          }));
+        }
+      })();
+    },
+    [uploadLocalFile],
+  );
 
   const save = useCallback(async () => {
-    if (submitState !== 'idle') {
+    if (submitState !== 'idle' || isUploading) {
       return;
     }
 
     triggerLightHaptic();
-    const name = form.name.trim();
-    const phoneLabel = form.phoneLabel.trim();
-
-    if (!name || !phoneLabel) {
-      showAppAlert(EDIT_CONTACT_SCREEN.validationTitle, EDIT_CONTACT_SCREEN.validationMessage);
+    const validated = validateTrustedContactForm({
+      name: form.name,
+      phoneLabel: form.phoneLabel,
+      relationship: form.relation,
+    });
+    if (!validated.ok) {
+      showAppAlert(EDIT_CONTACT_SCREEN.validationTitle, validated.message);
       return;
     }
 
     setSubmitState('submitting');
-    await delay(900);
+    try {
+      const photoUrl = isPersistablePhotoUrl(form.photoUrl) ? form.photoUrl : undefined;
+      const dto =
+        mode === 'edit' && form.id
+          ? await updateTrustedContact(
+              form.id,
+              toUpdatePayload({
+                name: validated.name,
+                phoneNumber: validated.phoneNumber,
+                relationship: validated.relationship,
+                photoUrl,
+              }),
+            )
+          : await createTrustedContact(
+              toCreatePayload({
+                name: validated.name,
+                phoneNumber: validated.phoneNumber,
+                relationship: validated.relationship,
+                photoUrl,
+              }),
+            );
 
-    trustedContactsStore.upsert({
-      id: form.id ?? generateId('contact'),
-      name,
-      relation: form.relation,
-      phoneLabel,
-      avatarUri: form.avatarUri ?? undefined,
-    });
-
-    setSubmitState('success');
-    triggerSuccessHaptic();
-    await delay(700);
-    setSubmitState('idle');
-    goBack();
-  }, [form, goBack, submitState]);
+      // Ensure payload never includes userId (API helpers only send DTO fields).
+      const ui = mapTrustedContactDtoToUi(dto);
+      trustedContactsStore.upsert(ui);
+      setSubmitState('success');
+      triggerSuccessHaptic();
+      goBack();
+    } catch (err) {
+      setSubmitState('idle');
+      showAppAlert('Unable to save', mapTrustedContactError(err));
+    }
+  }, [form, goBack, isUploading, mode, submitState]);
 
   const deleteContact = useCallback(() => {
     if (!form.id) {
@@ -164,11 +268,19 @@ export const useEditContact = (): UseEditContactResult => {
           text: EDIT_CONTACT_SCREEN.deleteConfirm,
           style: 'destructive',
           onPress: () => {
-            if (form.id) {
-              trustedContactsStore.remove(form.id);
-            }
-            triggerSuccessHaptic();
-            goBack();
+            void (async () => {
+              if (!form.id) {
+                return;
+              }
+              try {
+                await deleteTrustedContact(form.id);
+                trustedContactsStore.remove(form.id);
+                triggerSuccessHaptic();
+                goBack();
+              } catch (err) {
+                showAppAlert('Unable to delete', mapTrustedContactError(err));
+              }
+            })();
           },
         },
       ],
@@ -183,6 +295,8 @@ export const useEditContact = (): UseEditContactResult => {
     relations: CONTACT_RELATIONS,
     submitState,
     uploadSheetVisible,
+    uploadingPhoto: isUploading,
+    loadingContact,
     saveLabel:
       mode === 'edit' ? EDIT_CONTACT_SCREEN.saveLabel : EDIT_CONTACT_SCREEN.addSaveLabel,
     setName,

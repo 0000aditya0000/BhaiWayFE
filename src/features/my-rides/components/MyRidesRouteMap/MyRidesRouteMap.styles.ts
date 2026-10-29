@@ -10,7 +10,11 @@ export const styles = StyleSheet.create({
     backgroundColor: '#E7E8E9',
   },
   map: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
   },
   badge: {
     position: 'absolute',
@@ -40,5 +44,24 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...createShadow({ color: colors.shadow, opacity: 0.14, radius: 8, offsetY: 2, elevation: 3 }),
+  },
+  missingCoords: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    backgroundColor: '#E7E8E9',
+  },
+  missingCoordsTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#191C1D',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  missingCoordsBody: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: '#5C6276',
+    textAlign: 'center',
   },
 });

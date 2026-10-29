@@ -1,6 +1,9 @@
 export type ProfileMenuActionId =
+  | 'editProfile'
+  | 'ratings'
   | 'verify'
   | 'garage'
+  | 'promotions'
   | 'refer'
   | 'safety'
   | 'support'
@@ -11,6 +14,7 @@ export interface ProfileBadge {
   label: string;
   icon: 'verified' | 'close-circle' | 'star' | 'shield-checkmark';
   tone: 'success' | 'danger' | 'neutral' | 'primary';
+  pressable?: boolean;
 }
 
 export interface ProfileMenuItem {
@@ -18,13 +22,30 @@ export interface ProfileMenuItem {
   title: string;
   subtitle: string;
   icon:
+    | 'person-outline'
+    | 'star-outline'
     | 'id-card-outline'
     | 'car-outline'
+    | 'pricetag-outline'
     | 'gift-outline'
     | 'shield-outline'
     | 'headset-outline'
     | 'document-text-outline';
 }
+
+export interface MyRatingReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAtLabel: string;
+  reviewerName: string;
+  reviewerPhoto: string | null;
+  rideLabel: string | null;
+  roleLabel: string | null;
+  contextLabel: string;
+}
+
+export type MyRatingsDirection = 'received' | 'given';
 
 export interface DriverEarningBreakdown {
   label: string;
@@ -34,6 +55,8 @@ export interface DriverEarningBreakdown {
 export interface MasterProfileData {
   fullName: string;
   phoneLabel: string;
+  email: string | null;
+  emailVerified: boolean;
   avatarUri: string | null;
   walletBalanceLabel: string;
   paymentMethodsSubtitle: string;

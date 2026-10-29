@@ -1,0 +1,1 @@
+export { SupportTicketDetailScreen } from './SupportTicketDetailScreen';

@@ -20,6 +20,8 @@ export const DRIVER_PICKUP_SCREEN = {
   otpCancelLabel: 'Cancel',
   otpInvalidMessage: 'Incorrect OTP. Please ask the rider again.',
   otpLength: 4,
+  navigateMapsLabel: 'Navigate with Google Maps',
+  etaHeading: 'ETA to pickup',
 } as const;
 
 /** Street-level zoom centered on the current pickup pin. */
@@ -58,7 +60,28 @@ export const DEFAULT_DRIVER_PICKUP_STOPS: readonly DriverPickupStop[] = [
   },
 ] as const;
 
-export const getDriverPickupPath = (rideType: DriverRideKind = 'assured') => ({
-  pathname: ROUTES.myRidesPickup,
-  params: { rideType },
-});
+export const getDriverPickupPath = (
+  rideTypeOrParams:
+    | DriverRideKind
+    | {
+        rideType?: DriverRideKind;
+        rideId?: string;
+        destination?: string;
+      } = 'assured',
+) => {
+  if (typeof rideTypeOrParams === 'string') {
+    return {
+      pathname: ROUTES.myRidesPickup,
+      params: { rideType: rideTypeOrParams, rideId: '', destination: '' },
+    };
+  }
+
+  return {
+    pathname: ROUTES.myRidesPickup,
+    params: {
+      rideType: rideTypeOrParams.rideType ?? 'assured',
+      rideId: rideTypeOrParams.rideId ?? '',
+      destination: rideTypeOrParams.destination ?? '',
+    },
+  };
+};

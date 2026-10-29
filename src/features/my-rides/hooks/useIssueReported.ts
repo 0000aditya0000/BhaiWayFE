@@ -67,10 +67,7 @@ export const useIssueReported = (): UseIssueReportedResult => {
     triggerLightHaptic();
     router.replace(
       getRideInvoicePath({
-        rideId,
-        pickupLabel,
-        dropoffLabel,
-        dateLabel,
+        bookingId: rideId,
       }),
     );
   }, [dateLabel, dropoffLabel, pickupLabel, rideId, router]);

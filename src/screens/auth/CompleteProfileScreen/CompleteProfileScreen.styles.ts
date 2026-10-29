@@ -23,6 +23,14 @@ export const styles = StyleSheet.create({
     gap: spacing.md,
     marginBottom: spacing.md,
   },
+  genderReadOnly: {
+    marginBottom: spacing.lg,
+    gap: spacing.xs,
+  },
+  genderHint: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
   error: {
     marginTop: spacing.sm,
     color: colors.error,

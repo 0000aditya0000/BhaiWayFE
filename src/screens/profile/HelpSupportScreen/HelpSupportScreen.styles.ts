@@ -210,7 +210,7 @@ export const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingTop: spacing.xxxl,
   },
-  chatButton: {
+  primaryActionButton: {
     height: 56,
     borderRadius: layout.radiusXl,
     backgroundColor: helpTokens.PRIMARY,
@@ -220,7 +220,7 @@ export const styles = StyleSheet.create({
     gap: spacing.md,
     ...createShadow({ color: colors.shadow, opacity: 0.12, radius: 10, offsetY: 4, elevation: 3 }),
   },
-  chatLabel: {
+  primaryActionLabel: {
     fontSize: 16,
     lineHeight: 24,
     fontWeight: '700',

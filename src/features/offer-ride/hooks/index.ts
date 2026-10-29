@@ -6,3 +6,7 @@ export { usePublishRide } from './usePublishRide';
 export { useRidePreferences } from './useRidePreferences';
 export type { UseRidePreferencesResult } from './useRidePreferences';
 export { useSelectLocation } from './useSelectLocation';
+export { useRouteOptions } from './useRouteOptions';
+export type { UseRouteOptionsResult } from './useRouteOptions';
+export { useSelectDrivingRoute } from './useSelectDrivingRoute';
+export type { UseSelectDrivingRouteResult } from './useSelectDrivingRoute';

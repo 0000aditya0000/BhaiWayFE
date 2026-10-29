@@ -49,6 +49,7 @@ export const mapGetMeToSessionUser = (response: GetMeResponse): SessionUser => {
     email: asOptionalString(response.user.email),
     avatarUri: asOptionalString(response.profile?.profilePhoto),
     phone: response.user.phone,
+    gender: response.profile?.gender ?? null,
   };
 };
 

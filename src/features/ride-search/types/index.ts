@@ -20,6 +20,7 @@ export type {
   RideType,
   SeatUrgency,
   RideDriver,
+  RideVehicleSummary,
   RidePreference,
   RideFeature,
   RideResultItem,
@@ -64,9 +65,12 @@ export type {
 } from './ongoing-trip.types';
 export type {
   TripCompletedPaymentId,
+  TripCompletedPaymentPhase,
+  TripCompletedInsufficientBalance,
   TripCompletedPaymentOption,
   TripCompletedFareLine,
   TripCompletedData,
+  PayLaterPaymentResponse,
 } from './trip-completed.types';
 export type {
   RatingValue,

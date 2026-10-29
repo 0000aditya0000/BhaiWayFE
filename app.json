@@ -2,20 +2,21 @@
   "expo": {
     "name": "BhaiWay",
     "slug": "BhaiWayFE",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "bhaiwayfe",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash-native.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
+      "backgroundColor": "#F9FBFB"
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.bhaiway.app",
+      "buildNumber": "1",
       "config": {
         "googleMapsApiKey": ""
       },
@@ -23,20 +24,41 @@
         "NSCameraUsageDescription": "Allow BhaiWay to access your camera to take a profile picture.",
         "NSPhotoLibraryUsageDescription": "Allow BhaiWay to access your photos to set your profile picture.",
         "NSPhotoLibraryAddUsageDescription": "Allow BhaiWay to save photos to your library.",
-        "NSLocationWhenInUseUsageDescription": "Allow BhaiWay to use your location to suggest nearby destinations.",
+        "NSLocationWhenInUseUsageDescription": "BhaiWay uses your location to suggest nearby destinations and to share your live position with riders during an active trip.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "BhaiWay continues sharing your live location with riders while a trip is in progress, even when the app is in the background.",
+        "UIBackgroundModes": [
+          "remote-notification",
+          "location"
+        ],
         "UIViewControllerBasedStatusBarAppearance": true
-      }
+      },
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.bhaiway.app",
+      "versionCode": 3,
       "softwareKeyboardLayoutMode": "resize",
+      "splash": {
+        "image": "./assets/splash-native.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#F9FBFB"
+      },
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
       ],
       "config": {
         "googleMaps": {
@@ -44,12 +66,11 @@
         }
       },
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/adaptive-icon.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -69,11 +90,29 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-notifications",
+      "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-native.png",
+          "backgroundColor": "#F9FBFB",
+          "resizeMode": "contain",
+          "imageWidth": 100
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#374BB1",
+          "defaultChannel": "bhaiway_default",
+          "sounds": []
+        }
+      ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow BhaiWay to access your photos to set your profile picture.",
+          "photosPermission": "Allow BhaiWay to access your photos to set a profile picture.",
           "cameraPermission": "Allow BhaiWay to access your camera to take a profile picture."
         }
       ],
@@ -81,9 +120,23 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow BhaiWay to use your location to suggest nearby destinations."
+          "locationWhenInUsePermission": "BhaiWay uses your location to suggest nearby destinations and to share your live position with riders during an active trip.",
+          "locationAlwaysAndWhenInUsePermission": "BhaiWay continues sharing your live location with riders while a trip is in progress, even when the app is in the background.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
-      ]
-    ]
+      ],
+      "expo-task-manager"
+    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/0b5df897-5c40-4adf-b956-550fd7c65877"
+    }
   }
 }

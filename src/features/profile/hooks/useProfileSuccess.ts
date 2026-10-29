@@ -102,6 +102,11 @@ export const useProfileSuccess = (
     router.replace(ROUTES.wallet);
   }, [router]);
 
+  const goToPaymentMethods = useCallback(() => {
+    triggerLightHaptic();
+    router.replace(ROUTES.paymentMethods);
+  }, [router]);
+
   const goToWithdraw = useCallback(() => {
     triggerLightHaptic();
     router.replace(ROUTES.withdraw);
@@ -165,7 +170,7 @@ export const useProfileSuccess = (
     avatarUri,
     copied,
     onPrimary: goToWithdraw,
-    onSecondary: goToWithdraw,
+    onSecondary: goToPaymentMethods,
     copyReference: null,
     openProfile,
     goBack,

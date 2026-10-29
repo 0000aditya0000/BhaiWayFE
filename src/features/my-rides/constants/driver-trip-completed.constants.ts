@@ -18,9 +18,10 @@ export const DRIVER_TRIP_COMPLETED_SCREEN = {
   timeStatLabel: 'Time',
   earningsStatLabel: 'Earnings',
   earningsStatHint: 'Total',
-  reviewSectionTitle: 'Review Your Passengers',
+  reviewSectionTitle: 'Next step',
   reviewPlaceholder: 'Write a review...',
-  submitLabel: 'Submit Reviews & Finish',
+  submitLabel: 'Continue',
+  continueLabel: 'Continue',
   incompleteTitle: 'Rate all passengers',
   incompleteMessage: 'Please give each passenger a star rating before finishing.',
   statusLabel: 'SUCCESSFUL',
@@ -106,10 +107,14 @@ export const getDriverTripCompletedMock = (params?: {
 export const getDriverTripCompletedPath = (params?: {
   destination?: string;
   rideType?: DriverRideKind;
+  rideId?: string;
 }) => ({
   pathname: ROUTES.myRidesTripCompleted,
   params: withRideTypeParam(
-    { destination: params?.destination ?? '' },
+    {
+      destination: params?.destination ?? '',
+      rideId: params?.rideId ?? '',
+    },
     parseDriverRideKind(params?.rideType),
   ),
 });

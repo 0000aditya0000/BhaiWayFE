@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 
+import { CACHE_STALE_TIMES, cacheKeys, resourceCache } from '@/network/resourceCache';
 import { authSession } from '@/store';
 import { getErrorMessage } from '@/shared/utils';
 import { getMyVerifications, type MyVerificationsResponse } from '../api';
@@ -15,12 +16,43 @@ export interface UseMyVerificationResult {
 
 /**
  * Loads GET /verification/me for the logged-in user (Bearer JWT).
- * Docs: BhaiWay_Backend_API_Documentation.md §4
+ * Shared resource cache — focus does not force a network call when fresh.
  */
 export const useMyVerification = (): UseMyVerificationResult => {
-  const [verifications, setVerifications] = useState<MyVerificationsResponse | null>(null);
+  const [verifications, setVerifications] = useState<MyVerificationsResponse | null>(
+    () => resourceCache.peek<MyVerificationsResponse>(cacheKeys.verification.me()) ?? null,
+  );
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const ensure = useCallback(async () => {
+    if (!authSession.getToken()) {
+      setVerifications(null);
+      setError(null);
+      return;
+    }
+
+    try {
+      const result = await resourceCache.query({
+        key: cacheKeys.verification.me(),
+        staleTime: CACHE_STALE_TIMES.VERIFICATION,
+        fetcher: getMyVerifications,
+      });
+      verificationStore.set(result.data);
+      setVerifications(result.data);
+      setError(null);
+    } catch (err) {
+      const kept = resourceCache.peek<MyVerificationsResponse>(cacheKeys.verification.me());
+      if (kept) {
+        setVerifications(kept);
+        setError(null);
+        return;
+      }
+      const message = getErrorMessage(err);
+      console.log('[Verification] GET /verification/me failed', message);
+      setError(message);
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!authSession.getToken()) {
@@ -31,11 +63,21 @@ export const useMyVerification = (): UseMyVerificationResult => {
 
     setRefreshing(true);
     try {
-      const rows = await getMyVerifications();
-      verificationStore.set(rows);
-      setVerifications(rows);
+      const result = await resourceCache.query({
+        key: cacheKeys.verification.me(),
+        staleTime: CACHE_STALE_TIMES.VERIFICATION,
+        force: true,
+        fetcher: getMyVerifications,
+      });
+      verificationStore.set(result.data);
+      setVerifications(result.data);
       setError(null);
     } catch (err) {
+      const kept = resourceCache.peek<MyVerificationsResponse>(cacheKeys.verification.me());
+      if (kept) {
+        setVerifications(kept);
+        return;
+      }
       const message = getErrorMessage(err);
       console.log('[Verification] GET /verification/me failed', message);
       setError(message);
@@ -46,8 +88,8 @@ export const useMyVerification = (): UseMyVerificationResult => {
 
   useFocusEffect(
     useCallback(() => {
-      void refresh();
-    }, [refresh]),
+      void ensure();
+    }, [ensure]),
   );
 
   return {

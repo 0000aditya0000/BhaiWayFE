@@ -7,22 +7,59 @@ import type {
 } from '../types/driver-track-ride.types';
 
 export const DRIVER_TRACK_RIDE_SCREEN = {
-  title: 'Track My Ride',
-  activeLabel: 'Active Ride',
+  title: 'Ride Details',
+  activeLabel: 'Published ride',
+  routeOverviewLabel: 'Route',
+  tripStatsLabel: 'Trip snapshot',
+  passengersLabel: 'Passengers',
+  passengersSummary: (booked: number, remaining: number) =>
+    booked === 1
+      ? `1 booked · ${remaining} seats remaining`
+      : `${booked} booked · ${remaining} seats remaining`,
   confirmedTitle: (confirmed: number, total: number) => `Confirmed (${confirmed}/${total})`,
   pendingTitle: (count: number) => `Pending Requests (${count})`,
   fullPercentLabel: (percent: number) => `${percent}% Full`,
+  emptyPassengersTitle: 'No passengers have booked this ride yet.',
+  emptyPassengersSubtitle: 'Confirmed bookings will appear here after a passenger books.',
+  loadingLabel: 'Loading passengers…',
+  errorTitle: 'Unable to load bookings',
+  errorRetryLabel: 'Try again',
+  sourceLabel: 'Pickup',
+  destinationLabel: 'Drop-off',
+  dateLabel: 'Date',
+  departureLabel: 'Departure',
+  vehicleLabel: 'Vehicle',
+  totalSeatsLabel: 'Total seats',
+  bookedSeatsLabel: 'Booked',
+  availableSeatsLabel: 'Open',
+  seatsFillLabel: 'Seat fill',
+  statusLabel: 'Status',
+  paymentLabel: 'Payment',
+  paymentMethodLabel: 'Payment method',
+  bookedAtLabel: 'Booked',
+  fareLabel: 'Fare',
+  callUnavailableLabel: 'Call unavailable',
+  chatUnavailableLabel: 'Chat unavailable',
   declineLabel: 'Decline',
   acceptLabel: 'Accept',
   ridesLabel: (count: number) => `${count} RIDES`,
   seatsAppliedLabel: (count: number) =>
     count === 1 ? 'Applied for 1 seat' : `Applied for ${count} seats`,
-  seatsBookedShort: (count: number) => (count === 1 ? '+1 seat' : `+${count} seats`),
+  seatsBookedShort: (count: number) => (count === 1 ? '1 seat' : `${count} seats`),
   idVerifiedLabel: 'ID VERIFIED',
   callAlertTitle: 'Call',
   chatAlertTitle: 'Chat',
   callAlertMessage: (name: string) => `Calling ${name} will be available soon.`,
   chatAlertMessage: (name: string) => `Chat with ${name} will be available soon.`,
+  contactUnavailableMessage: 'Contact options are not available for this passenger yet.',
+  cancelRideLabel: 'Cancel Ride',
+  rideTypeLabel: 'Ride type',
+  assuredLabel: 'ASSURED',
+  regularLabel: 'REGULAR',
+  commuteLabel: 'COMMUTE',
+  depositLabel: 'Security deposit',
+  pendingEmptyTitle: 'No pending booking requests',
+  pendingEmptySubtitle: 'New Daily Office Commute requests will appear here.',
   acceptedMessage: (name: string) => `${name} has been accepted.`,
   declinedMessage: (name: string) => `${name}'s request was declined.`,
 } as const;
@@ -44,6 +81,7 @@ export const DEFAULT_PENDING_REQUESTS: readonly DriverTrackPendingRequest[] = [
     idVerified: true,
     avatarUri: AVATAR_ROHAN,
     seatsBooked: 2,
+    bookingId: 'pending-rohan',
   },
   {
     id: 'pending-priya',
@@ -54,21 +92,37 @@ export const DEFAULT_PENDING_REQUESTS: readonly DriverTrackPendingRequest[] = [
     idVerified: true,
     avatarUri: AVATAR_PRIYA,
     seatsBooked: 1,
+    bookingId: 'pending-priya',
   },
 ];
 
 export const DEFAULT_DRIVER_TRACK_RIDE: DriverTrackRideSummary = {
   rideId: 'driving-upcoming-regular-1',
   listingId: 'BW-9942',
+  rideType: 'regular',
   routeTitle: 'Saket → Cyber City',
+  source: 'Saket',
+  destination: 'Cyber City',
   dateLabel: 'Oct 25, 09:00 AM',
+  departureTimeLabel: '09:00 AM',
+  vehicleLabel: '',
   seatsConfirmed: 0,
+  seatsAvailable: 4,
   seatsTotal: 4,
+  bookingCount: 0,
+  pickup: null,
+  dropoff: null,
   confirmed: DEFAULT_CONFIRMED_PASSENGERS,
   pending: DEFAULT_PENDING_REQUESTS,
 };
 
-export const getDriverTrackRidePath = (rideId: string) => ({
+export const getDriverTrackRidePath = (
+  rideId: string,
+  extra?: { claimId?: string },
+) => ({
   pathname: ROUTES.myRidesTrack,
-  params: { rideId },
+  params: {
+    rideId,
+    claimId: extra?.claimId?.trim() || '',
+  },
 });

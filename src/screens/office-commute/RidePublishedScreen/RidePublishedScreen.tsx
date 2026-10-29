@@ -28,6 +28,7 @@ export const RidePublishedScreen = () => {
     priceLabel,
     dayChips,
     isOneTime,
+    occurrenceSummary,
     openNotifications,
     viewMyRides,
     modifyRide,

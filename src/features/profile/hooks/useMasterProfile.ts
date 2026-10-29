@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 
 import { ROUTES } from '@/config';
-import {
-  findCurrentUserSheetRow,
-  formatBhaiWayWalletLabel,
-  getBhaiWayWalletBalance,
-  subscribeBhaiWayWallet,
-} from '@/DemoData';
+import { bankAccountsSheetStore } from '@/DemoData';
+import { authService } from '@/features/auth/services';
+import { clearGetMeHydration } from '@/features/auth/services/getMeHydration';
+import { unregisterCurrentPushDevice } from '@/features/notifications/push/pushRegistration';
 import { saveProfilePhotoUrl } from '@/features/media';
+import { savedUpiStore } from '@/features/ride-search/store';
+import { CACHE_STALE_TIMES, cacheKeys, resourceCache } from '@/network/resourceCache';
+import { getCorporateIdentityStatus } from '../api/corporateIdentity.api';
+import { getEmailVerificationStatus } from '../api/emailVerification.api';
+import { isCorporateVerifiedStatus } from '../utils/corporateIdentity.mapper';
 import { useUpload } from '@/hooks/useUpload';
 import type { UploadedDocument } from '@/shared/components';
 import { useSessionUser } from '@/shared/hooks';
@@ -20,24 +23,20 @@ import {
   PROFILE_MENU_ITEMS,
   PROFILE_SCREEN,
 } from '../constants';
-import { corporateVerificationStore } from '@/features/office-commute/store';
+import { userMeSummaryStore } from '../store/userMeSummaryStore';
 import type {
   MasterProfileData,
   ProfileMenuActionId,
   ProfileMenuItem,
 } from '../types';
+import {
+  formatOverallRatingLabel,
+  mapDriverEarningsToProfile,
+} from '../utils/mapGetMeProfile';
+import { formatCoinsLabel } from '../utils/walletCoin';
+import { formatPaymentMethodsSubtitle } from '../utils/paymentMethodsSummary';
 import { useMyVerification } from './useMyVerification';
-/** Snapshot so profile name/phone refresh when the sheet row changes. */
-const getSheetProfileIdentity = (): string => {
-  const row = findCurrentUserSheetRow();
-  return [
-    row?.userName ?? '',
-    row?.mobile ?? '',
-    row?.profilePicture ?? '',
-    String(row?.bhaiWayWallet ?? 0),
-    String(getBhaiWayWalletBalance()),
-  ].join('|');
-};
+import { useWalletBalance } from './useWalletBalance';
 
 const formatProfilePhoneLabel = (mobile?: string | null, fallback?: string | null): string => {
   const digits = (mobile ?? fallback ?? '').replace(/\D/g, '').slice(-10);
@@ -60,6 +59,9 @@ export interface UseMasterProfileResult {
   goBack: () => void;
   openAddRedeem: () => void;
   openPaymentMethods: () => void;
+  openEditProfile: () => void;
+  openVerifyEmail: () => void;
+  openRatings: () => void;
   onMenuPress: (id: ProfileMenuActionId) => void;
   openLogout: () => void;
   closeLogout: () => void;
@@ -69,49 +71,26 @@ export interface UseMasterProfileResult {
 export const useMasterProfile = (): UseMasterProfileResult => {
   const router = useRouter();
   const user = useSessionUser();
-  const sheetIdentity = useSyncExternalStore(subscribeBhaiWayWallet, getSheetProfileIdentity);
-  const sheetRow = useMemo(() => findCurrentUserSheetRow(), [sheetIdentity]);
-  const walletBalanceLabel = formatBhaiWayWalletLabel(getBhaiWayWalletBalance());
+  const { summary: walletSummary } = useWalletBalance();
   const { verifications } = useMyVerification();
   const identityVerified = verifications?.identity?.status === 'VERIFIED';
-  const menuItems = useMemo((): readonly ProfileMenuItem[] => {
-    return PROFILE_MENU_ITEMS.map((item) => {
-      if (item.id !== 'verify') {
-        return item;
-      }
-      if (!verifications) {
-        return item;
-      }
-      const status = verifications.identity.status;
-      if (status === 'VERIFIED') {
-        return {
-          ...item,
-          subtitle: 'Identity verified',
-        };
-      }
-      if (status === 'IN_REVIEW') {
-        return {
-          ...item,
-          subtitle: 'Identity verification in review',
-        };
-      }
-      if (status === 'REJECTED') {
-        return {
-          ...item,
-          subtitle: verifications.identity.rejectionReason?.trim() || 'Identity verification rejected',
-        };
-      }
-      return {
-        ...item,
-        subtitle: 'Verify Aadhaar to unlock trust & features',
-      };
-    });
-  }, [verifications]);
+  const [email, setEmail] = useState<string | null>(() => user?.email?.trim() || null);
+  const [emailVerified, setEmailVerified] = useState(false);
+
+  const menuItems = useMemo((): readonly ProfileMenuItem[] => PROFILE_MENU_ITEMS, []);
   const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
   const [uploadSheetVisible, setUploadSheetVisible] = useState(false);
   const [logoutVisible, setLogoutVisible] = useState(false);
-  const [isCorporateVerified, setIsCorporateVerified] = useState(() =>
-    corporateVerificationStore.isVerified(),
+  const [isCorporateVerified, setIsCorporateVerified] = useState(false);
+  const meSummary = useSyncExternalStore(
+    userMeSummaryStore.subscribe,
+    userMeSummaryStore.getSnapshot,
+    userMeSummaryStore.getSnapshot,
+  );
+  const savedUpis = useSyncExternalStore(savedUpiStore.subscribe, savedUpiStore.get);
+  const bankAccounts = useSyncExternalStore(
+    bankAccountsSheetStore.subscribe,
+    bankAccountsSheetStore.getForCurrentUserSnapshot,
   );
   const uploadGenerationRef = useRef(0);
 
@@ -122,33 +101,81 @@ export const useMasterProfile = (): UseMasterProfileResult => {
   });
 
   useEffect(
-    () =>
-      corporateVerificationStore.subscribe((record) => {
-        setIsCorporateVerified(record != null);
-      }),
-    [],
-  );
-
-  useEffect(
     () => () => {
       cancelUpload();
     },
     [cancelUpload],
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!authSession.getToken()) {
+        return;
+      }
+      void (async () => {
+        // Soft hydrate — uses shared GET /users/me cache when fresh.
+        await authService.hydrateAuthenticatedUser().catch(() => undefined);
+        try {
+          const emailResult = await resourceCache.query({
+            key: cacheKeys.emailVerification.status(),
+            staleTime: CACHE_STALE_TIMES.USER_PROFILE,
+            fetcher: getEmailVerificationStatus,
+          });
+          setEmail(
+            emailResult.data.email?.trim() || authSession.getUser()?.email?.trim() || null,
+          );
+          setEmailVerified(Boolean(emailResult.data.verified));
+        } catch {
+          setEmail(authSession.getUser()?.email?.trim() || null);
+          setEmailVerified(false);
+        }
+
+        try {
+          const corporate = await resourceCache.query({
+            key: cacheKeys.corporateIdentity.status(),
+            staleTime: CACHE_STALE_TIMES.CORPORATE_IDENTITY,
+            fetcher: getCorporateIdentityStatus,
+          });
+          setIsCorporateVerified(isCorporateVerifiedStatus(corporate.data.status));
+        } catch {
+          setIsCorporateVerified(false);
+        }
+      })();
+    }, []),
+  );
+
+  const ratingLabel = useMemo(
+    () => formatOverallRatingLabel(meSummary.ratings),
+    [meSummary.ratings],
+  );
+
+  const walletBalanceLabel = useMemo(() => {
+    if (walletSummary) {
+      return formatCoinsLabel(walletSummary.balanceCoins);
+    }
+    return DEFAULT_MASTER_PROFILE.walletBalanceLabel;
+  }, [walletSummary]);
+
+  const earningsView = useMemo(
+    () => mapDriverEarningsToProfile(meSummary.driverEarnings),
+    [meSummary.driverEarnings],
+  );
+
+  const paymentMethodsSubtitle = useMemo(
+    () => formatPaymentMethodsSubtitle(savedUpis[0], bankAccounts[0]),
+    [bankAccounts, savedUpis],
+  );
+
   const profile = useMemo((): MasterProfileData => {
     const fullName =
       user?.fullName?.trim() ||
-      sheetRow?.userName?.trim() ||
       DEFAULT_MASTER_PROFILE.fullName;
-    const phoneLabel = formatProfilePhoneLabel(user?.phone, sheetRow?.mobile);
+    const phoneLabel = formatProfilePhoneLabel(user?.phone, null);
     const avatarUri =
       localAvatarUri ??
       (user?.avatarUri?.trim() ||
-        sheetRow?.profilePicture?.trim() ||
         DEFAULT_MASTER_PROFILE.avatarUri ||
         DEFAULT_PROFILE_AVATAR);
-    const ratingLabel = '0';
 
     const badges = [
       isCorporateVerified
@@ -164,7 +191,7 @@ export const useMasterProfile = (): UseMasterProfileResult => {
             icon: 'close-circle' as const,
             tone: 'danger' as const,
           },
-      { id: 'rating', label: ratingLabel, icon: 'star' as const, tone: 'neutral' as const },
+      { id: 'rating', label: ratingLabel, icon: 'star' as const, tone: 'neutral' as const, pressable: true },
       identityVerified
         ? {
             id: 'trust',
@@ -184,23 +211,34 @@ export const useMasterProfile = (): UseMasterProfileResult => {
       ...DEFAULT_MASTER_PROFILE,
       fullName,
       phoneLabel,
+      email: email?.trim() || user?.email?.trim() || null,
+      emailVerified,
       avatarUri,
       walletBalanceLabel,
+      paymentMethodsSubtitle,
       ratingLabel,
+      driverEarningsLabel:
+        earningsView?.driverEarningsLabel ?? DEFAULT_MASTER_PROFILE.driverEarningsLabel,
+      earningBreakdown:
+        earningsView?.earningBreakdown ?? DEFAULT_MASTER_PROFILE.earningBreakdown,
+      earningInsight: earningsView?.earningInsight || DEFAULT_MASTER_PROFILE.earningInsight,
       badges,
       trustLabel: identityVerified ? 'Verified' : DEFAULT_MASTER_PROFILE.trustLabel,
     };
   }, [
+    email,
+    emailVerified,
+    earningsView,
     identityVerified,
     isCorporateVerified,
     localAvatarUri,
-    sheetRow?.mobile,
-    sheetRow?.profilePicture,
-    sheetRow?.userName,
     user?.avatarUri,
+    user?.email,
     user?.fullName,
     user?.phone,
     walletBalanceLabel,
+    paymentMethodsSubtitle,
+    ratingLabel,
   ]);
 
   const goBack = useCallback(() => {
@@ -252,7 +290,7 @@ export const useMasterProfile = (): UseMasterProfileResult => {
           });
         }
 
-        // UserDetails sheet sync happens in saveProfilePhotoUrl (onUploaded).
+        // Profile API + UserDetails sheet sync happen in saveProfilePhotoUrl (onUploaded).
         triggerSuccessHaptic();
       })();
     },
@@ -266,15 +304,47 @@ export const useMasterProfile = (): UseMasterProfileResult => {
 
   const openPaymentMethods = useCallback(() => {
     triggerLightHaptic();
-    showAppAlert(PROFILE_SCREEN.comingSoonTitle, PROFILE_SCREEN.comingSoonMessage);
-  }, []);
+    router.push(ROUTES.paymentMethods);
+  }, [router]);
+
+  const openEditProfile = useCallback(() => {
+    triggerLightHaptic();
+    router.push(ROUTES.editProfile);
+  }, [router]);
+
+  const openVerifyEmail = useCallback(() => {
+    triggerLightHaptic();
+    if (!email?.trim() && !user?.email?.trim()) {
+      showAppAlert(
+        'Email required',
+        'Add an email on Edit Profile before verifying.',
+      );
+      return;
+    }
+    router.push(ROUTES.verifyEmail);
+  }, [email, router, user?.email]);
+
+  const openRatings = useCallback(() => {
+    triggerLightHaptic();
+    router.push(ROUTES.myRatings);
+  }, [router]);
 
   const onMenuPress = useCallback(
     (id: ProfileMenuActionId) => {
       triggerLightHaptic();
 
+      if (id === 'editProfile') {
+        openEditProfile();
+        return;
+      }
+
+      if (id === 'ratings') {
+        openRatings();
+        return;
+      }
+
       if (id === 'verify') {
-        router.push(ROUTES.verifyAadhaar);
+        router.push(ROUTES.identityVerification);
         return;
       }
 
@@ -298,6 +368,11 @@ export const useMasterProfile = (): UseMasterProfileResult => {
         return;
       }
 
+      if (id === 'promotions') {
+        router.push(ROUTES.promotionsCoupons);
+        return;
+      }
+
       if (id === 'safety') {
         router.push(ROUTES.safetyHub);
         return;
@@ -305,7 +380,7 @@ export const useMasterProfile = (): UseMasterProfileResult => {
 
       showAppAlert(PROFILE_SCREEN.comingSoonTitle, PROFILE_SCREEN.comingSoonMessage);
     },
-    [router],
+    [openEditProfile, openRatings, router],
   );
 
   const openLogout = useCallback(() => {
@@ -320,8 +395,12 @@ export const useMasterProfile = (): UseMasterProfileResult => {
   const confirmLogout = useCallback(() => {
     triggerLightHaptic();
     setLogoutVisible(false);
-    authSession.clear();
-    router.replace(ROUTES.welcome);
+    void (async () => {
+      await unregisterCurrentPushDevice();
+      clearGetMeHydration();
+      authSession.clear();
+      router.replace(ROUTES.welcome);
+    })();
   }, [router]);
 
   return {
@@ -336,6 +415,9 @@ export const useMasterProfile = (): UseMasterProfileResult => {
     goBack,
     openAddRedeem,
     openPaymentMethods,
+    openEditProfile,
+    openVerifyEmail,
+    openRatings,
     onMenuPress,
     openLogout,
     closeLogout,

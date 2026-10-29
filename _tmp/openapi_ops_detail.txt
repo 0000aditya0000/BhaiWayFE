@@ -1,0 +1,219 @@
+﻿{
+  "path": "/coupons/validate",
+  "op": {
+    "post": {
+      "operationId": "CouponsController_validate",
+      "parameters": [],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ValidateCouponDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": ""
+        },
+        "401": {
+          "description": "Missing or invalid BhaiWay JWT"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "Validate a coupon code for ride type and charge scope (no capacity consumed)",
+      "tags": [
+        "Coupons"
+      ]
+    }
+  }
+}
+----
+{
+  "path": "/coupons/preview",
+  "op": {
+    "post": {
+      "operationId": "CouponsController_preview",
+      "parameters": [],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PreviewCouponDto"
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": {
+          "description": ""
+        },
+        "401": {
+          "description": "Missing or invalid BhaiWay JWT"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "Preview coupon benefit for an amount (no capacity consumed)",
+      "tags": [
+        "Coupons"
+      ]
+    }
+  }
+}
+----
+{
+  "path": "/commute-rewards/campaigns",
+  "op": {
+    "get": {
+      "operationId": "CommuteRewardsController_listActive",
+      "parameters": [],
+      "responses": {
+        "200": {
+          "description": ""
+        },
+        "401": {
+          "description": "Missing or invalid BhaiWay JWT"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "List active Office Commute reward campaigns with own progress",
+      "tags": [
+        "Commute Rewards"
+      ]
+    }
+  }
+}
+----
+{
+  "path": "/commute-rewards/campaigns/{id}",
+  "op": {
+    "get": {
+      "operationId": "CommuteRewardsController_getOne",
+      "parameters": [
+        {
+          "name": "id",
+          "required": true,
+          "in": "path",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": ""
+        },
+        "401": {
+          "description": "Missing or invalid BhaiWay JWT"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "Campaign details + authenticated driver progress",
+      "tags": [
+        "Commute Rewards"
+      ]
+    }
+  }
+}
+----
+{
+  "path": "/commute-rewards/campaigns/{id}/progress",
+  "op": {
+    "get": {
+      "operationId": "CommuteRewardsController_progress",
+      "parameters": [
+        {
+          "name": "id",
+          "required": true,
+          "in": "path",
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": ""
+        },
+        "401": {
+          "description": "Missing or invalid BhaiWay JWT"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "Own progress for a campaign",
+      "tags": [
+        "Commute Rewards"
+      ]
+    }
+  }
+}
+----
+{
+  "path": "/commute-rewards/claims",
+  "op": {
+    "get": {
+      "operationId": "CommuteRewardsController_claims",
+      "parameters": [
+        {
+          "name": "page",
+          "required": false,
+          "in": "query",
+          "schema": {
+            "default": 1,
+            "type": "number"
+          }
+        },
+        {
+          "name": "limit",
+          "required": false,
+          "in": "query",
+          "schema": {
+            "default": 20,
+            "type": "number"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": ""
+        },
+        "401": {
+          "description": "Missing or invalid BhaiWay JWT"
+        }
+      },
+      "security": [
+        {
+          "bearer": []
+        }
+      ],
+      "summary": "Own claim history",
+      "tags": [
+        "Commute Rewards"
+      ]
+    }
+  }
+}
+----

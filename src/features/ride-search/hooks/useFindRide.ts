@@ -211,20 +211,41 @@ export const useFindRide = (mode: RideSearchMode): UseFindRideResult => {
   }, []);
 
   const applyRecentSearch = useCallback((item: RecentSearchItem) => {
+    const hasValidCoords = (location?: {
+      latitude: number;
+      longitude: number;
+    } | null): boolean => {
+      if (!location) {
+        return false;
+      }
+      if (!Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
+        return false;
+      }
+      if (location.latitude === 0 && location.longitude === 0) {
+        return false;
+      }
+      return true;
+    };
+
     setForm((prev) => ({
       ...prev,
-      origin: item.originLocation ?? {
-        placeName: item.origin,
-        address: item.origin,
-        latitude: 0,
-        longitude: 0,
-      },
-      destination: item.destinationLocation ?? {
-        placeName: item.destination,
-        address: item.destination,
-        latitude: 0,
-        longitude: 0,
-      },
+      origin: hasValidCoords(item.originLocation)
+        ? item.originLocation!
+        : {
+            placeName: item.origin,
+            address: item.origin,
+            // Leave unresolved — search will omit invalid coords rather than send 0,0.
+            latitude: Number.NaN,
+            longitude: Number.NaN,
+          },
+      destination: hasValidCoords(item.destinationLocation)
+        ? item.destinationLocation!
+        : {
+            placeName: item.destination,
+            address: item.destination,
+            latitude: Number.NaN,
+            longitude: Number.NaN,
+          },
       journeyDate: startOfDay(new Date()),
     }));
   }, []);
@@ -304,6 +325,21 @@ export const useFindRide = (mode: RideSearchMode): UseFindRideResult => {
       return;
     }
 
+    if (
+      !Number.isFinite(origin.latitude) ||
+      !Number.isFinite(origin.longitude) ||
+      !Number.isFinite(destination.latitude) ||
+      !Number.isFinite(destination.longitude) ||
+      (origin.latitude === 0 && origin.longitude === 0) ||
+      (destination.latitude === 0 && destination.longitude === 0)
+    ) {
+      showAppAlert(
+        'Location required',
+        'Please re-select pickup and drop-off on the map so we can match rides along the route.',
+      );
+      return;
+    }
+
     const dateLabel = formatDisplayDate(journeyDate);
     const timeLabel = journeyTime ? formatTimeLabel(journeyTime) : 'Now';
 
@@ -322,6 +358,7 @@ export const useFindRide = (mode: RideSearchMode): UseFindRideResult => {
           params: {
             origin: origin.placeName,
             destination: destination.placeName,
+            date: toCivilDateFromDate(journeyDate),
             dateLabel,
             timeLabel,
             originLat: String(origin.latitude),

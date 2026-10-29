@@ -1,10 +1,10 @@
-import { useCallback, useMemo, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
-import { bankAccountsSheetSync } from '@/DemoData';
+import { bankAccountsSheetStore, bankAccountsSheetSync } from '@/DemoData';
 import { useSessionUser } from '@/shared/hooks';
-import { delay, triggerLightHaptic, triggerSuccessHaptic, showAppAlert } from '@/shared/utils';
+import { delay, getSearchParam, triggerLightHaptic, triggerSuccessHaptic, showAppAlert } from '@/shared/utils';
 import { DEFAULT_PROFILE_AVATAR } from '../constants/profile.constants';
 import {
   ADD_BANK_ACCOUNT_SCREEN,
@@ -26,6 +26,9 @@ export interface UseAddBankAccountResult {
   form: AddBankAccountForm;
   submitState: AddBankAccountSubmitState;
   avatarUri: string;
+  isEditMode: boolean;
+  screenTitle: string;
+  screenSubtitle: string;
   setHolderName: (value: string) => void;
   setBankName: (value: string) => void;
   setAccountNumber: (value: string) => void;
@@ -39,21 +42,62 @@ export interface UseAddBankAccountResult {
 export const useAddBankAccount = (): UseAddBankAccountResult => {
   const router = useRouter();
   const user = useSessionUser();
+  const params = useLocalSearchParams<{
+    mode?: string;
+    bankAccountId?: string;
+    returnTo?: string;
+  }>();
   const [form, setForm] = useState<AddBankAccountForm>(INITIAL_FORM);
   const [submitState, setSubmitState] = useState<AddBankAccountSubmitState>('idle');
+  const [prefilled, setPrefilled] = useState(false);
+
+  const isEditMode = getSearchParam(params.mode) === 'edit';
+  const bankAccountId = Number(getSearchParam(params.bankAccountId) || '0');
+  const returnToPaymentMethods = getSearchParam(params.returnTo) === 'payment-methods';
 
   const avatarUri = useMemo(
     () => user?.avatarUri ?? DEFAULT_PROFILE_AVATAR,
     [user?.avatarUri],
   );
 
+  const screenTitle = isEditMode
+    ? ADD_BANK_ACCOUNT_SCREEN.editTitle
+    : ADD_BANK_ACCOUNT_SCREEN.title;
+
+  const screenSubtitle = isEditMode
+    ? ADD_BANK_ACCOUNT_SCREEN.editSubtitle
+    : ADD_BANK_ACCOUNT_SCREEN.subtitle;
+
+  useEffect(() => {
+    if (!isEditMode || !bankAccountId || prefilled) {
+      return;
+    }
+
+    const existing = bankAccountsSheetStore.findByBankAccountId(bankAccountId);
+    if (!existing) {
+      return;
+    }
+
+    setForm({
+      holderName: existing.holderName,
+      bankName: existing.bankName,
+      accountNumber: existing.accountNumber,
+      ifsc: existing.ifsc,
+    });
+    setPrefilled(true);
+  }, [bankAccountId, isEditMode, prefilled]);
+
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
       router.back();
       return;
     }
+    if (returnToPaymentMethods) {
+      router.replace(ROUTES.paymentMethods);
+      return;
+    }
     router.replace(ROUTES.withdraw);
-  }, [router]);
+  }, [returnToPaymentMethods, router]);
 
   const openProfile = useCallback(() => {
     triggerLightHaptic();
@@ -122,6 +166,7 @@ export const useAddBankAccount = (): UseAddBankAccountResult => {
     setSubmitState('submitting');
     try {
       const saved = await bankAccountsSheetSync.upsertAndSync({
+        bankAccountId: isEditMode && bankAccountId > 0 ? bankAccountId : undefined,
         holderName,
         bankName,
         accountNumber,
@@ -132,6 +177,11 @@ export const useAddBankAccount = (): UseAddBankAccountResult => {
       setSubmitState('success');
       triggerSuccessHaptic();
       await delay(600);
+
+      if (isEditMode || returnToPaymentMethods) {
+        router.replace(ROUTES.paymentMethods);
+        return;
+      }
 
       const maskedNumber = `•••• ${accountNumber.slice(-4)}`;
       router.replace({
@@ -150,12 +200,22 @@ export const useAddBankAccount = (): UseAddBankAccountResult => {
         error instanceof Error ? error.message : 'Unable to save bank account. Please try again.',
       );
     }
-  }, [form, router, submitState]);
+  }, [
+    bankAccountId,
+    form,
+    isEditMode,
+    returnToPaymentMethods,
+    router,
+    submitState,
+  ]);
 
   return {
     form,
     submitState,
     avatarUri,
+    isEditMode,
+    screenTitle,
+    screenSubtitle,
     setHolderName,
     setBankName,
     setAccountNumber,

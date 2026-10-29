@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
 import { triggerLightHaptic, showAppAlert } from '@/shared/utils';
+import { listTrustedContacts } from '../api/trustedContacts.api';
 import {
   SAFETY_HUB_SCREEN,
   SAFETY_REPORT_OPTIONS,
 } from '../constants';
 import { trustedContactsStore } from '../store';
 import type { SafetyReportOption, TrustedContact } from '../types';
+import { mapTrustedContactDtoToUi } from '../utils/trustedContacts.mapper';
 
 export interface UseSafetyHubResult {
   contacts: readonly TrustedContact[];
@@ -18,14 +21,27 @@ export interface UseSafetyHubResult {
   manageContacts: () => void;
   triggerSos: () => void;
   openReport: (id: string) => void;
-  chatWithSupport: () => void;
 }
 
 export const useSafetyHub = (): UseSafetyHubResult => {
   const router = useRouter();
-  const [contacts, setContacts] = useState<TrustedContact[]>(trustedContactsStore.get());
+  const [contacts, setContacts] = useState<TrustedContact[]>(() => trustedContactsStore.get());
 
-  useEffect(() => trustedContactsStore.subscribe(setContacts), []);
+  useFocusEffect(
+    useCallback(() => {
+      const unsubscribe = trustedContactsStore.subscribe(setContacts);
+      void (async () => {
+        try {
+          const page = await listTrustedContacts({ page: 1, limit: 50 });
+          const mapped = page.items.map(mapTrustedContactDtoToUi);
+          trustedContactsStore.setAll(mapped);
+        } catch {
+          // Keep cached contacts if refresh fails; Safety Hub preview is non-blocking.
+        }
+      })();
+      return unsubscribe;
+    }, []),
+  );
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -52,12 +68,7 @@ export const useSafetyHub = (): UseSafetyHubResult => {
 
   const openReport = useCallback((_id: string) => {
     triggerLightHaptic();
-    showAppAlert(SAFETY_HUB_SCREEN.reportTitle, SAFETY_HUB_SCREEN.reportMessage);
-  }, []);
-
-  const chatWithSupport = useCallback(() => {
-    triggerLightHaptic();
-    router.push(ROUTES.supportChat);
+    router.push(ROUTES.helpSupport);
   }, [router]);
 
   return {
@@ -68,6 +79,5 @@ export const useSafetyHub = (): UseSafetyHubResult => {
     manageContacts,
     triggerSos,
     openReport,
-    chatWithSupport,
   };
 };

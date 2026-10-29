@@ -10,6 +10,8 @@ export const TRIP_REVIEW_SCREEN = {
   reviewPlaceholder: 'Tell others about your ride experience...',
   submitLabel: 'Submit Feedback',
   submittingLabel: 'Submitting...',
+  skipLabel: 'Skip for now',
+  skippingLabel: 'Skipping...',
   submittedTitle: 'Thank you!',
   submittedMessage: 'Thank you for your feedback!',
   ratingRequiredTitle: 'Rating required',

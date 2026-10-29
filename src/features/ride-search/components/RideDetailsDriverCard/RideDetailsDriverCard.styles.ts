@@ -63,6 +63,12 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.primary,
   },
+  ratingsCount: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '500',
+    color: '#747686',
+  },
   vehicleRow: {
     flexDirection: 'row',
     alignItems: 'center',

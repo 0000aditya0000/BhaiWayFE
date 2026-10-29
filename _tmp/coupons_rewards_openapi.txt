@@ -1,0 +1,566 @@
+﻿\n=== GET /coupons/public ===
+opId CouponsController_listPublic summary List public coupons available to the current user
+params [
+  {
+    "name": "page",
+    "required": false,
+    "in": "query",
+    "schema": {
+      "default": 1,
+      "type": "number"
+    }
+  },
+  {
+    "name": "limit",
+    "required": false,
+    "in": "query",
+    "schema": {
+      "default": 20,
+      "type": "number"
+    }
+  }
+]
+resp 200 undefined
+resp 401 undefined
+\n=== GET /coupons/mine ===
+opId CouponsController_listMine summary List user-specific coupons assigned to the current user
+params [
+  {
+    "name": "page",
+    "required": false,
+    "in": "query",
+    "schema": {
+      "default": 1,
+      "type": "number"
+    }
+  },
+  {
+    "name": "limit",
+    "required": false,
+    "in": "query",
+    "schema": {
+      "default": 20,
+      "type": "number"
+    }
+  }
+]
+resp 200 undefined
+resp 401 undefined
+\n=== GET /coupons/redemptions ===
+opId CouponsController_listRedemptions summary Current user coupon redemption history
+params [
+  {
+    "name": "page",
+    "required": false,
+    "in": "query",
+    "schema": {
+      "default": 1,
+      "type": "number"
+    }
+  },
+  {
+    "name": "limit",
+    "required": false,
+    "in": "query",
+    "schema": {
+      "default": 20,
+      "type": "number"
+    }
+  }
+]
+resp 200 undefined
+resp 401 undefined
+\n=== GET /coupons/issuances ===
+opId CouponsController_listIssuances summary Current user issued-coupon history
+params [
+  {
+    "name": "page",
+    "required": false,
+    "in": "query",
+    "schema": {
+      "default": 1,
+      "type": "number"
+    }
+  },
+  {
+    "name": "limit",
+    "required": false,
+    "in": "query",
+    "schema": {
+      "default": 20,
+      "type": "number"
+    }
+  }
+]
+resp 200 undefined
+resp 401 undefined
+\n=== GET /coupons/{id} ===
+opId CouponsController_getOne summary Get coupon details if visible to the current user
+params [
+  {
+    "name": "id",
+    "required": true,
+    "in": "path",
+    "schema": {
+      "type": "string"
+    }
+  }
+]
+resp 200 undefined
+resp 401 undefined
+\n=== POST /coupons/validate ===
+opId CouponsController_validate summary Validate a coupon code for ride type and charge scope (no capacity consumed)
+params []
+body {
+  "$ref": "#/components/schemas/ValidateCouponDto"
+}
+resp 201 undefined
+resp 401 undefined
+\n=== POST /coupons/preview ===
+opId CouponsController_preview summary Preview coupon benefit for an amount (no capacity consumed)
+params []
+body {
+  "$ref": "#/components/schemas/PreviewCouponDto"
+}
+resp 201 undefined
+resp 401 undefined
+\n=== GET /commute-rewards/campaigns ===
+opId CommuteRewardsController_listActive summary List active Office Commute reward campaigns with own progress
+params []
+resp 200 undefined
+resp 401 undefined
+\n=== GET /commute-rewards/campaigns/{id} ===
+opId CommuteRewardsController_getOne summary Campaign details + authenticated driver progress
+params [
+  {
+    "name": "id",
+    "required": true,
+    "in": "path",
+    "schema": {
+      "type": "string"
+    }
+  }
+]
+resp 200 undefined
+resp 401 undefined
+\n=== GET /commute-rewards/campaigns/{id}/progress ===
+opId CommuteRewardsController_progress summary Own progress for a campaign
+params [
+  {
+    "name": "id",
+    "required": true,
+    "in": "path",
+    "schema": {
+      "type": "string"
+    }
+  }
+]
+resp 200 undefined
+resp 401 undefined
+\n=== POST /commute-rewards/campaigns/{campaignId}/milestones/{milestoneId}/claims ===
+opId CommuteRewardsController_claim summary Submit a reward claim for an eligible milestone
+params [
+  {
+    "name": "campaignId",
+    "required": true,
+    "in": "path",
+    "schema": {
+      "type": "string"
+    }
+  },
+  {
+    "name": "milestoneId",
+    "required": true,
+    "in": "path",
+    "schema": {
+      "type": "string"
+    }
+  }
+]
+resp 201 undefined
+resp 401 undefined
+\n=== GET /commute-rewards/claims ===
+opId CommuteRewardsController_claims summary Own claim history
+params [
+  {
+    "name": "page",
+    "required": false,
+    "in": "query",
+    "schema": {
+      "default": 1,
+      "type": "number"
+    }
+  },
+  {
+    "name": "limit",
+    "required": false,
+    "in": "query",
+    "schema": {
+      "default": 20,
+      "type": "number"
+    }
+  }
+]
+resp 200 undefined
+resp 401 undefined
+\n=== SCHEMAS ===
+\n## ValidateCouponDto
+{
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string"
+    },
+    "rideType": {
+      "type": "string",
+      "enum": [
+        "ALL",
+        "REGULAR",
+        "ASSURED",
+        "OFFICE_COMMUTE"
+      ]
+    },
+    "chargeScope": {
+      "type": "string",
+      "enum": [
+        "RIDE_FARE",
+        "ASSURED_SECURITY_DEPOSIT",
+        "BOTH"
+      ]
+    },
+    "amount": {
+      "type": "string",
+      "description": "Eligible charge amount in points (authoritative preview input from client estimate; booking uses server amounts).",
+      "example": "200"
+    }
+  },
+  "required": [
+    "code",
+    "rideType",
+    "chargeScope"
+  ]
+}
+\n## PreviewCouponDto
+{
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string"
+    },
+    "rideType": {
+      "type": "string",
+      "enum": [
+        "ALL",
+        "REGULAR",
+        "ASSURED",
+        "OFFICE_COMMUTE"
+      ]
+    },
+    "chargeScope": {
+      "type": "string",
+      "enum": [
+        "RIDE_FARE",
+        "ASSURED_SECURITY_DEPOSIT",
+        "BOTH"
+      ]
+    },
+    "amount": {
+      "type": "string",
+      "description": "Authoritative eligible amount for preview math.",
+      "example": "200"
+    }
+  },
+  "required": [
+    "code",
+    "rideType",
+    "chargeScope",
+    "amount"
+  ]
+}
+\n## CreateCouponAdminDto
+{
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "Custom code; generated if omitted. Compared case-insensitively."
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "benefitType": {
+      "type": "string",
+      "enum": [
+        "POINTS_CREDIT",
+        "FIXED_DISCOUNT",
+        "PERCENTAGE_DISCOUNT"
+      ]
+    },
+    "benefitValue": {
+      "type": "string",
+      "description": "Points for POINTS_CREDIT/FIXED_DISCOUNT, or 1ΓÇô100 for PERCENTAGE_DISCOUNT",
+      "example": "50"
+    },
+    "maxDiscountAmount": {
+      "type": "string",
+      "description": "Cap for PERCENTAGE_DISCOUNT (points). Required only for percentage."
+    },
+    "minEligibleAmount": {
+      "type": "string",
+      "description": "Minimum eligible charge amount (points)."
+    },
+    "rideTypeScope": {
+      "type": "string",
+      "enum": [
+        "ALL",
+        "REGULAR",
+        "ASSURED",
+        "OFFICE_COMMUTE"
+      ]
+    },
+    "chargeScope": {
+      "type": "string",
+      "enum": [
+        "RIDE_FARE",
+        "ASSURED_SECURITY_DEPOSIT",
+        "BOTH"
+      ]
+    },
+    "audience": {
+      "type": "string",
+      "enum": [
+        "PUBLIC",
+        "USER_SPECIFIC"
+      ]
+    },
+    "startsAt": {
+      "type": "string"
+    },
+    "expiresAt": {
+      "type": "string"
+    },
+    "totalRedemptionLimit": {
+      "type": "object",
+      "description": "Global redemption cap (REDEEMED+RESERVED). Null/omit = unlimited. Global single-use ΓçÆ 1.",
+      "nullable": true
+    },
+    "perUserRedemptionLimit": {
+      "type": "object",
+      "description": "Per-user redemption cap. Null/omit = unlimited. Single-use-per-user ΓçÆ 1.",
+      "nullable": true
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true
+    },
+    "userIds": {
+      "description": "Required when audience=USER_SPECIFIC",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "title",
+    "benefitType",
+    "benefitValue",
+    "rideTypeScope",
+    "chargeScope",
+    "audience",
+    "startsAt",
+    "expiresAt"
+  ]
+}
+\n## AssignCouponUsersDto
+{
+  "type": "object",
+  "properties": {
+    "userIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "userIds"
+  ]
+}
+\n## UpdateCouponStatusDto
+{
+  "type": "object",
+  "properties": {
+    "isActive": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "isActive"
+  ]
+}
+\n## CreateCommuteRewardMilestoneDto
+{
+  "type": "object",
+  "properties": {
+    "sortOrder": {
+      "type": "number",
+      "minimum": 1
+    },
+    "title": {
+      "type": "string"
+    },
+    "requiredTrips": {
+      "type": "number",
+      "example": 42
+    },
+    "windowMonths": {
+      "type": "number",
+      "example": 1,
+      "description": "Calendar months from campaign start (not fixed 30-day blocks)."
+    },
+    "prizeValueCapInr": {
+      "type": "number",
+      "example": 1000,
+      "description": "Prize value cap in whole INR."
+    },
+    "prizeDescription": {
+      "type": "string"
+    },
+    "prizeImageUrl": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "sortOrder",
+    "title",
+    "requiredTrips",
+    "windowMonths",
+    "prizeValueCapInr"
+  ]
+}
+\n## CreateCommuteRewardCampaignDto
+{
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "bannerUrl": {
+      "type": "string"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "Asia/Kolkata"
+    },
+    "startsAt": {
+      "type": "string"
+    },
+    "endsAt": {
+      "type": "string"
+    },
+    "milestones": {
+      "type": "array",
+      "items": {
+        "$ref": "#/components/schemas/CreateCommuteRewardMilestoneDto"
+      }
+    }
+  },
+  "required": [
+    "title",
+    "startsAt",
+    "endsAt"
+  ]
+}
+\n## UpdateCommuteRewardCampaignDto
+{
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "object"
+    },
+    "bannerUrl": {
+      "type": "object"
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "startsAt": {
+      "type": "string"
+    },
+    "endsAt": {
+      "type": "string"
+    }
+  }
+}
+\n## UpdateCommuteRewardMilestoneDto
+{
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "requiredTrips": {
+      "type": "number"
+    },
+    "windowMonths": {
+      "type": "number"
+    },
+    "prizeValueCapInr": {
+      "type": "number"
+    },
+    "prizeDescription": {
+      "type": "object"
+    },
+    "prizeImageUrl": {
+      "type": "object"
+    }
+  }
+}
+\n## ReviewCommuteRewardClaimDto
+{
+  "type": "object",
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": [
+        "APPROVE",
+        "REJECT"
+      ]
+    },
+    "reason": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "decision"
+  ]
+}
+\n## FulfilCommuteRewardClaimDto
+{
+  "type": "object",
+  "properties": {
+    "notes": {
+      "type": "string"
+    }
+  }
+}
+\n## CouponChargeScope
+{
+  "type": "string",
+  "enum": [
+    "RIDE_FARE",
+    "ASSURED_SECURITY_DEPOSIT",
+    "BOTH"
+  ],
+  "description": "Which charge the coupon applies to. For Assured deposit bookings defaults to ASSURED_SECURITY_DEPOSIT; for PAY_NOW/COMMUTE fare defaults to RIDE_FARE. BOTH is not accepted at apply-time ΓÇö pick one charge."
+}

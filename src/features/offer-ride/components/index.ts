@@ -22,3 +22,7 @@ export { PaymentSummaryCard } from './PaymentSummaryCard';
 export type { PaymentSummaryCardProps, PaymentSummaryRow } from './PaymentSummaryCard';
 export { AssuredPaymentBlock } from './AssuredPaymentBlock';
 export type { AssuredPaymentBlockProps } from './AssuredPaymentBlock';
+export { RouteOptionCard } from './RouteOptionCard';
+export type { RouteOptionCardProps } from './RouteOptionCard';
+export { RouteOptionsMap } from './RouteOptionsMap';
+export type { RouteOptionsMapProps } from './RouteOptionsMap';

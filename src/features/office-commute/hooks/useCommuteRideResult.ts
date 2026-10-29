@@ -2,20 +2,33 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
-import { publishedRidesSheetStore, publishedRidesSheetSync } from '@/DemoData';
-import { delay, triggerLightHaptic } from '@/shared/utils';
+import { searchRides } from '@/features/ride-search/api';
+import {
+  mapSearchRidesError,
+  resolveSearchDateParam,
+  toCivilDateFromDate,
+} from '@/features/ride-search/utils/rideSearch.mapper';
+import { showAppAlert, triggerLightHaptic } from '@/shared/utils';
+
 import { getCommuteReviewBookingPath } from '../constants/commute-review-booking.constants';
-import { corporateVerificationStore } from '../store';
 import type {
+  CommuteMatchFilterId,
   CommuteRideResultItem,
+  CommuteResultSortId,
   CommuteSearchSummary,
 } from '../types/commute-ride-result.types';
-import { getPublishedRidesForCommuteSearch } from '../utils';
+import { mapCommuteSearchItemsToResults } from '../utils/mapCommuteRideSearch';
+import {
+  filterCommuteRideResults,
+  sortCommuteRideResults,
+} from '../utils/commuteRideResultFilters';
 import type { CommuteRequestState } from '../components/CommuteRideResultCard';
 
 export interface UseCommuteRideResultParams {
   origin?: string;
   destination?: string;
+  /** Civil date YYYY-MM-DD for GET /rides/search */
+  searchDate?: string;
   dateLabel?: string;
   timeLabel?: string;
   sameOrganizationOnly?: boolean;
@@ -28,8 +41,14 @@ export interface UseCommuteRideResultParams {
 export interface UseCommuteRideResultResult {
   summary: CommuteSearchSummary;
   rides: readonly CommuteRideResultItem[];
+  totalCount: number;
+  matchFilterId: CommuteMatchFilterId;
+  sortId: CommuteResultSortId;
+  setMatchFilterId: (id: CommuteMatchFilterId) => void;
+  setSortId: (id: CommuteResultSortId) => void;
   loading: boolean;
   refreshing: boolean;
+  errorMessage: string | null;
   requestStates: Record<string, CommuteRequestState>;
   refresh: () => void;
   editSearch: () => void;
@@ -44,94 +63,122 @@ export const useCommuteRideResult = (
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [sourceRides, setSourceRides] = useState<CommuteRideResultItem[]>([]);
-  const [publishedVersion, setPublishedVersion] = useState(0);
+  const [rides, setRides] = useState<CommuteRideResultItem[]>([]);
+  const [matchFilterId, setMatchFilterId] = useState<CommuteMatchFilterId>('all');
+  const [sortId, setSortId] = useState<CommuteResultSortId>('match-desc');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [requestStates, setRequestStates] = useState<Record<string, CommuteRequestState>>({});
-  const loadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const normalizedCompany = corporateVerificationStore
-    .get()
-    ?.companyName.trim()
-    .toLowerCase();
+  const loadVersionRef = useRef(0);
 
   const summary = useMemo<CommuteSearchSummary>(
     () => ({
-      origin: params.origin?.trim() || 'Cyber City',
-      destination: params.destination?.trim() || 'Noida Sector 62',
+      origin: params.origin?.trim() || '',
+      destination: params.destination?.trim() || '',
       dateLabel: params.dateLabel?.trim() || 'Today',
-      timeLabel: params.timeLabel?.trim() || '06:30 PM',
+      timeLabel: params.timeLabel?.trim() || '',
       sameOrganizationOnly: params.sameOrganizationOnly === true,
     }),
-    [params.dateLabel, params.destination, params.origin, params.sameOrganizationOnly, params.timeLabel],
+    [
+      params.dateLabel,
+      params.destination,
+      params.origin,
+      params.sameOrganizationOnly,
+      params.timeLabel,
+    ],
   );
 
-  useEffect(
-    () =>
-      publishedRidesSheetStore.subscribe(() => {
-        setPublishedVersion((value) => value + 1);
-      }),
-    [],
-  );
+  const searchDate = useMemo(() => {
+    const resolved = resolveSearchDateParam(params.searchDate);
+    if (resolved) {
+      return resolved;
+    }
+    return toCivilDateFromDate(new Date());
+  }, [params.searchDate]);
 
   const loadRides = useCallback(
-    (isRefresh = false) => {
+    async (isRefresh = false) => {
+      const version = loadVersionRef.current + 1;
+      loadVersionRef.current = version;
+
       if (isRefresh) {
         setRefreshing(true);
       } else {
         setLoading(true);
       }
+      setErrorMessage(null);
 
-      if (loadTimerRef.current) {
-        clearTimeout(loadTimerRef.current);
+      const source = summary.origin;
+      const destination = summary.destination;
+      if (!source || !destination) {
+        setRides([]);
+        setLoading(false);
+        setRefreshing(false);
+        setErrorMessage('Please enter pickup and drop-off to search.');
+        return;
       }
 
-      let cancelled = false;
-      loadTimerRef.current = setTimeout(() => {
-        void (async () => {
-          if (isRefresh) {
-            try {
-              await publishedRidesSheetSync.pullIntoLocal();
-            } catch (error) {
-              console.log('[Commute search] published rides pull skipped', error);
-            }
-          }
+      try {
+        const response = await searchRides({
+          source,
+          destination,
+          date: searchDate,
+          rideType: 'COMMUTE',
+          seats: 1,
+          pickupLatitude: params.originLat,
+          pickupLongitude: params.originLng,
+          dropoffLatitude: params.destinationLat,
+          dropoffLongitude: params.destinationLng,
+        });
 
-          if (cancelled) {
-            return;
-          }
+        if (loadVersionRef.current !== version) {
+          return;
+        }
 
-          setSourceRides(getPublishedRidesForCommuteSearch());
+        setRides(
+          mapCommuteSearchItemsToResults(response.items ?? [], {
+            routeMatchByRideId: response.routeMatchByRideId,
+            matchPercentByRideId: response.matchPercentByRideId,
+          }),
+        );
+      } catch (error) {
+        if (loadVersionRef.current !== version) {
+          return;
+        }
+        const message = mapSearchRidesError(error);
+        setErrorMessage(message);
+        setRides([]);
+        if (!isRefresh) {
+          showAppAlert('Search failed', message);
+        }
+      } finally {
+        if (loadVersionRef.current === version) {
           setLoading(false);
           setRefreshing(false);
-        })();
-      }, isRefresh ? 400 : 700);
-
-      return () => {
-        cancelled = true;
-        if (loadTimerRef.current) {
-          clearTimeout(loadTimerRef.current);
         }
-      };
+      }
     },
-    [],
+    [
+      params.destinationLat,
+      params.destinationLng,
+      params.originLat,
+      params.originLng,
+      searchDate,
+      summary.destination,
+      summary.origin,
+    ],
   );
 
   useEffect(() => {
-    const cleanup = loadRides(false);
-    return cleanup;
-  }, [loadRides, publishedVersion, summary.origin, summary.destination, summary.dateLabel, summary.timeLabel]);
+    void loadRides(false);
+  }, [loadRides]);
 
-  const rides = useMemo(() => {
-    if (!summary.sameOrganizationOnly || !normalizedCompany) {
-      return sourceRides;
-    }
-    return sourceRides.filter(
-      (ride) => ride.organization.trim().toLowerCase() === normalizedCompany,
-    );
-  }, [normalizedCompany, sourceRides, summary.sameOrganizationOnly]);
+  const filteredRides = useMemo(
+    () => sortCommuteRideResults(filterCommuteRideResults(rides, matchFilterId), sortId),
+    [matchFilterId, rides, sortId],
+  );
 
   const refresh = useCallback(() => {
-    loadRides(true);
+    void loadRides(true);
   }, [loadRides]);
 
   const editSearch = useCallback(() => {
@@ -158,24 +205,24 @@ export const useCommuteRideResult = (
     (ride: CommuteRideResultItem) => {
       triggerLightHaptic();
       setRequestStates((prev) => ({ ...prev, [ride.id]: 'requesting' }));
-
-      void delay(400).then(() => {
-        setRequestStates((prev) => ({ ...prev, [ride.id]: 'idle' }));
-        router.push(
-          getCommuteReviewBookingPath({
-            rideId: ride.id,
-            origin: summary.origin,
-            destination: summary.destination,
-            driverName: ride.driver.name,
-            carModel: `${ride.carModel} • ${ride.vehicleColor}`,
-            price: ride.price,
-            originLat: params.originLat,
-            originLng: params.originLng,
-            destinationLat: params.destinationLat,
-            destinationLng: params.destinationLng,
-          }),
-        );
-      });
+      setRequestStates((prev) => ({ ...prev, [ride.id]: 'idle' }));
+      router.push(
+        getCommuteReviewBookingPath({
+          rideId: ride.id,
+          origin: summary.origin || ride.source,
+          destination: summary.destination || ride.destination,
+          driverName: ride.driver.name,
+          carModel: ride.carModel,
+          price: ride.riderPricePerSeat,
+          dateLabel: summary.dateLabel,
+          departureTime: ride.departureTime,
+          matchPercent: ride.matchPercent ?? undefined,
+          originLat: params.originLat,
+          originLng: params.originLng,
+          destinationLat: params.destinationLat,
+          destinationLng: params.destinationLng,
+        }),
+      );
     },
     [
       params.destinationLat,
@@ -183,6 +230,7 @@ export const useCommuteRideResult = (
       params.originLat,
       params.originLng,
       router,
+      summary.dateLabel,
       summary.destination,
       summary.origin,
     ],
@@ -190,9 +238,15 @@ export const useCommuteRideResult = (
 
   return {
     summary,
-    rides,
+    rides: filteredRides,
+    totalCount: rides.length,
+    matchFilterId,
+    sortId,
+    setMatchFilterId,
+    setSortId,
     loading,
     refreshing,
+    errorMessage,
     requestStates,
     refresh,
     editSearch,

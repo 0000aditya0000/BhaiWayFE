@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
+import { useUnreadNotificationCount } from '@/features/notifications/hooks';
 import { AppTopBar } from '../AppTopBar/AppTopBar';
 import { IconButton } from '../IconButton/IconButton';
 import { colors, typography } from '@/shared/theme';
@@ -20,6 +21,7 @@ export const ScreenHeader = ({
   showBack = true,
 }: ScreenHeaderProps) => {
   const router = useRouter();
+  const { count: unreadNotificationCount } = useUnreadNotificationCount();
 
   const handleBack = useCallback(() => {
     if (onBack) {
@@ -72,6 +74,7 @@ export const ScreenHeader = ({
             onPress={openNotifications}
             color={colors.primary}
             accessibilityLabel="Notifications"
+            badgeCount={unreadNotificationCount}
           />
         )
       }

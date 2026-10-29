@@ -1,75 +1,185 @@
 import { StyleSheet } from 'react-native';
-import { colors, layout, spacing, typography } from '@/shared/theme';
+
+import { colors, spacing, typography } from '@/shared/theme';
 import { createShadow } from '@/shared/utils/platform';
 
 export const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
-    borderRadius: layout.radiusXl,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 22,
     padding: spacing.lg,
-    marginBottom: spacing.cardGap,
-    ...createShadow({ opacity: 0.04, radius: 10, offsetY: 4, elevation: 2 }),
+    marginBottom: spacing.md,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(196, 197, 215, 0.7)',
+    backgroundColor: colors.white,
+    gap: spacing.md,
+    ...createShadow({
+      color: colors.shadow,
+      opacity: 0.07,
+      radius: 14,
+      offsetY: 6,
+      elevation: 3,
+    }),
   },
-  cardHighlighted: {
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
+  cardPressed: {
+    opacity: 0.94,
+    transform: [{ scale: 0.985 }],
   },
-  iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: layout.radiusMd,
+  cardFeatured: {
+    borderColor: 'transparent',
+    ...createShadow({
+      color: colors.primaryDark,
+      opacity: 0.24,
+      radius: 18,
+      offsetY: 8,
+      elevation: 6,
+    }),
+  },
+  gradientFill: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  glow: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    top: -40,
+    right: -30,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  iconRing: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
   },
-  iconMuted: {
+  iconRingLight: {
     backgroundColor: colors.surfaceMuted,
   },
-  iconDark: {
-    backgroundColor: colors.primary,
+  iconRingFeatured: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  titleBlock: {
+    flex: 1,
+    gap: 6,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
   },
   title: {
     ...typography.title,
     fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  titleLight: {
     color: colors.textPrimary,
-    flex: 1,
+  },
+  titleFeatured: {
+    color: colors.textInverse,
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  badgeLight: {
     backgroundColor: colors.accentLight,
-    borderRadius: layout.radiusLg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+  },
+  badgeFeatured: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
   badgeText: {
     ...typography.caption,
-    color: colors.primary,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
   description: {
-    ...typography.subtitle,
-    fontSize: 15,
-    lineHeight: 22,
+    ...typography.body,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  descriptionLight: {
     color: colors.textSecondary,
-    marginBottom: spacing.md,
+  },
+  descriptionFeatured: {
+    color: 'rgba(255,255,255,0.88)',
+  },
+  perkList: {
+    gap: spacing.sm,
+  },
+  perkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  perkDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  perkText: {
+    ...typography.caption,
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
   },
   note: {
     ...typography.caption,
-    fontStyle: 'italic',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  noteLight: {
     color: colors.error,
-    marginBottom: spacing.md,
+  },
+  noteFeatured: {
+    color: 'rgba(255,220,220,0.92)',
+  },
+  ctaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.xs,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  ctaBorderLight: {
+    borderTopColor: 'rgba(196, 197, 215, 0.55)',
+  },
+  ctaBorderFeatured: {
+    borderTopColor: 'rgba(255,255,255,0.22)',
+  },
+  ctaLabel: {
+    ...typography.caption,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  ctaArrow: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

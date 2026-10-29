@@ -1,5 +1,4 @@
 import type { MasterProfileData, ProfileMenuItem } from '../types';
-import { WALLET_BALANCE_LABEL } from './wallet-shared.constants';
 
 export const PROFILE_SCREEN = {
   title: 'Profile',
@@ -18,6 +17,12 @@ export const PROFILE_SCREEN = {
   versionLabel: 'Version 2.4.1 (Build 890)',
   changePhotoTitle: 'Profile Photo',
   changePhotoSubtitle: 'Take a new photo or choose one from your gallery.',
+  emailLabel: 'Email',
+  emailVerifiedLabel: 'Verified',
+  emailUnverifiedLabel: 'Not verified',
+  verifyEmailLabel: 'Verify',
+  addEmailLabel: 'Add email',
+  emailMissingLabel: 'No email on file',
 } as const;
 
 export const DEFAULT_PROFILE_AVATAR = '';
@@ -25,16 +30,18 @@ export const DEFAULT_PROFILE_AVATAR = '';
 export const DEFAULT_MASTER_PROFILE: MasterProfileData = {
   fullName: 'User',
   phoneLabel: '',
+  email: null,
+  emailVerified: false,
   avatarUri: DEFAULT_PROFILE_AVATAR,
-  walletBalanceLabel: WALLET_BALANCE_LABEL,
+  walletBalanceLabel: '0 Coins',
   paymentMethodsSubtitle: 'UPI, Cards linked',
-  driverEarningsLabel: '2,450',
+  driverEarningsLabel: '0',
   earningBreakdown: [
-    { label: 'Regular Rides', amountLabel: '1,850' },
-    { label: 'Assured Rides', amountLabel: '600' },
+    { label: 'Regular Rides', amountLabel: '0' },
+    { label: 'Assured Rides', amountLabel: '0' },
+    { label: 'Office Commute', amountLabel: '0' },
   ],
-  earningInsight:
-    "You earned 600 from Assured Rides. If your Regular Rides had been 'Assured', you could have earned an additional 450!",
+  earningInsight: '',
   badges: [
     { id: 'corporate', label: 'Corporate ID', icon: 'close-circle', tone: 'danger' },
     { id: 'rating', label: '0', icon: 'star', tone: 'neutral' },
@@ -46,9 +53,21 @@ export const DEFAULT_MASTER_PROFILE: MasterProfileData = {
 
 export const PROFILE_MENU_ITEMS: readonly ProfileMenuItem[] = [
   {
+    id: 'editProfile',
+    title: 'Edit Profile',
+    subtitle: 'Update name, email, photo & gender',
+    icon: 'person-outline',
+  },
+  {
+    id: 'ratings',
+    title: 'Ratings & Reviews',
+    subtitle: 'See your average rating and feedback',
+    icon: 'star-outline',
+  },
+  {
     id: 'verify',
     title: 'Verify Your Identity',
-    subtitle: 'Verify Aadhaar to unlock trust & features',
+    subtitle: 'Aadhaar or corporate email verification',
     icon: 'id-card-outline',
   },
   {
@@ -58,9 +77,15 @@ export const PROFILE_MENU_ITEMS: readonly ProfileMenuItem[] = [
     icon: 'car-outline',
   },
   {
+    id: 'promotions',
+    title: 'Promotions & Coupons',
+    subtitle: 'View offers and copy coupon codes',
+    icon: 'pricetag-outline',
+  },
+  {
     id: 'refer',
-    title: 'Refer & Earn',
-    subtitle: 'Invite coworkers, earn fuel credits',
+    title: 'Referrals & Rewards',
+    subtitle: 'Invite friends and track driver rewards',
     icon: 'gift-outline',
   },
   {

@@ -46,6 +46,13 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.xs,
   },
+  tagline: {
+    ...typography.body,
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    fontWeight: '600',
+  },
   description: {
     ...typography.body,
     color: colors.textSecondary,

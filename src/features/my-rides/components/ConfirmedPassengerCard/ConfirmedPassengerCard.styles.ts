@@ -75,4 +75,13 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconBtnDisabled: {
+    opacity: 0.45,
+  },
+  detailLine: {
+    ...typography.caption,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
 });

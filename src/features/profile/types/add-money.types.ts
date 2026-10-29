@@ -10,6 +10,7 @@ export interface AddMoneyPaymentSource {
 
 export interface AddMoneyQuickAmount {
   id: string;
-  amount: number;
+  /** Integer coin amount as string — never use floating point. */
+  amount: string;
   label: string;
 }

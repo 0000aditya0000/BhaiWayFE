@@ -61,7 +61,7 @@ export const PROFILE_FAQ_ITEMS: readonly AuthFaqItem[] = [
     id: 'why-profile',
     question: 'Why do I need to complete Setup Profile?',
     answer:
-      'Your name, email, and gender help us personalize rides, show the right co-riders, and keep your account ready for bookings. You cannot continue to Home until these required details are saved.',
+      'Your name and email help us personalize rides and keep your account ready for bookings. Gender comes from identity verification and cannot be edited manually. You cannot continue to Home until required details are saved.',
   },
   {
     id: 'required-fields',
@@ -73,7 +73,7 @@ export const PROFILE_FAQ_ITEMS: readonly AuthFaqItem[] = [
     id: 'verify-now-optional',
     question: 'Do I have to tap Verify Now for Aadhaar?',
     answer:
-      'No. Aadhaar verification is optional on Setup Profile. You can skip it and finish with Save and Continue. You can verify your identity later from Profile if you want trusted-member benefits.',
+      'No. Identity verification is optional on Setup Profile. You can verify with Aadhaar or corporate email, or skip and finish with Save and Continue. You can also verify later from Profile.',
   },
   {
     id: 'verify-then-what',
@@ -85,7 +85,7 @@ export const PROFILE_FAQ_ITEMS: readonly AuthFaqItem[] = [
     id: 'save-disabled',
     question: 'Why is Save and Continue disabled?',
     answer:
-      'The button stays disabled until Full Name (at least 3 characters), a valid email, and a gender option are filled. Fix any field errors shown under the inputs, then try again.',
+      'The button stays disabled until Full Name (at least 3 characters) and a valid email are filled. Fix any field errors shown under the inputs, then try again.',
   },
   {
     id: 'edit-later',

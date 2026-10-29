@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { showAppAlert } from '@/store';
@@ -60,6 +61,12 @@ const requestPermission = async (source: 'camera' | 'gallery'): Promise<boolean>
     return true;
   }
 
+  // Android: system Photo Picker (launchImageLibraryAsync) needs no READ_MEDIA_*.
+  // iOS: photo-library permission may still be required.
+  if (Platform.OS !== 'ios') {
+    return true;
+  }
+
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
     throw new CloudinaryUploadError(
@@ -78,6 +85,7 @@ const pickFromCameraOrGallery = async (
   const config = UPLOAD_KIND_CONFIG[kind];
 
   const options: ImagePicker.ImagePickerOptions = {
+    // Profile / contact photos only — never videos or broad library access.
     mediaTypes: ['images'],
     allowsEditing: config.squareCrop,
     aspect: config.squareCrop ? [1, 1] : undefined,

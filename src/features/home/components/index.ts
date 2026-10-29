@@ -1,8 +1,14 @@
 export { HomeHeader } from './HomeHeader';
 export type { HomeHeaderProps } from './HomeHeader';
+export { HomeCategoryCard } from './HomeCategoryCard';
+export type { HomeCategoryCardProps } from './HomeCategoryCard';
 export { ServiceCard } from './ServiceCard';
 export type { ServiceCardProps } from './ServiceCard';
 export { HomeLoader } from './HomeLoader';
 export type { HomeLoaderProps } from './HomeLoader';
 export { EmptyHomeState } from './EmptyHomeState';
 export type { EmptyHomeStateProps, EmptyHomeVariant } from './EmptyHomeState';
+export { HomeFooter } from './HomeFooter';
+export type { HomeFooterProps } from './HomeFooter';
+export { ActiveRideContainer } from './ActiveRideContainer';
+export type { ActiveRideContainerProps } from './ActiveRideContainer';

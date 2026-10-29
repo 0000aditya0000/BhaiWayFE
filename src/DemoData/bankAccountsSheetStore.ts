@@ -60,6 +60,31 @@ const normalizeStoredRow = (
   updated_at: row.updated_at ?? new Date().toISOString(),
 });
 
+let currentUserSnapshot: BankAccountsSheetRow[] = [];
+
+const sameUserBankRows = (
+  left: readonly BankAccountsSheetRow[],
+  right: readonly BankAccountsSheetRow[],
+): boolean => {
+  if (left.length !== right.length) {
+    return false;
+  }
+  return left.every(
+    (row, index) =>
+      row.bankAccountId === right[index]?.bankAccountId &&
+      row.updated_at === right[index]?.updated_at,
+  );
+};
+
+const refreshCurrentUserSnapshot = (): BankAccountsSheetRow[] => {
+  const phone = authSession.getUser()?.phone;
+  const next = bankAccountsSheetStore.getByMobile(phone);
+  if (!sameUserBankRows(currentUserSnapshot, next)) {
+    currentUserSnapshot = next;
+  }
+  return currentUserSnapshot;
+};
+
 export const bankAccountsSheetStore = {
   hydrate: async () => {
     const rows = await store.hydrate();
@@ -67,7 +92,10 @@ export const bankAccountsSheetStore = {
   },
   getAll: () => store.getAll().map((row) => normalizeStoredRow(row)),
   subscribe: (listener: (items: BankAccountsSheetRow[]) => void) =>
-    store.subscribe((items) => listener(items.map((row) => normalizeStoredRow(row)))),
+    store.subscribe((items) => {
+      refreshCurrentUserSnapshot();
+      listener(items.map((row) => normalizeStoredRow(row)));
+    }),
   clear: store.clear,
   removeById: store.removeById,
   getById: (rowId: number) => {
@@ -109,6 +137,9 @@ export const bankAccountsSheetStore = {
     const phone = authSession.getUser()?.phone;
     return bankAccountsSheetStore.getByMobile(phone);
   },
+
+  /** Stable snapshot for `useSyncExternalStore` — same reference until rows change. */
+  getForCurrentUserSnapshot: (): BankAccountsSheetRow[] => refreshCurrentUserSnapshot(),
 
   upsert: async (patch: BankAccountsSheetPatch): Promise<BankAccountsSheetRow> => {
     await store.hydrate();

@@ -18,6 +18,8 @@ export const garageTokens = {
   APPROVED_TEXT: '#15803D',
   PENDING_BG: '#FFFBEB',
   PENDING_TEXT: '#D97706',
+  FAILED_BG: '#FEE2E2',
+  FAILED_TEXT: '#B91C1C',
 } as const;
 
 export const styles = StyleSheet.create({
@@ -196,6 +198,9 @@ export const styles = StyleSheet.create({
   statusPending: {
     backgroundColor: garageTokens.PENDING_BG,
   },
+  statusFailed: {
+    backgroundColor: garageTokens.FAILED_BG,
+  },
   statusLabel: {
     fontSize: 10,
     lineHeight: 14,
@@ -208,6 +213,9 @@ export const styles = StyleSheet.create({
   },
   statusLabelPending: {
     color: garageTokens.PENDING_TEXT,
+  },
+  statusLabelFailed: {
+    color: garageTokens.FAILED_TEXT,
   },
   moreButton: {
     width: 40,
@@ -256,6 +264,89 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '700',
     color: garageTokens.PRIMARY,
+  },
+  confirmBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  confirmDismissArea: {
+    flex: 1,
+  },
+  confirmCard: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: layout.radiusXl,
+    borderTopRightRadius: layout.radiusXl,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.sm,
+  },
+  confirmTitle: {
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '700',
+    color: garageTokens.ON_SURFACE,
+  },
+  confirmSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: garageTokens.ON_SURFACE_VARIANT,
+    marginBottom: spacing.sm,
+  },
+  confirmFieldLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: garageTokens.SECONDARY,
+  },
+  confirmPlate: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    color: garageTokens.PRIMARY,
+    fontVariant: ['tabular-nums'],
+  },
+  confirmHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: garageTokens.ON_SURFACE_VARIANT,
+    marginBottom: spacing.md,
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  confirmSecondaryButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: layout.radiusLg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: garageTokens.SURFACE_CONTAINER,
+  },
+  confirmSecondaryLabel: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
+    color: garageTokens.PRIMARY,
+  },
+  confirmPrimaryButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: layout.radiusLg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: garageTokens.PRIMARY_CONTAINER,
+  },
+  confirmPrimaryLabel: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
+    color: garageTokens.ON_PRIMARY_CONTAINER,
   },
   whyCard: {
     marginTop: spacing.lg,

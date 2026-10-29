@@ -48,7 +48,7 @@ export const completeProfile = async (
     id: generateId('user'),
     fullName: payload.fullName,
     email: payload.email,
-    gender: payload.gender,
+    gender: payload.gender ?? 'other',
     avatarUri: payload.avatarUri ?? null,
   };
 };
@@ -72,9 +72,65 @@ export const getMe = async (): Promise<GetMeResponse> => {
           id: generateId('profile'),
           firstName,
           lastName: lastName ?? null,
+          gender: sessionUser.gender ?? null,
           profilePhoto: sessionUser.avatarUri,
         }
       : null,
     profileCompleted: authSession.getProfileCompleted(),
+    wallet: {
+      balanceCoins: '1000',
+      availableCoins: '800',
+      heldCoins: '200',
+      withdrawableCoins: '100',
+      nonWithdrawableCoins: '700',
+      buckets: {
+        purchased: { availableCoins: '500', heldCoins: '100' },
+        promotional: { availableCoins: '200', heldCoins: '50' },
+        driverEarned: { availableCoins: '100', heldCoins: '50' },
+      },
+    },
+    driverEarnings: {
+      regularTotalCoins: '1500',
+      assuredTotalCoins: '800',
+      commuteTotalCoins: '400',
+      totalCoins: '2700',
+    },
+    ratings: {
+      overall: { averageRating: 4.5, totalRatings: 20 },
+      asDriver: { averageRating: 4.8, totalRatings: 12 },
+      asRider: { averageRating: 4.1, totalRatings: 8 },
+    },
   };
+};
+
+export const updateProfile = async (
+  payload: CompleteProfilePayload,
+): Promise<UserProfile> => {
+  await delay(AUTH_MOCK_DELAYS.completeProfileMs);
+  const current = authSession.getUser();
+  const profile: UserProfile = {
+    id: current?.id ?? generateId('user'),
+    fullName: payload.fullName,
+    email: payload.email,
+    gender: payload.gender ?? 'other',
+    avatarUri: payload.avatarUri ?? current?.avatarUri ?? null,
+  };
+  authSession.setUserFromProfile(profile);
+  return profile;
+};
+
+export const updateProfilePhoto = async (
+  profilePhoto: string | null,
+): Promise<UserProfile> => {
+  await delay(AUTH_MOCK_DELAYS.completeProfileMs);
+  const current = authSession.getUser();
+  const profile: UserProfile = {
+    id: current?.id ?? generateId('user'),
+    fullName: current?.fullName ?? 'User',
+    email: current?.email ?? '',
+    gender: 'other',
+    avatarUri: profilePhoto,
+  };
+  authSession.setUserFromProfile(profile);
+  return profile;
 };

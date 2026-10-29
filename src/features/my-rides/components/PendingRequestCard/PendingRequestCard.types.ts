@@ -5,4 +5,7 @@ export interface PendingRequestCardProps {
   onAccept: () => void;
   onDecline: () => void;
   onPressProfile?: () => void;
+  acceptLoading?: boolean;
+  declineLoading?: boolean;
+  disabled?: boolean;
 }
