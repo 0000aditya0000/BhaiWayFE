@@ -21,7 +21,7 @@ export const applyRequestInterceptors = (config: RequestConfig): RequestConfig =
     headers['Content-Type'] = 'application/json';
   }
 
-  if (token) {
+  if (token && !config.skipAuth) {
     headers.Authorization = `Bearer ${token}`;
   }
 

@@ -32,11 +32,13 @@ export const RideBookedScreen = () => {
   const params = useLocalSearchParams<{
     rideId?: string;
     rideType?: string;
+    bookingId?: string;
     origin?: string;
     destination?: string;
     driverName?: string;
     carModel?: string;
     price?: string;
+    seats?: string;
     originLat?: string;
     originLng?: string;
     destinationLat?: string;
@@ -46,6 +48,7 @@ export const RideBookedScreen = () => {
   const rideTypeParam = getSearchParam(params.rideType);
   const rideType: RideType = isRideType(rideTypeParam) ? rideTypeParam : 'regular';
   const priceParam = Number(getSearchParam(params.price));
+  const seatsParam = Number(getSearchParam(params.seats));
   const originLat = Number(getSearchParam(params.originLat));
   const originLng = Number(getSearchParam(params.originLng));
   const destinationLat = Number(getSearchParam(params.destinationLat));
@@ -62,11 +65,13 @@ export const RideBookedScreen = () => {
   } = useBookedRide({
     rideId: getSearchParam(params.rideId) || 'ride-default',
     rideType,
+    bookingId: getSearchParam(params.bookingId) || undefined,
     origin: getSearchParam(params.origin),
     destination: getSearchParam(params.destination),
     driverName: getSearchParam(params.driverName),
     carModel: getSearchParam(params.carModel),
     price: Number.isFinite(priceParam) ? priceParam : undefined,
+    seats: Number.isFinite(seatsParam) && seatsParam > 0 ? seatsParam : undefined,
     originLat: Number.isFinite(originLat) ? originLat : undefined,
     originLng: Number.isFinite(originLng) ? originLng : undefined,
     destinationLat: Number.isFinite(destinationLat) ? destinationLat : undefined,

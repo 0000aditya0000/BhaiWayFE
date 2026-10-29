@@ -1,37 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 
 import { AppText as Text } from '@/shared/components';
 import { fetchDrivingRoute } from '@/features/ride-search/services';
-import type { MapCoordinate } from '@/features/ride-search/types';
-import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
-import { colors, spacing } from '@/shared/theme';
+import {
+  BhaiWayMap,
+  isValidMapCoordinate,
+  type BhaiWayMapMarker,
+  type MapLatLng,
+} from '@/shared/maps';
 import { styles } from './MyRidesRouteMap.styles';
 import type { MyRidesRouteMapProps } from './MyRidesRouteMap.types';
-
-const EDGE_PADDING = {
-  top: spacing.lg,
-  right: spacing.lg,
-  bottom: spacing.xxl,
-  left: spacing.lg,
-};
-
-const buildRegion = (coordinates: MapCoordinate[]): Region => {
-  const lats = coordinates.map((c) => c.latitude);
-  const lngs = coordinates.map((c) => c.longitude);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  return {
-    latitude: (minLat + maxLat) / 2,
-    longitude: (minLng + maxLng) / 2,
-    latitudeDelta: Math.max((maxLat - minLat) * 1.7, 0.04),
-    longitudeDelta: Math.max((maxLng - minLng) * 1.7, 0.04),
-  };
-};
 
 export const MyRidesRouteMap = React.memo(
   ({
@@ -42,18 +22,22 @@ export const MyRidesRouteMap = React.memo(
     onExpandPress,
     height = 160,
   }: MyRidesRouteMapProps) => {
-    const mapRef = useRef<MapView>(null);
-    const fittedKeyRef = useRef('');
-    const [routeCoordinates, setRouteCoordinates] = useState<MapCoordinate[]>([
-      pickup,
-      dropoff,
-    ]);
+    const hasPickup = isValidMapCoordinate(pickup);
+    const hasDropoff = isValidMapCoordinate(dropoff);
+
+    const [routeCoordinates, setRouteCoordinates] = useState<MapLatLng[]>([]);
     const [routeMeta, setRouteMeta] = useState({ distanceLabel: '', durationLabel: '' });
 
     useEffect(() => {
+      if (!hasPickup || !hasDropoff) {
+        setRouteCoordinates([]);
+        setRouteMeta({ distanceLabel: '', durationLabel: '' });
+        return;
+      }
+
       let cancelled = false;
-      const origin = { latitude: pickup.latitude, longitude: pickup.longitude };
-      const destination = { latitude: dropoff.latitude, longitude: dropoff.longitude };
+      const origin = { latitude: pickup!.latitude, longitude: pickup!.longitude };
+      const destination = { latitude: dropoff!.latitude, longitude: dropoff!.longitude };
 
       const load = async () => {
         try {
@@ -80,37 +64,28 @@ export const MyRidesRouteMap = React.memo(
       return () => {
         cancelled = true;
       };
-    }, [dropoff.latitude, dropoff.longitude, pickup.latitude, pickup.longitude]);
+    }, [dropoff, hasDropoff, hasPickup, pickup]);
 
-    const polyline = useMemo(() => {
-      if (routeCoordinates.length >= 2) {
-        return routeCoordinates;
+    const markers = useMemo((): BhaiWayMapMarker[] => {
+      const next: BhaiWayMapMarker[] = [];
+      if (hasPickup) {
+        next.push({
+          id: 'pickup',
+          coordinate: pickup!,
+          kind: 'source',
+          title: pickupLabel || 'Pickup',
+        });
       }
-      return [pickup, dropoff];
-    }, [dropoff, pickup, routeCoordinates]);
-
-    const initialRegion = useMemo(() => buildRegion(polyline), [polyline]);
-
-    const fitKey = useMemo(
-      () =>
-        `${polyline.length}:${polyline[0]?.latitude}:${polyline[polyline.length - 1]?.longitude}`,
-      [polyline],
-    );
-
-    const fitRoute = useCallback(() => {
-      if (fittedKeyRef.current === fitKey) {
-        return;
+      if (hasDropoff) {
+        next.push({
+          id: 'dropoff',
+          coordinate: dropoff!,
+          kind: 'destination',
+          title: dropoffLabel || 'Drop-off',
+        });
       }
-      fittedKeyRef.current = fitKey;
-      mapRef.current?.fitToCoordinates(polyline, {
-        edgePadding: EDGE_PADDING,
-        animated: false,
-      });
-    }, [fitKey, polyline]);
-
-    useEffect(() => {
-      fitRoute();
-    }, [fitRoute]);
+      return next;
+    }, [dropoff, dropoffLabel, hasDropoff, hasPickup, pickup, pickupLabel]);
 
     const accessibilityLabel = [
       pickupLabel ? `From ${pickupLabel}` : 'Pickup',
@@ -121,31 +96,25 @@ export const MyRidesRouteMap = React.memo(
       .filter(Boolean)
       .join(', ');
 
-    if (isGoogleMapsBypassed()) {
+    if (!hasPickup || !hasDropoff) {
       return (
         <View style={[styles.container, { height }]} accessibilityLabel={accessibilityLabel}>
-          <MapBypassSurface
-            style={styles.map}
-            title="Route map"
-            points={[
-              { ...pickup, label: pickupLabel || 'Pickup' },
-              { ...dropoff, label: dropoffLabel || 'Drop-off' },
-            ]}
-          />
-          {routeMeta.distanceLabel ? (
-            <View style={styles.badge} pointerEvents="none">
-              <Text style={styles.badgeText}>
-                {routeMeta.distanceLabel}
-                {routeMeta.durationLabel ? ` • ${routeMeta.durationLabel}` : ''}
-              </Text>
-            </View>
-          ) : null}
+          <View style={[styles.map, styles.missingCoords]}>
+            <Text style={styles.missingCoordsTitle}>Map unavailable</Text>
+            <Text style={styles.missingCoordsBody}>
+              We could not locate this route yet. Pickup and drop-off names still show next to
+              the map.
+            </Text>
+          </View>
           {onExpandPress ? (
             <Pressable
-              style={({ pressed }) => [styles.expandBtn, pressed && { transform: [{ scale: 0.94 }] }]}
+              style={({ pressed }) => [
+                styles.expandBtn,
+                pressed && { transform: [{ scale: 0.94 }] },
+              ]}
               onPress={onExpandPress}
               accessibilityRole="button"
-              accessibilityLabel="Open live map"
+              accessibilityLabel="Open ride details"
             >
               <Ionicons name="expand-outline" size={16} color="#374BB1" />
             </Pressable>
@@ -156,34 +125,19 @@ export const MyRidesRouteMap = React.memo(
 
     return (
       <View style={[styles.container, { height }]} accessibilityLabel={accessibilityLabel}>
-        <MapView
-          ref={mapRef}
+        <BhaiWayMap
           style={styles.map}
-          initialRegion={initialRegion}
-          onMapReady={fitRoute}
+          markers={markers}
+          routeCoordinates={routeCoordinates}
+          autoFit
           scrollEnabled={false}
           zoomEnabled={false}
           rotateEnabled={false}
           pitchEnabled={false}
-          toolbarEnabled={false}
-          showsCompass={false}
-          liteMode={Platform.OS === 'android'}
-          pointerEvents="none"
-        >
-          <Marker
-            coordinate={pickup}
-            pinColor={colors.primary}
-            tracksViewChanges={false}
-            title={pickupLabel}
-          />
-          <Marker
-            coordinate={dropoff}
-            pinColor="#585E72"
-            tracksViewChanges={false}
-            title={dropoffLabel}
-          />
-          <Polyline coordinates={polyline} strokeColor="#374BB1" strokeWidth={4} />
-        </MapView>
+          liteMode
+          bypassTitle="Route map"
+          bypassSubtitle="Add a Google Maps API key to show the live map"
+        />
 
         {routeMeta.distanceLabel ? (
           <View style={styles.badge} pointerEvents="none">
@@ -196,7 +150,10 @@ export const MyRidesRouteMap = React.memo(
 
         {onExpandPress ? (
           <Pressable
-            style={({ pressed }) => [styles.expandBtn, pressed && { transform: [{ scale: 0.94 }] }]}
+            style={({ pressed }) => [
+              styles.expandBtn,
+              pressed && { transform: [{ scale: 0.94 }] },
+            ]}
             onPress={onExpandPress}
             accessibilityRole="button"
             accessibilityLabel="Open live map"

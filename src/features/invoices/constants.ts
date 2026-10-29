@@ -1,0 +1,26 @@
+export const GST_INVOICE_COPY = {
+  title: 'GST Invoice',
+  downloadLabel: 'Download GST Invoice',
+  downloadingLabel: 'Downloading invoice…',
+  generatingTitle: 'Invoice is being generated',
+  generatingBody:
+    'Your GST invoice is not ready yet. This usually takes a moment after the ride is completed.',
+  retryLabel: 'Check again',
+  unavailableTitle: 'Invoice unavailable',
+  unavailableBody:
+    'A GST invoice is not available for this booking yet. Please try again later.',
+  pdfNotReadyBody: 'The invoice PDF is not available yet. Please try again in a moment.',
+  sessionExpired: 'Your session expired. Please sign in again.',
+  networkError: 'Unable to reach BhaiWay right now. Check your connection and try again.',
+  downloadFailed: 'Unable to download the invoice PDF. Please try again.',
+  notPdf: 'The invoice file was not a valid PDF. Please try again.',
+  invoiceNumberLabel: 'Invoice number',
+  invoiceDateLabel: 'Invoice date',
+  bookingRefLabel: 'Booking',
+  rideTypeLabel: 'Ride type',
+  routeLabel: 'Route',
+  amountLabel: 'Invoice total',
+  emailedLabel: 'A copy was emailed to you.',
+  rideTypeOutstation: 'Outstation',
+  rideTypeCommute: 'Daily Office Commute',
+} as const;

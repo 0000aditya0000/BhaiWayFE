@@ -7,13 +7,14 @@ import { AppText as Text } from '@/shared/components';
 import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
 import { colors, spacing } from '@/shared/theme';
 import { COMMUTE_REVIEW_BOOKING_SCREEN } from '../../constants/commute-review-booking.constants';
+import { getRouteMatchVisual } from '../../utils/routeMatchVisual';
 import { styles } from './CommuteBookingMapHero.styles';
 import type { CommuteBookingMapHeroProps } from './CommuteBookingMapHero.types';
 
 const EDGE_PADDING = {
   top: spacing.xxl,
   right: spacing.xxl,
-  bottom: 120,
+  bottom: spacing.xxl,
   left: spacing.xxl,
 };
 
@@ -47,6 +48,8 @@ export const CommuteBookingMapHero = React.memo(
   }: CommuteBookingMapHeroProps) => {
     const mapRef = useRef<MapView>(null);
     const fittedKeyRef = useRef('');
+    const showMatch = matchPercent != null && Number.isFinite(matchPercent);
+    const matchVisual = showMatch ? getRouteMatchVisual(matchPercent!) : null;
 
     const polylineCoordinates = useMemo(() => {
       if (routeCoordinates.length >= 2) {
@@ -85,48 +88,50 @@ export const CommuteBookingMapHero = React.memo(
     }, [fitRoute]);
 
     return (
-      <View style={styles.container}>
-        {isGoogleMapsBypassed() ? (
-          <MapBypassSurface
-            style={styles.map}
-            title="Commute map"
-            points={[
-              { latitude: pickup.latitude, longitude: pickup.longitude, label: 'Pickup' },
-              { latitude: dropoff.latitude, longitude: dropoff.longitude, label: 'Drop-off' },
-            ]}
-          />
-        ) : (
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            initialRegion={initialRegion}
-            onMapReady={fitRoute}
-            scrollEnabled={false}
-            zoomEnabled={false}
-            rotateEnabled={false}
-            pitchEnabled={false}
-            toolbarEnabled={false}
-            showsCompass={false}
-            liteMode={Platform.OS === 'android'}
-            pointerEvents="none"
-          >
-            <Marker
-              coordinate={{ latitude: pickup.latitude, longitude: pickup.longitude }}
-              pinColor={colors.primary}
-              tracksViewChanges={false}
+      <View style={styles.card}>
+        <View style={styles.mapWrap}>
+          {isGoogleMapsBypassed() ? (
+            <MapBypassSurface
+              style={styles.map}
+              title="Commute map"
+              points={[
+                { latitude: pickup.latitude, longitude: pickup.longitude, label: 'Pickup' },
+                { latitude: dropoff.latitude, longitude: dropoff.longitude, label: 'Drop-off' },
+              ]}
             />
-            <Marker
-              coordinate={{ latitude: dropoff.latitude, longitude: dropoff.longitude }}
-              pinColor={colors.error}
-              tracksViewChanges={false}
-            />
-            <Polyline
-              coordinates={polylineCoordinates}
-              strokeColor="#4B61C4"
-              strokeWidth={4}
-            />
-          </MapView>
-        )}
+          ) : (
+            <MapView
+              ref={mapRef}
+              style={styles.map}
+              initialRegion={initialRegion}
+              onMapReady={fitRoute}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              toolbarEnabled={false}
+              showsCompass={false}
+              liteMode={Platform.OS === 'android'}
+              pointerEvents="none"
+            >
+              <Marker
+                coordinate={{ latitude: pickup.latitude, longitude: pickup.longitude }}
+                pinColor={colors.primary}
+                tracksViewChanges={false}
+              />
+              <Marker
+                coordinate={{ latitude: dropoff.latitude, longitude: dropoff.longitude }}
+                pinColor={colors.error}
+                tracksViewChanges={false}
+              />
+              <Polyline
+                coordinates={polylineCoordinates}
+                strokeColor={colors.secondary}
+                strokeWidth={4}
+              />
+            </MapView>
+          )}
+        </View>
 
         <View style={styles.statsCard} pointerEvents="none">
           <View style={styles.statCol}>
@@ -138,14 +143,25 @@ export const CommuteBookingMapHero = React.memo(
             <Text style={styles.statLabel}>{COMMUTE_REVIEW_BOOKING_SCREEN.etaLabel}</Text>
             <Text style={styles.statValue}>{durationLabel}</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={[styles.statCol, styles.statEnd]}>
-            <View style={styles.matchBadge}>
-              <Ionicons name="flash" size={14} color="#191C1D" />
-              <Text style={styles.matchBadgeText}>{matchPercent}% Match</Text>
-            </View>
-            <Text style={styles.matchCaption}>{matchCaption}</Text>
-          </View>
+          {matchVisual ? (
+            <>
+              <View style={styles.statDivider} />
+              <View style={[styles.statCol, styles.statEnd]}>
+                <View
+                  style={[
+                    styles.matchBadge,
+                    { backgroundColor: matchVisual.backgroundColor },
+                  ]}
+                >
+                  <Ionicons name="navigate" size={14} color={matchVisual.iconColor} />
+                  <Text style={[styles.matchBadgeText, { color: matchVisual.textColor }]}>
+                    {COMMUTE_REVIEW_BOOKING_SCREEN.routeMatchLabel(matchPercent!)}
+                  </Text>
+                </View>
+                <Text style={styles.matchCaption}>{matchCaption}</Text>
+              </View>
+            </>
+          ) : null}
         </View>
       </View>
     );

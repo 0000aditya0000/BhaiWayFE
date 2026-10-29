@@ -9,3 +9,9 @@ export type {
   PublishRideVehicleOption,
   RidePreferenceId,
 } from './offer-ride.types';
+export type {
+  RouteEndpoints,
+  RouteOptionDto,
+  SelectedDrivingRoute,
+  SelectDrivingRouteMode,
+} from '../api/routeOptions.types';

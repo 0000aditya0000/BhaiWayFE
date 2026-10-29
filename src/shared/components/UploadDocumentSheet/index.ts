@@ -6,4 +6,8 @@ export type {
   UploadDocumentSource,
   UploadedDocument,
 } from './UploadDocumentSheet.types';
-export { pickDocumentFromCamera, pickDocumentFromGallery } from './uploadDocument.helpers';
+export {
+  pickDocumentFromCamera,
+  pickDocumentFromGallery,
+  shouldRequestMediaLibraryPermissionForGallery,
+} from './uploadDocument.helpers';

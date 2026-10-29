@@ -2,6 +2,7 @@ import type { BaseQueryApi, BaseQueryFn, FetchArgs, FetchBaseQueryError } from '
 import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import { env } from '@/config';
+import { authSession } from '@/store/auth';
 
 import { handleDemoRequest } from './demo/demoRouter';
 
@@ -11,10 +12,24 @@ type AuthAwareState = {
   auth?: { token?: string | null };
 };
 
+const resolveRequestUrl = (args: AppFetchArgs): string => {
+  if (typeof args === 'string') {
+    return args;
+  }
+  return typeof args.url === 'string' ? args.url : '';
+};
+
+/** Live driver GPS must reach the real backend so passenger phones can poll it. */
+const isTrackingRequest = (args: AppFetchArgs): boolean => {
+  const path = (resolveRequestUrl(args).split('?')[0] ?? '').trim();
+  return path.startsWith('/tracking') || /\/rides\/[^/]+\/location$/.test(path);
+};
+
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: env.apiBaseUrl,
   prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as AuthAwareState).auth?.token;
+    const reduxToken = (getState() as AuthAwareState).auth?.token;
+    const token = reduxToken || authSession.getToken();
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
@@ -29,6 +44,12 @@ export const bhaiwayBaseQuery: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
+  // Ride start/booking use httpClient (real API). Tracking must too — demo Map is
+  // per-device memory, so passengers never see the driver's live pin across phones.
+  if (isTrackingRequest(args)) {
+    return rawBaseQuery(args, api, extraOptions);
+  }
+
   if (env.demoMode || env.useMocks) {
     try {
       const data = await handleDemoRequest(args, api as BaseQueryApi);

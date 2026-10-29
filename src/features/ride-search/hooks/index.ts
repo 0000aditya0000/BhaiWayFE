@@ -5,7 +5,11 @@ export { useSearchIdleZoom, SEARCH_IDLE_ZOOM_MS } from './useSearchIdleZoom';
 export { useRideResult } from './useRideResult';
 export type { UseRideResultParams, UseRideResultResult } from './useRideResult';
 export { useReviewBooking } from './useReviewBooking';
-export type { UseReviewBookingParams, UseReviewBookingResult } from './useReviewBooking';
+export type {
+  AssuredReviewLoadState,
+  UseReviewBookingParams,
+  UseReviewBookingResult,
+} from './useReviewBooking';
 export { usePaymentOptions } from './usePaymentOptions';
 export type { UsePaymentOptionsParams, UsePaymentOptionsResult } from './usePaymentOptions';
 export { useAddUpi } from './useAddUpi';

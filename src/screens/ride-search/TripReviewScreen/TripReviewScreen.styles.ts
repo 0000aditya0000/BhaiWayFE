@@ -191,4 +191,28 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.white,
   },
+  skipButton: {
+    width: '100%',
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipLabel: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600',
+    color: '#374BB1',
+  },
+  loadingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    gap: 12,
+  },
+  errorText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#747686',
+    textAlign: 'center',
+  },
 });

@@ -76,6 +76,29 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textPrimary,
   },
+  assuredChip: {
+    backgroundColor: '#E8EAF6',
+    borderColor: '#C5CAE9',
+  },
+  regularChip: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#E3E2E6',
+  },
+  assuredChipText: {
+    color: '#374BB1',
+  },
+  regularChipText: {
+    color: '#434655',
+  },
+  womenOnlyChip: {
+    backgroundColor: '#FCE7F3',
+    borderColor: 'rgba(157, 23, 77, 0.25)',
+  },
+  womenOnlyChipText: {
+    color: '#9D174D',
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
   actions: {
     paddingTop: 8,
   },

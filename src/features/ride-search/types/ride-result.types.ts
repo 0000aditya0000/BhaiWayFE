@@ -1,3 +1,5 @@
+import type { DriverRecentRideStatusItem } from '../constants/driver-recent-rides.constants';
+
 export type RideResultFilterId = 'regular' | 'assured';
 
 export type RideResultSortId =
@@ -15,9 +17,21 @@ export interface RideDriver {
   id: string;
   name: string;
   rating: number;
+  totalRatings: number;
   verified: boolean;
-  yearsDriving: number;
   avatarUri?: string;
+  recentRides: readonly DriverRecentRideStatusItem[];
+}
+
+export interface RideVehicleSummary {
+  id: string;
+  label: string;
+  color: string;
+  vehicleType: string;
+  seatingCapacity: number;
+  make: string;
+  model: string;
+  variant: string;
 }
 
 export interface RidePreference {
@@ -36,6 +50,7 @@ export interface RideResultItem {
   id: string;
   rideType: RideType;
   driver: RideDriver;
+  vehicle: RideVehicleSummary;
   price: number;
   originalPrice?: number;
   departureTime: string;
@@ -50,6 +65,8 @@ export interface RideResultItem {
   durationLabel: string;
   preferences: RidePreference[];
   features: RideFeature[];
+  /** Backend womenOnly (or preferences.womenOnly) for booking UX. */
+  womenOnly?: boolean;
 }
 
 export interface RideSearchSummary {

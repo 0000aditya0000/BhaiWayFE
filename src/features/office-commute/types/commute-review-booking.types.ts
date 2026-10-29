@@ -9,10 +9,8 @@ export interface CommuteRideAlong {
 }
 
 export interface CommuteBookingFare {
-  baseFare: number;
-  platformFee: number;
-  taxes: number;
-  promoDiscount: number;
+  riderPricePerSeat: number;
+  seats: number;
   total: number;
 }
 
@@ -22,8 +20,10 @@ export interface CommuteReviewBookingData {
   carModel: string;
   distanceLabel: string;
   durationLabel: string;
-  matchPercent: number;
+  matchPercent: number | null;
   matchCaption: string;
+  riderPricePerSeat: number;
+  availableSeats: number;
   pickup: {
     label: string;
     address: string;

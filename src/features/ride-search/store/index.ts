@@ -7,3 +7,5 @@ export type { SavedUpiId } from './savedUpiStore';
 export { savedCardStore } from './savedCardStore';
 export type { SavedCard, SavedCardBrand } from './savedCardStore';
 export { selectedBankStore } from './selectedBankStore';
+export { bookedRideStore } from './bookedRideStore';
+export type { BookedRideSnapshot } from './bookedRideStore';

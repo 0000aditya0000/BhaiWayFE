@@ -46,7 +46,7 @@ export const useUpiLinkedSuccess = (): UseUpiLinkedSuccessResult => {
 
   const backToPaymentMethods = useCallback(() => {
     triggerLightHaptic();
-    router.replace(ROUTES.addMoney);
+    router.replace(ROUTES.paymentMethods);
   }, [router]);
 
   return {

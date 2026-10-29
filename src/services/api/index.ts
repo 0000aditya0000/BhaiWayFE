@@ -33,6 +33,7 @@ export { useCreatePaymentMutation } from './paymentsApi';
 
 export {
   useGetNotificationsQuery,
+  useGetNotificationUnreadCountQuery,
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
 } from './notificationsApi';
@@ -40,4 +41,11 @@ export {
 export { useGetRideTrackingQuery, usePostDriverLocationMutation } from './trackingApi';
 export type { TrackingLocation } from './trackingApi';
 
-export { useGetRideRatingsQuery, useCreateRatingMutation } from './ratingsApi';
+export {
+  useGetPendingRatingsQuery,
+  useSubmitRatingMutation,
+  useSkipRatingTaskMutation,
+  useGetUserRatingsQuery,
+  useCreateRatingMutation,
+  useGetRideRatingsQuery,
+} from './ratingsApi';

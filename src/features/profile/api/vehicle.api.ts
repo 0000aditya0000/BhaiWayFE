@@ -3,6 +3,16 @@ import { ENDPOINTS, httpClient } from '@/network';
 /** Swagger: VehicleType */
 export type ApiVehicleType = 'CAR' | 'BIKE';
 
+/** Backend RC verification outcome for a vehicle. */
+export type VehicleRcVerificationStatus =
+  | 'VERIFIED'
+  | 'INVALID'
+  | 'FAILED'
+  | 'PENDING';
+
+/** Backend owner-name match vs verified Aadhaar identity. */
+export type VehicleOwnerMatchStatus = 'MATCHED' | 'NOT_MATCHED' | 'NOT_CHECKED';
+
 /**
  * Swagger: VehicleResponseDto
  * Docs: GET /vehicles, POST /vehicles (201)
@@ -18,6 +28,31 @@ export interface VehicleResponse {
   color?: string | null;
   seatingCapacity: number;
   isActive: boolean;
+  /** Optional RC snapshot fields when backend includes them on list/detail. */
+  rcVerificationStatus?: VehicleRcVerificationStatus | null;
+  ownerMatchStatus?: VehicleOwnerMatchStatus | null;
+  rcVerifiedAt?: string | null;
+  verifiedAt?: string | null;
+  isRcVerified?: boolean | null;
+  isVerified?: boolean | null;
+}
+
+export interface VehicleRcVerification {
+  vehicleId: string;
+  status: VehicleRcVerificationStatus;
+  vehicleNumber: string;
+  verifiedAt?: string;
+  verificationId?: string;
+  ownerMatchStatus?: VehicleOwnerMatchStatus;
+}
+
+export interface VerifyVehicleRcResponse {
+  success: boolean;
+  verification: VehicleRcVerification;
+}
+
+export interface VerifyVehicleRcRequest {
+  vehicleNumber?: string;
 }
 
 /**
@@ -87,3 +122,21 @@ export const deleteVehicleById = (id: string): Promise<void> =>
 /** Docs: POST /vehicles/:id/activate */
 export const activateVehicle = (id: string): Promise<VehicleResponse> =>
   httpClient.post<VehicleResponse>(ENDPOINTS.vehicles.activate(id));
+
+/**
+ * Verifies vehicle RC via BhaiWay backend (Cashfree server-side only).
+ * Docs: POST /vehicles/:id/verify-rc — Bearer JWT
+ * Body optional: { vehicleNumber } — when omitted, backend uses registered registrationNumber.
+ */
+export const verifyVehicleRc = (
+  vehicleId: string,
+  vehicleNumber?: string,
+): Promise<VerifyVehicleRcResponse> => {
+  const trimmed = vehicleNumber?.replace(/\s+/g, '').trim().toUpperCase();
+  const body: VerifyVehicleRcRequest =
+    trimmed && trimmed.length > 0 ? { vehicleNumber: trimmed } : {};
+  return httpClient.post<VerifyVehicleRcResponse>(
+    ENDPOINTS.vehicles.verifyRc(vehicleId),
+    body,
+  );
+};

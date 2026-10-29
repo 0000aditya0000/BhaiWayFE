@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { AppFooter, Button, IconButton, AppText as Text } from '@/shared/compone
 import { colors } from '@/shared/theme';
 import { formatBhaiWayCoins, getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import {
+  DriverRecentRidesStatus,
   RideDetailsCoPassengers,
   RideDetailsDriverCard,
   RideDetailsFareCard,
@@ -17,6 +18,7 @@ import {
   RideDetailsScheduleCard,
 } from '@/features/ride-search/components';
 import { RIDE_DETAILS_SCREEN } from '@/features/ride-search/constants';
+import { getRiderBookedRidePath } from '@/features/my-rides/constants';
 import { useRideDetails } from '@/features/ride-search/hooks';
 import type { RideDetailsMode, RideType } from '@/features/ride-search/types';
 import { styles } from './RideDetailsScreen.styles';
@@ -30,6 +32,7 @@ const isRideDetailsMode = (value: string): value is RideDetailsMode =>
 export const RideDetailsScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{
+    bookingId?: string;
     rideId?: string;
     rideType?: string;
     mode?: string;
@@ -52,6 +55,24 @@ export const RideDetailsScreen = () => {
   const rideType: RideType = isRideType(rideTypeParam) ? rideTypeParam : 'regular';
   const modeParam = getSearchParam(params.mode);
   const mode: RideDetailsMode = isRideDetailsMode(modeParam) ? modeParam : 'preview';
+
+  useEffect(() => {
+    if (mode !== 'booked') {
+      return;
+    }
+    const bookingId = getSearchParam(params.bookingId);
+    const rideId = getSearchParam(params.rideId);
+    if (!bookingId && !rideId) {
+      return;
+    }
+    router.replace(
+      getRiderBookedRidePath({
+        bookingId: bookingId || '',
+        rideId: rideId || '',
+      }),
+    );
+  }, [mode, params.bookingId, params.rideId, router]);
+
   const priceParam = Number(getSearchParam(params.price));
   const originLat = Number(getSearchParam(params.originLat));
   const originLng = Number(getSearchParam(params.originLng));
@@ -62,8 +83,8 @@ export const RideDetailsScreen = () => {
     details,
     isPreview,
     routeCoordinates,
+    womenOnlyBookingBlocked,
     bookRide,
-    contactDriver,
     cancelRide,
     chatPassenger,
     openMore,
@@ -98,11 +119,6 @@ export const RideDetailsScreen = () => {
     triggerLightHaptic();
     bookRide();
   }, [bookRide]);
-
-  const handleContact = useCallback(() => {
-    triggerLightHaptic();
-    contactDriver();
-  }, [contactDriver]);
 
   const handleCancel = useCallback(() => {
     triggerLightHaptic();
@@ -141,6 +157,34 @@ export const RideDetailsScreen = () => {
         <RideDetailsScheduleCard dateTimeLabel={details.dateTimeLabel} />
 
         <View style={styles.statsRow}>
+          <View
+            style={[
+              styles.statChip,
+              details.rideType === 'assured' ? styles.assuredChip : styles.regularChip,
+            ]}
+          >
+            <Ionicons
+              name={details.rideType === 'assured' ? 'checkmark-circle' : 'car-outline'}
+              size={14}
+              color={details.rideType === 'assured' ? '#374BB1' : '#434655'}
+            />
+            <Text
+              style={[
+                styles.statText,
+                details.rideType === 'assured' ? styles.assuredChipText : styles.regularChipText,
+              ]}
+            >
+              {details.rideType === 'assured'
+                ? RIDE_DETAILS_SCREEN.assuredLabel
+                : RIDE_DETAILS_SCREEN.regularLabel}
+            </Text>
+          </View>
+          {details.womenOnly ? (
+            <View style={[styles.statChip, styles.womenOnlyChip]} accessibilityLabel="Women Only">
+              <Ionicons name="woman-outline" size={14} color="#9D174D" />
+              <Text style={[styles.statText, styles.womenOnlyChipText]}>WOMEN ONLY</Text>
+            </View>
+          ) : null}
           <View style={styles.statChip}>
             <Ionicons name="navigate-outline" size={14} color={colors.primary} />
             <Text style={styles.statText}>{details.distanceLabel}</Text>
@@ -167,6 +211,11 @@ export const RideDetailsScreen = () => {
         />
 
         <RideDetailsDriverCard driver={details.driver} />
+
+        <DriverRecentRidesStatus
+          items={details.driver.recentRides ?? []}
+          variant="detailed"
+        />
 
         <RideDetailsRulesCard rules={details.rules} />
 
@@ -212,20 +261,10 @@ export const RideDetailsScreen = () => {
             </Text>
           </View>
           <View style={styles.bookingActions}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.contactButton,
-                pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
-              ]}
-              onPress={handleContact}
-              accessibilityRole="button"
-              accessibilityLabel={RIDE_DETAILS_SCREEN.contactDriverLabel}
-            >
-              <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.primary} />
-            </Pressable>
             <Button
               label={RIDE_DETAILS_SCREEN.bookLabel}
               onPress={handleBook}
+              disabled={womenOnlyBookingBlocked}
               fullWidth={false}
               style={styles.bookButton}
               accessibilityLabel={RIDE_DETAILS_SCREEN.bookLabel}

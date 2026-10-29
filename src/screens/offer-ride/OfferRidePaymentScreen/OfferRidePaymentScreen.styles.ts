@@ -20,6 +20,31 @@ export const styles = StyleSheet.create({
     paddingBottom: spacing.huge,
     gap: spacing.cardGap,
   },
+  assuredNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  assuredNoticeText: {
+    flex: 1,
+    gap: 4,
+  },
+  assuredNoticeTitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  assuredNoticeBody: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
   secureRow: {
     flexDirection: 'row',
     alignItems: 'center',

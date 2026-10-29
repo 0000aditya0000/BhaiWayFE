@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import type { ApiGender } from '@/features/auth/types';
+
 export const AUTH_STORAGE_KEY = '@bhaiway/auth-session';
 
 export interface PersistedAuthSession {
@@ -11,6 +13,7 @@ export interface PersistedAuthSession {
     email: string | null;
     avatarUri: string | null;
     phone: string | null;
+    gender?: ApiGender | null;
   };
   role?: string | null;
 }
@@ -44,6 +47,7 @@ export const authStorage = {
           email: parsed.user.email ?? null,
           avatarUri: parsed.user.avatarUri ?? null,
           phone: parsed.user.phone ?? null,
+          gender: parsed.user.gender ?? null,
         },
         role: parsed.role ?? null,
       };

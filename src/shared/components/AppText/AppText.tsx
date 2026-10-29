@@ -17,7 +17,7 @@ function withResolvedFont(style: TextProps['style']): Array<TextStyle | typeof s
 }
 
 /**
- * Brand Text — maps fontWeight to the correct Comfortaa face.
+ * Brand Text — maps fontWeight to the correct Noto Sans face.
  * Prefer this (or typography tokens) over raw React Native Text.
  */
 export const AppText = forwardRef<React.ComponentRef<typeof RNText>, TextProps>(

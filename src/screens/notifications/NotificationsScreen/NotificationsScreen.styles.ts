@@ -151,4 +151,31 @@ export const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
+  listHeader: {
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    gap: spacing.md,
+  },
+  centeredTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  centeredBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  listFooter: {
+    paddingVertical: spacing.lg,
+  },
 });

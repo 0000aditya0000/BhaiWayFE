@@ -16,11 +16,25 @@ const normalizeMobile = (value?: string | null): string =>
 
 const mapPublishedRideToCommuteResult = (row: PublishedRidesSheetRow): CommuteRideResultItem => {
   const base = mapPublishedRideToResult(row);
+  const seatsLeft = Math.max(0, row.availableSeats);
+  const source = row.origin?.trim() || 'Pickup';
+  const destination = row.destination?.trim() || 'Drop-off';
   return {
     ...base,
+    rideType: 'commute',
     vehicleColor: getPublishedRideVehicleColor(row),
-    seatsNote: `${Math.max(0, row.availableSeats)} seats left`,
+    seatsNote: seatsLeft === 1 ? '1 seat left' : `${seatsLeft} seats left`,
     organization: getPublishedRideOrganization(row),
+    riderPricePerSeat: base.price,
+    availableSeats: seatsLeft,
+    departureDate: row.departureDate ?? '',
+    source,
+    destination,
+    pickupLabel: source,
+    dropoffLabel: destination,
+    driverRating: base.driver.rating > 0 ? base.driver.rating : null,
+    matchPercent: null,
+    coPassengerCount: 0,
   };
 };
 

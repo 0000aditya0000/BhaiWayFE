@@ -21,7 +21,8 @@ import { useCancelUpcomingConfirmed } from '@/features/my-rides/hooks';
 import { styles } from './CancelUpcomingConfirmedScreen.styles';
 
 export const CancelUpcomingConfirmedScreen = () => {
-  const { subtitle, backLabel, goToMyRides } = useCancelUpcomingConfirmed();
+  const { heading, subtitle, detailLines, showAssuredPassengerResult, backLabel, goToMyRides } =
+    useCancelUpcomingConfirmed();
   useExitOnBack(goToMyRides);
 
   const iconScale = useSharedValue(0.8);
@@ -109,11 +110,21 @@ export const CancelUpcomingConfirmedScreen = () => {
         </View>
 
         <Animated.Text style={[styles.heading, headingAnimatedStyle]}>
-          {CANCEL_UPCOMING_CONFIRMED_SCREEN.heading}
+          {heading}
         </Animated.Text>
-        <Animated.Text style={[styles.subtitle, subtitleAnimatedStyle]}>
-          {subtitle}
-        </Animated.Text>
+        {showAssuredPassengerResult ? (
+          <Animated.View style={[styles.detailList, subtitleAnimatedStyle]}>
+            {detailLines.map((line) => (
+              <Text key={line} style={styles.detailLine}>
+                {line}
+              </Text>
+            ))}
+          </Animated.View>
+        ) : (
+          <Animated.Text style={[styles.subtitle, subtitleAnimatedStyle]}>
+            {subtitle}
+          </Animated.Text>
+        )}
       </View>
 
       <View style={styles.actions}>

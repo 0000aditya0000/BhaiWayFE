@@ -1,92 +1,172 @@
-import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
+import { CACHE_STALE_TIMES, cacheKeys, resourceCache } from '@/network/resourceCache';
+import { listWalletTransactions, mapWalletApiError } from '../api/wallet.api';
+import type { WalletTransactionsPageDto } from '../api/wallet.types';
+import { triggerLightHaptic } from '@/shared/utils';
 import {
-  formatBhaiWayWalletLabel,
-  formatWalletTransactionAmountLabel,
-  getBhaiWayWalletBalance,
-  subscribeBhaiWayWallet,
-  walletTransactionsSheetStore,
-  walletTransactionsSheetSync,
-  type WalletTransactionsSheetRow,
-} from '@/DemoData';
-import { triggerLightHaptic, showAppAlert } from '@/shared/utils';
-import {
-  DEFAULT_WALLET_SUMMARY,
   WALLET_FILTERS,
-  WALLET_ID,
   WALLET_RECENT_TRANSACTION_LIMIT,
-  WALLET_SCREEN,
 } from '../constants';
-import type {
-  WalletSummary,
-  WalletTransaction,
-  WalletTransactionFilter,
-} from '../types';
+import type { WalletTransaction, WalletTransactionFilter } from '../types';
+import { mapWalletTransactionDto } from '../utils/mapWalletBalance';
+import { isPositiveCoins } from '../utils/walletCoin';
+import { walletStore } from '../store/walletStore';
+import { walletTopUpReturnStore } from '../store/walletTopUpReturnStore';
+import { useWalletBalance } from './useWalletBalance';
+import { useWalletTransactionDetail } from './useWalletTransactionDetail';
+
+const RECENT_TX_PARAMS = { page: 1, limit: WALLET_RECENT_TRANSACTION_LIMIT } as const;
 
 export interface UseWalletResult {
-  summary: WalletSummary;
-  balance: number;
+  summary: ReturnType<typeof useWalletBalance>['summary'];
+  loading: boolean;
+  error: string | null;
   filters: typeof WALLET_FILTERS;
   activeFilter: WalletTransactionFilter;
   transactions: readonly WalletTransaction[];
+  transactionsLoading: boolean;
+  hasHeldCoins: boolean;
+  refreshing: boolean;
+  selectedTransaction: WalletTransaction | null;
+  isTransactionDetailOpen: boolean;
   goBack: () => void;
   openNotifications: () => void;
   setFilter: (filter: WalletTransactionFilter) => void;
   withdraw: () => void;
-  addMoney: () => void;
+  openWithdrawalHistory: () => void;
+  openPaymentMethods: () => void;
+  addCoins: () => void;
   viewAll: () => void;
-  openPromo: () => void;
+  refresh: () => Promise<void>;
+  retry: () => void;
   openTransaction: (transaction: WalletTransaction) => void;
+  closeTransaction: () => void;
 }
-
-const mapRow = (row: WalletTransactionsSheetRow): WalletTransaction => ({
-  id: String(row.transactionId),
-  title: row.title,
-  dateLabel: row.dateLabel,
-  amountLabel: formatWalletTransactionAmountLabel(row.amount, row.type),
-  type: row.type,
-  icon: row.icon,
-});
-
-const getTxSnapshot = (): string =>
-  walletTransactionsSheetStore
-    .getForCurrentUser()
-    .map((row) => `${row.transactionId}:${row.amount}:${row.type}:${row.title}`)
-    .join('|');
-
-const subscribeTx = (onStoreChange: () => void): (() => void) =>
-  walletTransactionsSheetStore.subscribe(() => onStoreChange());
 
 export const useWallet = (): UseWalletResult => {
   const router = useRouter();
+  const {
+    summary,
+    loading,
+    error,
+    refresh: refreshBalance,
+    ensure: ensureBalance,
+  } = useWalletBalance();
+  const {
+    selectedTransaction,
+    isDetailOpen,
+    openTransaction,
+    closeTransaction,
+  } = useWalletTransactionDetail();
   const [activeFilter, setActiveFilter] = useState<WalletTransactionFilter>('all');
-  const walletBalance = useSyncExternalStore(subscribeBhaiWayWallet, getBhaiWayWalletBalance);
-  const txSnapshot = useSyncExternalStore(subscribeTx, getTxSnapshot);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const applyTransactionsPage = useCallback((page: WalletTransactionsPageDto) => {
+    setTransactions(page.items.map(mapWalletTransactionDto));
+  }, []);
+
+  const ensureRecentTransactions = useCallback(async () => {
+    const cached = resourceCache.peek<WalletTransactionsPageDto>(
+      cacheKeys.wallet.transactions(RECENT_TX_PARAMS),
+    );
+    if (!cached) {
+      setTransactionsLoading(true);
+    }
+    try {
+      const result = await resourceCache.query({
+        key: cacheKeys.wallet.transactions(RECENT_TX_PARAMS),
+        staleTime: CACHE_STALE_TIMES.WALLET_TRANSACTIONS,
+        fetcher: () =>
+          listWalletTransactions({
+            page: 1,
+            limit: WALLET_RECENT_TRANSACTION_LIMIT,
+          }),
+      });
+      applyTransactionsPage(result.data);
+    } catch (err) {
+      console.log('[Wallet] recent transactions failed', mapWalletApiError(err));
+      if (!resourceCache.peek(cacheKeys.wallet.transactions(RECENT_TX_PARAMS))) {
+        setTransactions([]);
+      }
+    } finally {
+      setTransactionsLoading(false);
+    }
+  }, [applyTransactionsPage]);
+
+  const loadRecentTransactions = useCallback(async () => {
+    setTransactionsLoading(true);
+    try {
+      const result = await resourceCache.query({
+        key: cacheKeys.wallet.transactions(RECENT_TX_PARAMS),
+        staleTime: CACHE_STALE_TIMES.WALLET_TRANSACTIONS,
+        force: true,
+        fetcher: () =>
+          listWalletTransactions({
+            page: 1,
+            limit: WALLET_RECENT_TRANSACTION_LIMIT,
+          }),
+      });
+      applyTransactionsPage(result.data);
+    } catch (err) {
+      console.log('[Wallet] recent transactions failed', mapWalletApiError(err));
+      const kept = resourceCache.peek<WalletTransactionsPageDto>(
+        cacheKeys.wallet.transactions(RECENT_TX_PARAMS),
+      );
+      if (kept) {
+        applyTransactionsPage(kept);
+      } else {
+        setTransactions([]);
+      }
+    } finally {
+      setTransactionsLoading(false);
+    }
+  }, [applyTransactionsPage]);
+
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([refreshBalance(), loadRecentTransactions()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadRecentTransactions, refreshBalance]);
 
   useFocusEffect(
     useCallback(() => {
-      void walletTransactionsSheetSync.pullIntoLocal().catch(() => undefined);
-    }, []),
+      void ensureBalance();
+      void ensureRecentTransactions();
+    }, [ensureBalance, ensureRecentTransactions]),
   );
 
-  const summary = useMemo(
-    (): WalletSummary => ({
-      ...DEFAULT_WALLET_SUMMARY,
-      balanceLabel: formatBhaiWayWalletLabel(walletBalance),
-      walletId: WALLET_ID,
-    }),
-    [walletBalance],
+  const transactionsRefreshToken = useSyncExternalStore(
+    walletStore.subscribe,
+    () => walletStore.getSnapshot().transactionsRefreshToken,
+    () => walletStore.getSnapshot().transactionsRefreshToken,
   );
 
-  const transactions = useMemo(() => {
-    const all = walletTransactionsSheetStore.getForCurrentUser().map(mapRow);
-    const filtered =
-      activeFilter === 'all' ? all : all.filter((tx) => tx.type === activeFilter);
-    return filtered.slice(0, WALLET_RECENT_TRANSACTION_LIMIT);
-  }, [activeFilter, txSnapshot]);
+  useEffect(() => {
+    if (transactionsRefreshToken > 0) {
+      void loadRecentTransactions();
+    }
+  }, [loadRecentTransactions, transactionsRefreshToken]);
+
+  const filteredTransactions = useMemo(() => {
+    if (activeFilter === 'all') {
+      return transactions;
+    }
+    return transactions.filter((tx) => tx.type === activeFilter);
+  }, [activeFilter, transactions]);
+
+  const hasHeldCoins = useMemo(
+    () => (summary ? isPositiveCoins(summary.heldCoins) : false),
+    [summary],
+  );
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -111,8 +191,20 @@ export const useWallet = (): UseWalletResult => {
     router.push(ROUTES.withdraw);
   }, [router]);
 
-  const addMoney = useCallback(() => {
+  const openWithdrawalHistory = useCallback(() => {
     triggerLightHaptic();
+    router.push(ROUTES.withdrawalHistory);
+  }, [router]);
+
+  const openPaymentMethods = useCallback(() => {
+    triggerLightHaptic();
+    router.push(ROUTES.paymentMethods);
+  }, [router]);
+
+  const addCoins = useCallback(() => {
+    triggerLightHaptic();
+    // Clear any booking return target so wallet-initiated top-ups stay in wallet.
+    walletTopUpReturnStore.clear();
     router.push(ROUTES.addMoney);
   }, [router]);
 
@@ -121,29 +213,33 @@ export const useWallet = (): UseWalletResult => {
     router.push(ROUTES.walletTransactions);
   }, [router]);
 
-  const openPromo = useCallback(() => {
-    triggerLightHaptic();
-    showAppAlert(WALLET_SCREEN.promoEyebrow, WALLET_SCREEN.promoTitle);
-  }, []);
-
-  const openTransaction = useCallback((transaction: WalletTransaction) => {
-    triggerLightHaptic();
-    showAppAlert(transaction.title, `${transaction.amountLabel}\n${transaction.dateLabel}`);
-  }, []);
+  const retry = useCallback(() => {
+    void refresh();
+  }, [refresh]);
 
   return {
     summary,
-    balance: walletBalance,
+    loading,
+    error,
     filters: WALLET_FILTERS,
     activeFilter,
-    transactions,
+    transactions: filteredTransactions,
+    transactionsLoading,
+    hasHeldCoins,
+    refreshing,
+    selectedTransaction,
+    isTransactionDetailOpen: isDetailOpen,
     goBack,
     openNotifications,
     setFilter,
     withdraw,
-    addMoney,
+    openWithdrawalHistory,
+    openPaymentMethods,
+    addCoins,
     viewAll,
-    openPromo,
+    refresh,
+    retry,
     openTransaction,
+    closeTransaction,
   };
 };

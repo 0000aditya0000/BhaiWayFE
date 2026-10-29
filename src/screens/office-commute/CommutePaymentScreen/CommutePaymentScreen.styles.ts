@@ -47,4 +47,40 @@ export const styles = StyleSheet.create({
       elevation: 8,
     }),
   },
+  summaryCard: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#C6C6CD',
+    padding: 16,
+    gap: spacing.sm,
+  },
+  summaryTitle: {
+    fontSize: 14,
+    color: '#45464D',
+  },
+  summaryAmount: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#191C1D',
+  },
+  summaryHint: {
+    fontSize: 13,
+    color: '#45464D',
+  },
+  walletRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing.xs,
+  },
+  walletLabel: {
+    fontSize: 13,
+    color: '#45464D',
+  },
+  walletValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#191C1D',
+  },
 });

@@ -4,6 +4,9 @@ export const RIDE_PUBLISHED_SCREEN = {
   brandName: 'BhaiWay',
   title: 'Ride Published Successfully!',
   subtitle: 'Your ride is now live for others to join.',
+  assuredTitle: 'Ride Submitted Successfully',
+  assuredSubtitle:
+    'Your Assured Ride is being processed. We\'ll update its status once it is approved.',
   pickupLabel: 'Pickup',
   dropLabel: 'Drop-off',
   dateTimeLabel: 'Date & Time',

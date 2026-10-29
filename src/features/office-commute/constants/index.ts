@@ -4,6 +4,7 @@ export {
   VERIFIED_BANNER,
   OFFICE_COMMUTE_OPTIONS,
 } from './office-commute.constants';
+export { COMMUTE_SERIES_COPY } from './commute-series.constants';
 export {
   PUBLISH_COMMUTE_SCREEN,
   WEEKDAY_OPTIONS,
@@ -31,6 +32,8 @@ export { CORPORATE_VERIFICATION_SUCCESS_SCREEN } from './corporate-verification-
 export { RIDE_PUBLISHED_SCREEN } from './ride-published.constants';
 export {
   COMMUTE_RIDE_RESULT_SCREEN,
+  COMMUTE_MATCH_FILTERS,
+  COMMUTE_RESULT_SORT_OPTIONS,
   MOCK_COMMUTE_RIDE_RESULTS,
   getCommuteRideResultPath,
 } from './commute-ride-result.constants';

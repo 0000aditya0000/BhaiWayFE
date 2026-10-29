@@ -9,5 +9,8 @@ export interface IconButtonProps {
   color?: string;
   accessibilityLabel: string;
   style?: StyleProp<ViewStyle>;
+  /** Dot badge (legacy boolean unread indicator). */
   showBadge?: boolean;
+  /** Numeric unread count — takes precedence over showBadge when > 0. Capped display e.g. 99+. */
+  badgeCount?: number | null;
 }

@@ -1,12 +1,13 @@
 import { ROUTES } from '@/config';
 import { formatBhaiWayCoins } from '@/shared/utils';
 
-import type { RideInvoiceSummary } from '../types';
+import type { DriverRideKind, RideInvoiceSummary } from '../types';
+import { parseDriverRideKind, withRideTypeParam } from '../utils';
 
 export const RIDE_INVOICE_SCREEN = {
-  title: 'Invoice',
+  title: 'Ride Details',
   totalAmountLabel: 'Total Amount',
-  invoiceIdLabel: 'Invoice ID:',
+  bookingIdLabel: 'Booking ID:',
   dateLabel: 'Date:',
   tripDetailsTitle: 'Trip Details',
   pickupLabel: 'Pickup',
@@ -19,9 +20,18 @@ export const RIDE_INVOICE_SCREEN = {
   downloadPdfLabel: 'Download PDF',
   reportIssueLabel: 'Report Issue',
   downloadTitle: 'Download PDF',
-  downloadMessage: 'Share or save your ride invoice.',
+  downloadMessage: 'Share or save your ride details.',
   reportTitle: 'Report Issue',
   reportMessage: 'Issue reporting will be available soon.',
+  loadingLabel: 'Loading ride details…',
+  loadErrorTitle: 'Unable to load ride details',
+  loadErrorMessage: 'Go back and try again.',
+  unavailableInvoiceId: 'Not available',
+  noFareBreakdown: 'Fare breakdown unavailable',
+  paymentPendingLabel: 'Payment pending',
+  amountDueLabel: 'Amount due',
+  payNowLabel: 'Pay Now',
+  unpaidStatusLabel: 'UNPAID',
 } as const;
 
 const RIDER_AVATAR =
@@ -31,6 +41,7 @@ const DRIVER_AVATAR =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBGTHUIn7b-yyxS7ytJM-72_sV8czHP9HyAdhL1abpleCEWCpNDqHhZpGuKa_SyvAzUfViFZ7Jh7RSUmj5KHM7V5BMp6Q0WPm3FrPUk_a_PsOqWrneh7oebrvVnVL7SoRAmm3kooA-ecj1sfR0X8LfFKJNJxMbcd-Zh-gK6lfWqZ-KzzI9MaLruxYjOzkZwjXekpprjJgFZIfSVxerTTdqqywWnj9U4NyShM5vlpkR4ig4bTFwVhXSB3cypWcI6SklX2rJdvR94sqQ';
 
 export const getRideInvoiceMock = (params?: {
+  bookingId?: string;
   rideId?: string;
   pickupLabel?: string;
   dropoffLabel?: string;
@@ -39,9 +50,12 @@ export const getRideInvoiceMock = (params?: {
   const pickupLabel = params?.pickupLabel?.trim() || 'Tech Park, Phase 1';
   const dropoffLabel = params?.dropoffLabel?.trim() || 'Greenwood Residency, Home';
   const dateLabel = params?.dateLabel?.trim() || 'Oct 22, 2023';
+  const bookingId = params?.bookingId?.trim() || params?.rideId?.trim() || 'invoice-1';
 
   return {
-    id: params?.rideId?.trim() || 'invoice-1',
+    id: bookingId,
+    bookingId,
+    rideId: params?.rideId?.trim() || 'ride-demo',
     invoiceId: 'INV-2023-1022',
     dateLabel,
     statusLabel: 'Ride Completed',
@@ -87,16 +101,21 @@ export const getRideInvoiceMock = (params?: {
 };
 
 export const getRideInvoicePath = (params?: {
+  bookingId?: string;
+  /** Alias accepted by the invoice screen (same UUID as bookingId). */
   rideId?: string;
-  pickupLabel?: string;
-  dropoffLabel?: string;
-  dateLabel?: string;
-}) => ({
-  pathname: ROUTES.myRidesInvoice,
-  params: {
-    ...(params?.rideId ? { rideId: params.rideId } : {}),
-    ...(params?.pickupLabel ? { pickupLabel: params.pickupLabel } : {}),
-    ...(params?.dropoffLabel ? { dropoffLabel: params.dropoffLabel } : {}),
-    ...(params?.dateLabel ? { dateLabel: params.dateLabel } : {}),
-  },
-});
+  rideType?: DriverRideKind;
+}) => {
+  const bookingId = params?.bookingId?.trim() || params?.rideId?.trim() || '';
+  return {
+    pathname: ROUTES.myRidesInvoice,
+    params: withRideTypeParam(
+      {
+        // Always pass both keys — expo-router / older callers may only read one.
+        bookingId,
+        rideId: bookingId,
+      },
+      parseDriverRideKind(params?.rideType),
+    ),
+  };
+};

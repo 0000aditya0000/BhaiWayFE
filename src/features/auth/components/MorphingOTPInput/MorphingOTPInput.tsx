@@ -98,6 +98,7 @@ export const MorphingOTPInput = ({
   error,
   status = 'idle',
   editable = true,
+  accessibilityLabel = 'One-time password input',
 }: MorphingOTPInputProps) => {
   const inputRef = useRef<TextInput>(null);
   const completedRef = useRef(false);
@@ -447,7 +448,7 @@ export const MorphingOTPInput = ({
           maxLength={cellCount}
           caretHidden
           editable={canEdit}
-          accessibilityLabel="One-time password input"
+          accessibilityLabel={accessibilityLabel}
         />
 
         {visualPhase === 'input' ? (

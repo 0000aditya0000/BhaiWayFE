@@ -3,24 +3,25 @@ import { formatBhaiWayCoins } from '@/shared/utils';
 
 export const COMMUTE_REVIEW_BOOKING_SCREEN = {
   title: 'Review Booking',
+  subtitle: 'Confirm your commute request before payment.',
   distanceLabel: 'Distance',
-  etaLabel: 'ETA',
-  matchCaption: 'Pickup En Route',
+  etaLabel: 'Departure',
+  matchCaption: 'Route overlap',
+  routeMatchLabel: (percent: number) => `Route match ${percent}%`,
   rideAlongsTitle: 'Ride Alongs',
   rideAlongsCount: (count: number) =>
     count === 1 ? '1 co-passenger' : `${count} co-passengers`,
   paymentTitle: 'Payment Summary',
-  promoPlaceholder: 'Apply Promo Code',
-  applyLabel: 'APPLY',
-  baseFareLabel: 'Base Fare',
-  platformFeeLabel: 'Platform Fee',
-  taxesLabel: 'Taxes & GST',
-  promoDiscountLabel: 'Promo Discount',
-  totalLabel: 'Total Payable',
-  confirmLabel: 'Confirm & Pay',
-  confirmingLabel: 'Processing...',
-  confirmedLabel: 'Booking Success!',
-  promoSuccess: 'Promo applied',
+  seatsLabel: 'Seats',
+  perSeatLabel: 'Fare per seat',
+  totalLabel: 'Total payable now',
+  seatsAvailableHint: (max: number) =>
+    max === 1 ? '1 seat available on this ride' : `Up to ${max} seats available`,
+  payNowNote: 'Commute rides are paid upfront. Your request stays pending until the driver accepts.',
+  confirmLabel: 'Continue to Payment',
+  confirmingLabel: 'Loading...',
+  loadErrorTitle: 'Unable to load ride',
+  retryLabel: 'Try again',
 } as const;
 
 const DEFAULT_PICKUP = {
@@ -49,10 +50,9 @@ export const getCommuteReviewBookingMock = (overrides?: {
   destinationLat?: number;
   destinationLng?: number;
 }): CommuteReviewBookingData => {
-  const baseFare = overrides?.price ?? 180;
-  const platformFee = 15;
-  const taxes = 12.5;
-  const total = baseFare + platformFee + taxes;
+  const riderPricePerSeat = overrides?.price ?? 110;
+  const seats = 1;
+  const total = riderPricePerSeat * seats;
 
   return {
     rideId: overrides?.rideId ?? 'commute-ride-1',
@@ -62,6 +62,8 @@ export const getCommuteReviewBookingMock = (overrides?: {
     durationLabel: '24 mins',
     matchPercent: 95,
     matchCaption: COMMUTE_REVIEW_BOOKING_SCREEN.matchCaption,
+    riderPricePerSeat,
+    availableSeats: 3,
     pickup: {
       ...DEFAULT_PICKUP,
       label: overrides?.origin?.trim() || DEFAULT_PICKUP.label,
@@ -97,10 +99,8 @@ export const getCommuteReviewBookingMock = (overrides?: {
       },
     ],
     fare: {
-      baseFare,
-      platformFee,
-      taxes,
-      promoDiscount: 0,
+      riderPricePerSeat,
+      seats,
       total,
     },
   };
@@ -116,6 +116,9 @@ export const getCommuteReviewBookingPath = (params: {
   driverName: string;
   carModel: string;
   price: number;
+  dateLabel?: string;
+  departureTime?: string;
+  matchPercent?: number;
   originLat?: number;
   originLng?: number;
   destinationLat?: number;
@@ -129,6 +132,12 @@ export const getCommuteReviewBookingPath = (params: {
     driverName: params.driverName,
     carModel: params.carModel,
     price: String(params.price),
+    dateLabel: params.dateLabel ?? '',
+    departureTime: params.departureTime ?? '',
+    matchPercent:
+      params.matchPercent != null && Number.isFinite(params.matchPercent)
+        ? String(params.matchPercent)
+        : '',
     originLat: params.originLat != null ? String(params.originLat) : '',
     originLng: params.originLng != null ? String(params.originLng) : '',
     destinationLat: params.destinationLat != null ? String(params.destinationLat) : '',

@@ -93,6 +93,17 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 320,
   },
+  detailList: {
+    maxWidth: 340,
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  detailLine: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#434655',
+    textAlign: 'left',
+  },
   actions: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,

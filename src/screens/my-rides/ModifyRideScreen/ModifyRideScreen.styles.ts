@@ -250,4 +250,63 @@ export const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
+  centerState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    gap: spacing.md,
+  },
+  centerMessage: {
+    ...typography.body,
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  lockBanner: {
+    backgroundColor: colors.accentLight,
+    borderRadius: layout.radiusXl,
+    borderWidth: 1,
+    borderColor: 'rgba(55, 75, 177, 0.2)',
+    padding: spacing.lg,
+    gap: spacing.xs,
+  },
+  lockBannerText: {
+    ...typography.body,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  seatMeta: {
+    ...typography.caption,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
+  selectRouteAction: {
+    marginTop: spacing.sm,
+  },
+  lockedField: {
+    backgroundColor: 'rgba(196, 197, 215, 0.22)',
+  },
+  lockedValue: {
+    ...typography.body,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  lockedHint: {
+    ...typography.caption,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+  },
+  seatBtnDisabled: {
+    opacity: 0.35,
+  },
 });

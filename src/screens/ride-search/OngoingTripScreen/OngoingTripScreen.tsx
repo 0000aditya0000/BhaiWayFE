@@ -61,6 +61,7 @@ export const OngoingTripScreen = () => {
     originLng?: string;
     destinationLat?: string;
     destinationLng?: string;
+    bookingId?: string;
   }>();
 
   const rideTypeParam = getSearchParam(params.rideType);
@@ -92,6 +93,7 @@ export const OngoingTripScreen = () => {
     originLng: Number.isFinite(originLng) ? originLng : undefined,
     destinationLat: Number.isFinite(destinationLat) ? destinationLat : undefined,
     destinationLng: Number.isFinite(destinationLng) ? destinationLng : undefined,
+    bookingId: getSearchParam(params.bookingId) || undefined,
   });
 
   const mapRef = useRef<MapView>(null);

@@ -2,18 +2,23 @@ import React, { useCallback, useMemo } from 'react';
 import { ActivityIndicator, Image, Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { formatRidePrice, getSeatUrgency } from '@/features/ride-search/constants';
+import { formatRidePrice } from '@/features/ride-search/constants';
+import { colors } from '@/shared/theme';
 import { COMMUTE_RIDE_RESULT_SCREEN } from '../../constants/commute-ride-result.constants';
+import { getRouteMatchVisual } from '../../utils/routeMatchVisual';
 import { styles } from './CommuteRideResultCard.styles';
 import type { CommuteRideResultCardProps } from './CommuteRideResultCard.types';
 import { AppText as Text } from '@/shared/components';
 
 export const CommuteRideResultCard = React.memo(
   ({ ride, requestState = 'idle', onPress, onRequestPress }: CommuteRideResultCardProps) => {
-    const urgency = useMemo(() => getSeatUrgency(ride.seatsLeft), [ride.seatsLeft]);
-    const isUrgent = urgency === 'last' || urgency === 'limited';
-    const seatSuffix = ride.seatsLeft === 1 ? 'seat left' : 'seats left';
     const verified = ride.driver.verified;
+    const showRating = ride.driverRating != null && ride.driverRating > 0;
+
+    const seatsAvailableLabel = useMemo(
+      () => COMMUTE_RIDE_RESULT_SCREEN.seatsAvailable(ride.seatsLeft),
+      [ride.seatsLeft],
+    );
 
     const handlePress = useCallback(() => onPress(ride), [onPress, ride]);
     const handleRequest = useCallback(() => onRequestPress(ride), [onRequestPress, ride]);
@@ -25,13 +30,16 @@ export const CommuteRideResultCard = React.memo(
           ? COMMUTE_RIDE_RESULT_SCREEN.requestedLabel
           : COMMUTE_RIDE_RESULT_SCREEN.bookLabel;
 
+    const matchVisual =
+      ride.matchPercent != null ? getRouteMatchVisual(ride.matchPercent) : null;
+
     return (
       <Pressable
         style={[styles.card, verified && styles.cardVerified]}
         onPress={handlePress}
         accessibilityRole="button"
         accessibilityLabel={`Ride with ${ride.driver.name}, ${formatRidePrice(ride.price)}`}
-        android_ripple={{ color: 'rgba(11, 28, 48, 0.06)' }}
+        android_ripple={{ color: 'rgba(55, 75, 177, 0.08)' }}
       >
         <View style={styles.body}>
           <View style={styles.header}>
@@ -43,23 +51,43 @@ export const CommuteRideResultCard = React.memo(
                   accessibilityIgnoresInvertColors
                 />
               ) : (
-                <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center' }]}>
-                  <Ionicons name="person" size={22} color="#7C839B" />
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Ionicons name="person" size={22} color={colors.textMuted} />
                 </View>
               )}
+
               <View style={styles.driverMeta}>
                 <View style={styles.nameRow}>
                   <Text style={styles.driverName} numberOfLines={1}>
                     {ride.driver.name}
                   </Text>
-                  <View style={styles.ratingRow}>
-                    <Ionicons name="star" size={14} color="#4B61C4" />
-                    <Text style={styles.ratingText}>{ride.driver.rating.toFixed(1)}</Text>
-                  </View>
+                  {showRating ? (
+                    <View style={styles.ratingRow}>
+                      <Ionicons name="star" size={14} color={colors.secondary} />
+                      <Text style={styles.ratingText}>{ride.driverRating!.toFixed(1)}</Text>
+                    </View>
+                  ) : null}
                 </View>
+
                 <Text style={styles.vehicle} numberOfLines={1}>
                   {ride.carModel} • {ride.vehicleColor}
                 </Text>
+
+                {verified ? (
+                  <View style={styles.badgeVerified}>
+                    <Ionicons name="shield-checkmark" size={14} color={colors.primary} />
+                    <Text style={styles.badgeVerifiedText}>
+                      {COMMUTE_RIDE_RESULT_SCREEN.verifiedBadge}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.badgeUnverified}>
+                    <Ionicons name="car-outline" size={14} color={colors.textMuted} />
+                    <Text style={styles.badgeUnverifiedText}>
+                      {COMMUTE_RIDE_RESULT_SCREEN.unverifiedBadge}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -69,37 +97,59 @@ export const CommuteRideResultCard = React.memo(
             </View>
           </View>
 
-          <View style={styles.detailsRow}>
+          <View style={styles.detailsPanel}>
+            {matchVisual ? (
+              <View
+                style={[
+                  styles.matchBanner,
+                  {
+                    backgroundColor: matchVisual.backgroundColor,
+                  },
+                ]}
+              >
+                <Ionicons name="navigate" size={16} color={matchVisual.iconColor} />
+                <Text style={[styles.matchBannerText, { color: matchVisual.textColor }]}>
+                  {COMMUTE_RIDE_RESULT_SCREEN.routeMatchLabel(ride.matchPercent!)}
+                </Text>
+              </View>
+            ) : null}
+
+            <View style={styles.detailsRow}>
             <View style={styles.departureCol}>
               <Text style={styles.departureTime}>{ride.departureTime}</Text>
               <Text style={styles.departureLabel}>
                 {COMMUTE_RIDE_RESULT_SCREEN.departureLabel}
               </Text>
             </View>
-            <View style={styles.seatsCol}>
-              <Text style={[styles.seatsLeft, isUrgent && styles.seatsLeftUrgent]}>
-                {ride.seatsLeft} {seatSuffix}
-              </Text>
-              <Text style={styles.seatsNote}>{ride.seatsNote}</Text>
-            </View>
-          </View>
 
-          <View style={styles.badges}>
-            {verified ? (
-              <View style={styles.badgeVerified}>
-                <Ionicons name="shield-checkmark" size={14} color="#374BB1" />
-                <Text style={styles.badgeVerifiedText}>
-                  {COMMUTE_RIDE_RESULT_SCREEN.verifiedBadge}
+            <View style={styles.columnDivider} />
+
+            <View style={styles.routeCol}>
+              <View style={styles.routeGraphic}>
+                <View style={styles.routeDotPickup} />
+                <View style={styles.routeLine} />
+                <View style={styles.routeDotDropoff} />
+              </View>
+              <View style={styles.routeLabels}>
+                <Text style={styles.routeLabel} numberOfLines={2}>
+                  {ride.pickupLabel}
+                </Text>
+                <Text style={styles.routeLabel} numberOfLines={2}>
+                  {ride.dropoffLabel}
                 </Text>
               </View>
-            ) : (
-              <View style={styles.badgeUnverified}>
-                <Ionicons name="car-outline" size={14} color="#626567" />
-                <Text style={styles.badgeUnverifiedText}>
-                  {COMMUTE_RIDE_RESULT_SCREEN.unverifiedBadge}
-                </Text>
-              </View>
-            )}
+            </View>
+
+            <View style={styles.columnDivider} />
+
+            <View style={styles.seatsCol}>
+              <Ionicons name="people-outline" size={18} color={colors.primary} />
+              <Text style={styles.seatsNote} numberOfLines={2}>
+                {ride.seatsNote}
+              </Text>
+              <Text style={styles.seatsAvailable}>{seatsAvailableLabel}</Text>
+            </View>
+            </View>
           </View>
 
           <Pressable
@@ -116,7 +166,7 @@ export const CommuteRideResultCard = React.memo(
             accessibilityState={{ disabled: requestState !== 'idle', busy: requestState === 'requesting' }}
           >
             {requestState === 'requesting' ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={colors.textInverse} />
             ) : (
               <Text style={styles.requestLabel}>{requestLabel}</Text>
             )}

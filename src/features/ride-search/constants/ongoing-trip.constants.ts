@@ -79,6 +79,7 @@ export const getOngoingTripPath = (params: {
   originLng?: number;
   destinationLat?: number;
   destinationLng?: number;
+  bookingId?: string;
 }) => ({
   pathname: '/ride-search/ongoing-trip' as const,
   params: {
@@ -93,6 +94,7 @@ export const getOngoingTripPath = (params: {
     originLng: params.originLng != null ? String(params.originLng) : '',
     destinationLat: params.destinationLat != null ? String(params.destinationLat) : '',
     destinationLng: params.destinationLng != null ? String(params.destinationLng) : '',
+    bookingId: params.bookingId ?? '',
   },
 });
 

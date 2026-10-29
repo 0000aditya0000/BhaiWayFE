@@ -21,6 +21,12 @@ export const verificationStore = {
 
   isIdentityVerified: (): boolean => verifications?.identity.status === 'VERIFIED',
 
+  isVehicleVerified: (): boolean => verifications?.vehicle.status === 'VERIFIED',
+
+  /** Driving license is optional for publishing — helper for display only. */
+  isDrivingLicenseVerified: (): boolean =>
+    verifications?.drivingLicense.status === 'VERIFIED',
+
   set: (next: MyVerificationsResponse): void => {
     verifications = { ...next };
     notify();

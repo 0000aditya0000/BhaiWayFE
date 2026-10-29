@@ -1,7 +1,9 @@
 export const ADD_BANK_ACCOUNT_SCREEN = {
   brandTitle: 'BhaiWay',
   title: 'Add Bank Account',
+  editTitle: 'Update Bank Account',
   subtitle: 'Securely link your bank account for seamless withdrawals and payments.',
+  editSubtitle: 'Update your bank details for withdrawals and payouts.',
   privacyTitle: 'Banking Privacy',
   privacyBody:
     'Your banking details are encrypted and stored following industry-leading security standards. We never share your transaction data.',
@@ -16,7 +18,9 @@ export const ADD_BANK_ACCOUNT_SCREEN = {
   findLabel: 'FIND',
   infoNote: 'All transfers are processed within 24-48 working hours.',
   submitLabel: 'Save Bank Account',
+  editSubmitLabel: 'Update Bank Account',
   submittingLabel: 'Saving…',
+  editSubmittingLabel: 'Updating…',
   successLabel: 'Success!',
   validationTitle: 'Missing Details',
   validationMessage: 'Please fill in all bank account fields to continue.',

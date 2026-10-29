@@ -2,7 +2,14 @@ import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
+import {
+  cancelBookingById,
+  isCancelAlreadyApplied,
+  mapCancelBookingError,
+} from '@/features/ride-search/api';
+import { authSession } from '@/store';
 import { resetTo, showAppAlert, triggerLightHaptic } from '@/shared/utils';
+import { refreshAfterCommutePassengerCancel } from '../utils/commuteCancelRefresh';
 import { getCommuteCancelConfirmedPath } from '../constants/commute-cancel-confirmed.constants';
 import {
   COMMUTE_CANCEL_REASONS,
@@ -12,6 +19,7 @@ import {
 } from '../constants/commute-cancel-ride.constants';
 
 export interface UseCommuteCancelRideParams {
+  bookingId: string;
   rideId: string;
   origin?: string;
   destination?: string;
@@ -21,6 +29,7 @@ export interface UseCommuteCancelRideParams {
 
 export interface UseCommuteCancelRideResult {
   summary: {
+    bookingId: string;
     rideId: string;
     pickupLabel: string;
     dropoffLabel: string;
@@ -48,13 +57,14 @@ export const useCommuteCancelRide = (
 
   const summary = useMemo(
     () => ({
+      bookingId: params.bookingId,
       rideId: params.rideId,
-      pickupLabel: shortCommutePlaceName(params.origin) || 'Sector 62',
-      dropoffLabel: shortCommutePlaceName(params.destination) || 'Cyber Hub',
-      dateLabel: params.dateLabel?.trim() || 'Today, Oct 24',
-      timeLabel: params.timeLabel?.trim() || '08:30 AM',
+      pickupLabel: shortCommutePlaceName(params.origin) || 'Pickup',
+      dropoffLabel: shortCommutePlaceName(params.destination) || 'Office',
+      dateLabel: params.dateLabel?.trim() || 'Today',
+      timeLabel: params.timeLabel?.trim() || '',
     }),
-    [params.dateLabel, params.destination, params.origin, params.rideId, params.timeLabel],
+    [params.bookingId, params.dateLabel, params.destination, params.origin, params.rideId, params.timeLabel],
   );
 
   const selectReason = useCallback((id: CommuteCancelReasonId) => {
@@ -82,12 +92,35 @@ export const useCommuteCancelRide = (
       return;
     }
 
+    const bookingId = summary.bookingId.trim();
+    if (!bookingId) {
+      showAppAlert('Unable to cancel', 'Missing booking id. Please reopen your booking and try again.');
+      return;
+    }
+
+    if (!authSession.getToken()) {
+      showAppAlert('Session expired', 'Please sign in again.');
+      router.replace(ROUTES.welcome);
+      return;
+    }
+
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      resetTo(router, getCommuteCancelConfirmedPath());
-    }, 900);
-  }, [router, selectedReason]);
+    void (async () => {
+      try {
+        const result = await cancelBookingById(bookingId);
+        if (!isCancelAlreadyApplied(result) && result.alreadyApplied !== true) {
+          await refreshAfterCommutePassengerCancel();
+        } else {
+          await refreshAfterCommutePassengerCancel();
+        }
+        resetTo(router, getCommuteCancelConfirmedPath());
+      } catch (error) {
+        showAppAlert('Unable to cancel', mapCancelBookingError(error));
+      } finally {
+        setSubmitting(false);
+      }
+    })();
+  }, [router, selectedReason, summary.bookingId]);
 
   return {
     summary,

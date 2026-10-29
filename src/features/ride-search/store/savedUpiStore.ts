@@ -35,6 +35,11 @@ export const savedUpiStore = {
     };
   },
 
+  getById: (id: string): SavedUpiId | undefined =>
+    savedUpis.find((item) => item.id === id),
+
+  getPrimary: (): SavedUpiId | undefined => savedUpis[0],
+
   add: (upiId: string, label?: string): SavedUpiId | null => {
     const normalized = normalizeUpiId(upiId);
     if (!normalized) {
@@ -58,5 +63,38 @@ export const savedUpiStore = {
     lastAddedId = next.id;
     notify();
     return next;
+  },
+
+  update: (id: string, upiId: string, label?: string): SavedUpiId | null => {
+    const normalized = normalizeUpiId(upiId);
+    if (!normalized) {
+      return null;
+    }
+
+    const index = savedUpis.findIndex((item) => item.id === id);
+    if (index < 0) {
+      return null;
+    }
+
+    const duplicate = savedUpis.find(
+      (item) => item.upiId === normalized && item.id !== id,
+    );
+    if (duplicate) {
+      return null;
+    }
+
+    const updated: SavedUpiId = {
+      ...savedUpis[index],
+      upiId: normalized,
+      label: label?.trim() || normalized,
+    };
+
+    savedUpis = [
+      updated,
+      ...savedUpis.filter((item) => item.id !== id),
+    ].slice(0, MAX_SAVED_UPIS);
+    lastAddedId = updated.id;
+    notify();
+    return updated;
   },
 };

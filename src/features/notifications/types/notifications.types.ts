@@ -1,3 +1,5 @@
+import type { InboxNotificationData } from '../api/notificationsInbox.types';
+
 export type NotificationCategory =
   | 'ride'
   | 'booking'
@@ -13,7 +15,12 @@ export interface AppNotification {
   title: string;
   body: string;
   timeLabel: string;
+  createdAt: string;
+  type: string;
   category: NotificationCategory;
   section: 'today' | 'earlier';
   unread: boolean;
+  isRead: boolean;
+  readAt: string | null;
+  data: InboxNotificationData;
 }

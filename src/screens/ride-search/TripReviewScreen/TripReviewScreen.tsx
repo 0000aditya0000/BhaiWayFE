@@ -1,10 +1,11 @@
 import React, { useCallback } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { APP_CONFIG } from '@/config';
+import { RATING_TASK_COPY } from '@/features/ratings';
 import { AppFooter, Avatar, IconButton, AppText as Text, AppTextInput as TextInput } from '@/shared/components';
 import { colors } from '@/shared/theme';
 import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
@@ -17,10 +18,12 @@ const StarRow = ({
   value,
   onChange,
   accessibilityLabel,
+  disabled,
 }: {
   value: RatingValue;
   onChange: (next: RatingValue) => void;
   accessibilityLabel: string;
+  disabled?: boolean;
 }) => (
   <View style={styles.starsRow} accessibilityLabel={accessibilityLabel}>
     {([1, 2, 3, 4, 5] as const).map((star) => {
@@ -30,12 +33,13 @@ const StarRow = ({
           key={star}
           style={({ pressed }) => [
             styles.starButton,
-            pressed && { transform: [{ scale: 1.15 }] },
+            pressed && !disabled && { transform: [{ scale: 1.15 }] },
           ]}
           onPress={() => onChange(star)}
+          disabled={disabled}
           accessibilityRole="button"
           accessibilityLabel={`${star} star`}
-          accessibilityState={{ selected: filled }}
+          accessibilityState={{ selected: filled, disabled }}
         >
           <Ionicons
             name={filled ? 'star' : 'star-outline'}
@@ -64,17 +68,24 @@ export const TripReviewScreen = () => {
     selectedVehicleTags,
     comments,
     submitting,
+    skipping,
+    loading,
+    loadError,
+    hasPendingTask,
     setDriverRating,
     setVehicleRating,
     toggleDriverTag,
     toggleVehicleTag,
     setComments,
     submitFeedback,
+    skipFeedback,
     close,
   } = useTripReview({
     rideId: getSearchParam(params.rideId) || 'ride-default',
     driverName: getSearchParam(params.driverName),
   });
+
+  const busy = submitting || skipping;
 
   const handleClose = useCallback(() => {
     triggerLightHaptic();
@@ -85,6 +96,11 @@ export const TripReviewScreen = () => {
     triggerLightHaptic();
     submitFeedback();
   }, [submitFeedback]);
+
+  const handleSkip = useCallback(() => {
+    triggerLightHaptic();
+    skipFeedback();
+  }, [skipFeedback]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -108,126 +124,165 @@ export const TripReviewScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
-          <View style={styles.hero}>
-            <Text style={styles.heading}>{TRIP_REVIEW_SCREEN.heading}</Text>
-            <Text style={styles.subtitle}>{TRIP_REVIEW_SCREEN.subtitle}</Text>
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.avatarWrap}>
-              <Avatar
-                size={96}
-                uri={review.driverAvatarUri}
-                accessibilityLabel={`${review.driverName} photo`}
-              />
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark" size={14} color={colors.white} />
+          {loading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : loadError ? (
+            <Text style={styles.errorText}>{loadError}</Text>
+          ) : !hasPendingTask ? (
+            <View style={styles.loadingWrap}>
+              <Text style={styles.heading}>{RATING_TASK_COPY.emptyTitle}</Text>
+              <Text style={styles.subtitle}>{RATING_TASK_COPY.emptyMessage}</Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.hero}>
+                <Text style={styles.heading}>{TRIP_REVIEW_SCREEN.heading}</Text>
+                <Text style={styles.subtitle}>{TRIP_REVIEW_SCREEN.subtitle}</Text>
               </View>
-            </View>
-            <View>
-              <Text style={styles.driverName}>{review.driverName}</Text>
-              <Text style={styles.sectionLabel}>{TRIP_REVIEW_SCREEN.driverBehaviorLabel}</Text>
-            </View>
 
-            <StarRow
-              value={driverRating}
-              onChange={setDriverRating}
-              accessibilityLabel="Driver rating"
-            />
+              <View style={styles.card}>
+                <View style={styles.avatarWrap}>
+                  <Avatar
+                    size={96}
+                    uri={review.driverAvatarUri}
+                    accessibilityLabel={`${review.driverName} photo`}
+                  />
+                  <View style={styles.verifiedBadge}>
+                    <Ionicons name="checkmark" size={14} color={colors.white} />
+                  </View>
+                </View>
+                <View>
+                  <Text style={styles.driverName}>{review.driverName}</Text>
+                  <Text style={styles.sectionLabel}>{TRIP_REVIEW_SCREEN.driverBehaviorLabel}</Text>
+                </View>
 
-            <View style={styles.tagsBlock}>
-              <Text style={styles.sectionLabel}>{TRIP_REVIEW_SCREEN.whatWentWellLabel}</Text>
-              <View style={styles.tagsWrap}>
-                {driverTags.map((tag) => {
-                  const selected = selectedDriverTags.includes(tag.id);
-                  return (
-                    <Pressable
-                      key={tag.id}
-                      style={[styles.tagChip, selected && styles.tagChipSelected]}
-                      onPress={() => toggleDriverTag(tag.id)}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected }}
-                      accessibilityLabel={tag.label}
-                    >
-                      <Text style={[styles.tagLabel, selected && styles.tagLabelSelected]}>
-                        {tag.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                <StarRow
+                  value={driverRating}
+                  onChange={setDriverRating}
+                  accessibilityLabel="Driver rating"
+                  disabled={busy}
+                />
+
+                <View style={styles.tagsBlock}>
+                  <Text style={styles.sectionLabel}>{TRIP_REVIEW_SCREEN.whatWentWellLabel}</Text>
+                  <View style={styles.tagsWrap}>
+                    {driverTags.map((tag) => {
+                      const selected = selectedDriverTags.includes(tag.id);
+                      return (
+                        <Pressable
+                          key={tag.id}
+                          style={[styles.tagChip, selected && styles.tagChipSelected]}
+                          onPress={() => toggleDriverTag(tag.id)}
+                          disabled={busy}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected }}
+                          accessibilityLabel={tag.label}
+                        >
+                          <Text style={[styles.tagLabel, selected && styles.tagLabelSelected]}>
+                            {tag.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
               </View>
-            </View>
-          </View>
 
-          <View style={styles.card}>
-            <View style={styles.vehicleIconWrap}>
-              <Ionicons name="car" size={40} color="#374BB1" />
-            </View>
-            <Text style={styles.sectionLabel}>{TRIP_REVIEW_SCREEN.vehicleConditionLabel}</Text>
+              <View style={styles.card}>
+                <View style={styles.vehicleIconWrap}>
+                  <Ionicons name="car" size={40} color="#374BB1" />
+                </View>
+                <Text style={styles.sectionLabel}>{TRIP_REVIEW_SCREEN.vehicleConditionLabel}</Text>
 
-            <StarRow
-              value={vehicleRating}
-              onChange={setVehicleRating}
-              accessibilityLabel="Vehicle rating"
-            />
+                <StarRow
+                  value={vehicleRating}
+                  onChange={setVehicleRating}
+                  accessibilityLabel="Vehicle rating"
+                  disabled={busy}
+                />
 
-            <View style={styles.tagsBlock}>
-              <View style={styles.tagsWrap}>
-                {vehicleTags.map((tag) => {
-                  const selected = selectedVehicleTags.includes(tag.id);
-                  return (
-                    <Pressable
-                      key={tag.id}
-                      style={[styles.tagChip, selected && styles.tagChipSelected]}
-                      onPress={() => toggleVehicleTag(tag.id)}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected }}
-                      accessibilityLabel={tag.label}
-                    >
-                      <Text style={[styles.tagLabel, selected && styles.tagLabelSelected]}>
-                        {tag.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                <View style={styles.tagsBlock}>
+                  <View style={styles.tagsWrap}>
+                    {vehicleTags.map((tag) => {
+                      const selected = selectedVehicleTags.includes(tag.id);
+                      return (
+                        <Pressable
+                          key={tag.id}
+                          style={[styles.tagChip, selected && styles.tagChipSelected]}
+                          onPress={() => toggleVehicleTag(tag.id)}
+                          disabled={busy}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected }}
+                          accessibilityLabel={tag.label}
+                        >
+                          <Text style={[styles.tagLabel, selected && styles.tagLabelSelected]}>
+                            {tag.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
               </View>
-            </View>
-          </View>
 
-          <View style={styles.reviewSection}>
-            <Text style={styles.reviewLabel}>{TRIP_REVIEW_SCREEN.reviewLabel}</Text>
-            <TextInput
-              style={styles.reviewInput}
-              value={comments}
-              onChangeText={setComments}
-              placeholder={TRIP_REVIEW_SCREEN.reviewPlaceholder}
-              placeholderTextColor="#747686"
-              multiline
-              textAlignVertical="top"
-              accessibilityLabel="Write a review"
-            />
-          </View>
+              <View style={styles.reviewSection}>
+                <Text style={styles.reviewLabel}>{TRIP_REVIEW_SCREEN.reviewLabel}</Text>
+                <TextInput
+                  style={styles.reviewInput}
+                  value={comments}
+                  onChangeText={setComments}
+                  placeholder={TRIP_REVIEW_SCREEN.reviewPlaceholder}
+                  placeholderTextColor="#747686"
+                  multiline
+                  textAlignVertical="top"
+                  editable={!busy}
+                  maxLength={500}
+                  accessibilityLabel="Write a review"
+                />
+              </View>
+            </>
+          )}
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.submitButton,
-              submitting && styles.submitButtonBusy,
-              pressed && !submitting && { transform: [{ scale: 0.98 }] },
-            ]}
-            onPress={handleSubmit}
-            disabled={submitting}
-            accessibilityRole="button"
-            accessibilityLabel="Submit feedback"
-          >
-            <Text style={styles.submitLabel}>
-              {submitting
-                ? TRIP_REVIEW_SCREEN.submittingLabel
-                : TRIP_REVIEW_SCREEN.submitLabel}
-            </Text>
-            {!submitting ? (
-              <Ionicons name="send" size={20} color={colors.white} />
-            ) : null}
-          </Pressable>
+          {hasPendingTask ? (
+            <>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.submitButton,
+                  busy && styles.submitButtonBusy,
+                  pressed && !busy && { transform: [{ scale: 0.98 }] },
+                ]}
+                onPress={handleSubmit}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityLabel="Submit feedback"
+              >
+                <Text style={styles.submitLabel}>
+                  {submitting
+                    ? TRIP_REVIEW_SCREEN.submittingLabel
+                    : TRIP_REVIEW_SCREEN.submitLabel}
+                </Text>
+                {!submitting ? (
+                  <Ionicons name="send" size={20} color={colors.white} />
+                ) : null}
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [styles.skipButton, pressed && !busy && { opacity: 0.85 }]}
+                onPress={handleSkip}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityLabel={TRIP_REVIEW_SCREEN.skipLabel}
+              >
+                <Text style={styles.skipLabel}>
+                  {skipping
+                    ? TRIP_REVIEW_SCREEN.skippingLabel
+                    : TRIP_REVIEW_SCREEN.skipLabel}
+                </Text>
+              </Pressable>
+            </>
+          ) : null}
         </View>
       </ScrollView>
 

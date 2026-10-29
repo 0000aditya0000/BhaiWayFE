@@ -1,38 +1,35 @@
-import type { WithdrawBankAccount, WithdrawQuickAmount } from '../types';
-import {
-  WALLET_BALANCE,
-  WALLET_BALANCE_LABEL,
-} from './wallet-shared.constants';
+import type { WithdrawQuickAmount } from '../types';
 
 export const WITHDRAW_SCREEN = {
   title: 'Withdraw',
-  balanceLabel: 'Available Balance',
-  amountLabel: 'Enter BhaiWay Coins',
-  amountPlaceholder: '0.00',
-  selectAccountLabel: 'Select Account',
-  addAccountTitle: 'Add New Bank Account',
-  addAccountSubtitle: 'Securely link a new method',
-  proceedLabel: 'Proceed to Withdraw',
+  balanceLabel: 'Available to Withdraw',
+  amountLabel: 'How much do you want to withdraw?',
+  amountPlaceholder: '0',
+  selectAccountLabel: 'Receive money via',
+  addAccountTitle: 'Add Payment Method',
+  addAccountSubtitle: 'Add a UPI ID or bank account',
+  noMethodsTitle: 'No payment method added.',
+  noMethodsSubtitle: 'Add a payment method to receive withdrawals.',
+  proceedLabel: 'Withdraw',
+  submittingLabel: 'Submitting…',
+  maxLabel: 'Max',
   invalidAmountTitle: 'Invalid Amount',
-  invalidAmountMessage: 'Enter an amount greater than zero to continue.',
   exceedBalanceTitle: 'Insufficient Balance',
-  exceedBalanceMessage: 'Withdrawal amount cannot exceed your available balance.',
-  selectAccountTitle: 'Select Account',
-  selectAccountMessage: 'Choose a bank account to withdraw to.',
+  selectAccountTitle: 'Select Payment Method',
+  selectAccountMessage: 'Choose a payment method to withdraw to.',
+  successTitle: 'Withdrawal submitted',
+  successMessage: 'Your withdrawal request has been submitted.',
+  failedTitle: 'Withdrawal failed',
+  timeoutTitle: 'Unable to confirm',
+  checkStatusLabel: 'Check Status',
+  retryLabel: 'Try Again',
+  historyLabel: 'Withdrawal History',
 } as const;
 
-export const WITHDRAW_AVAILABLE_BALANCE = WALLET_BALANCE;
-export const WITHDRAW_AVAILABLE_BALANCE_LABEL = WALLET_BALANCE_LABEL;
-
 export const WITHDRAW_QUICK_AMOUNTS: readonly WithdrawQuickAmount[] = [
-  { id: '100', amount: 100, label: '+ 100' },
-  { id: '500', amount: 500, label: '+ 500' },
-  { id: '1000', amount: 1000, label: '+ 1000' },
-  { id: '5000', amount: 5000, label: '+ 5000' },
+  { id: '500', amount: 500, label: '500' },
+  { id: '1000', amount: 1000, label: '1000' },
+  { id: '2000', amount: 2000, label: '2000' },
 ];
 
-/** @deprecated Mock banks removed — use BankAccounts DemoData sheet only. */
-export const WITHDRAW_BANK_ACCOUNTS: readonly WithdrawBankAccount[] = [];
-
-export const DEFAULT_WITHDRAW_AMOUNT = 1000;
-export const DEFAULT_WITHDRAW_BANK_ID = '';
+export const DEFAULT_WITHDRAW_AMOUNT = '';

@@ -1,13 +1,24 @@
 import React, { useCallback } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  View,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppFooter, IconButton, AppText as Text } from '@/shared/components';
+import {
+  AppFooter,
+  IconButton,
+  AppText as Text,
+} from '@/shared/components';
 import { colors } from '@/shared/theme';
 import { triggerLightHaptic } from '@/shared/utils';
-import { UpcomingRideCard } from '@/features/my-rides/components';
+import { PastRideCard, UpcomingRideCard } from '@/features/my-rides/components';
 import { MY_RIDES_SCREEN } from '@/features/my-rides/constants';
+import { COMMUTE_BOOKING_REQUESTS_SCREEN } from '@/features/my-rides/constants/commute-booking-requests.constants';
 import { useMyRides } from '@/features/my-rides/hooks';
 import type { HistoryRideItem, MyRidesTab, UpcomingRideSummary } from '@/features/my-rides/types';
 import { styles } from './MyRidesScreen.styles';
@@ -20,13 +31,23 @@ export const MyRidesScreen = () => {
     setTab,
     upcomingRides,
     historyRides,
+    historyLoading,
+    historyLoadingMore,
+    historyError,
+    historyHasMore,
+    loadMoreHistory,
     modifyLabel,
     emptyUpcomingSubtitle,
     emptyPastSubtitle,
+    refreshing,
+    refresh,
     resolveRideRole,
     labelsForRole,
+    trackLabelForRide,
     openNotifications,
     openRideDetails,
+    openBookingRequests,
+    pendingCommuteRequestCount,
     openPastRide,
     modifyRide,
     trackRide,
@@ -67,14 +88,10 @@ export const MyRidesScreen = () => {
 
   const handleOpenDetails = useCallback(
     (ride: UpcomingRideSummary) => {
-      const role = resolveRideRole(ride);
-      if (role !== 'driver' || ride.assured) {
-        return;
-      }
       triggerLightHaptic();
       openRideDetails(ride);
     },
-    [openRideDetails, resolveRideRole],
+    [openRideDetails],
   );
 
   const handleOpenPastRide = useCallback(
@@ -84,6 +101,9 @@ export const MyRidesScreen = () => {
     },
     [openPastRide],
   );
+
+  const showPastEmpty =
+    tab === 'past' && !historyLoading && !historyError && historyRides.length === 0;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -110,6 +130,9 @@ export const MyRidesScreen = () => {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />
+        }
       >
         <View style={styles.tabs}>
           <Pressable
@@ -137,7 +160,42 @@ export const MyRidesScreen = () => {
         </View>
 
         {tab === 'upcoming' ? (
-          upcomingRides.length > 0 ? (
+          <>
+            {pendingCommuteRequestCount > 0 ? (
+              <Pressable
+                style={({ pressed }) => [styles.requestsBanner, pressed && { opacity: 0.92 }]}
+                onPress={() => {
+                  triggerLightHaptic();
+                  openBookingRequests();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={COMMUTE_BOOKING_REQUESTS_SCREEN.myRidesBannerTitle}
+              >
+                <View style={styles.requestsBannerCopy}>
+                  <Text style={styles.requestsBannerTitle}>
+                    {COMMUTE_BOOKING_REQUESTS_SCREEN.myRidesBannerTitle}
+                  </Text>
+                  <Text style={styles.requestsBannerSubtitle}>
+                    {COMMUTE_BOOKING_REQUESTS_SCREEN.myRidesBannerSubtitle(
+                      pendingCommuteRequestCount,
+                    )}
+                  </Text>
+                </View>
+                <View style={styles.requestsBannerCta}>
+                  <Text style={styles.requestsBannerCtaLabel}>
+                    {COMMUTE_BOOKING_REQUESTS_SCREEN.myRidesBannerCta}
+                  </Text>
+                  <View style={styles.requestsBannerCount}>
+                    <Text style={styles.requestsBannerCountText}>
+                      {COMMUTE_BOOKING_REQUESTS_SCREEN.pendingBadge(
+                        pendingCommuteRequestCount,
+                      )}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+            ) : null}
+            {upcomingRides.length > 0 ? (
             <View style={styles.upcomingList}>
               {upcomingRides.map((ride) => {
                 const role = resolveRideRole(ride);
@@ -149,7 +207,7 @@ export const MyRidesScreen = () => {
                     role={role}
                     peerLabel={labels.peerLabel}
                     cancelLabel={labels.cancelLabel}
-                    trackLabel={labels.trackLabel}
+                    trackLabel={trackLabelForRide(ride)}
                     modifyLabel={modifyLabel}
                     onCancel={() => handleCancel(ride)}
                     onTrack={() => handleTrack(ride)}
@@ -165,31 +223,48 @@ export const MyRidesScreen = () => {
               <Text style={styles.emptyTitle}>{MY_RIDES_SCREEN.emptyUpcomingTitle}</Text>
               <Text style={styles.emptySubtitle}>{emptyUpcomingSubtitle}</Text>
             </View>
-          )
-        ) : historyRides.length === 0 ? (
+          )}
+          </>
+        ) : historyLoading && historyRides.length === 0 ? (
+          <View style={styles.historyLoading}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.historyLoadingText}>{MY_RIDES_SCREEN.historyLoadingLabel}</Text>
+          </View>
+        ) : showPastEmpty ? (
           <View style={styles.emptyState}>
             <Ionicons name="time-outline" size={32} color="#747686" />
             <Text style={styles.emptyTitle}>{MY_RIDES_SCREEN.emptyPastTitle}</Text>
             <Text style={styles.emptySubtitle}>{emptyPastSubtitle}</Text>
           </View>
         ) : (
-          <View style={styles.pastList}>
-            {historyRides.map((ride, index) => (
-              <Pressable
+          <View style={styles.pastListCards}>
+            {historyError ? (
+              <View style={styles.historyErrorBanner}>
+                <Text style={styles.historyErrorText}>{historyError}</Text>
+              </View>
+            ) : null}
+            {historyRides.map((ride) => (
+              <PastRideCard
                 key={ride.id}
-                style={({ pressed }) => [
-                  styles.pastRow,
-                  index === historyRides.length - 1 && styles.pastRowLast,
-                  pressed && { opacity: 0.88 },
-                ]}
-                onPress={() => handleOpenPastRide(ride)}
-                accessibilityRole="button"
-                accessibilityLabel={`${ride.routeLabel}, ${ride.dateLabel}`}
-              >
-                <Text style={styles.pastRoute}>{ride.routeLabel}</Text>
-                <Text style={styles.pastDate}>{ride.dateLabel}</Text>
-              </Pressable>
+                ride={ride}
+                onOpenDetails={() => handleOpenPastRide(ride)}
+              />
             ))}
+            {historyHasMore ? (
+              <Pressable
+                style={({ pressed }) => [styles.loadMoreBtn, pressed && { opacity: 0.9 }]}
+                onPress={() => void loadMoreHistory()}
+                disabled={historyLoadingMore}
+                accessibilityRole="button"
+                accessibilityLabel={MY_RIDES_SCREEN.loadMoreLabel}
+              >
+                {historyLoadingMore ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Text style={styles.loadMoreLabel}>{MY_RIDES_SCREEN.loadMoreLabel}</Text>
+                )}
+              </Pressable>
+            ) : null}
           </View>
         )}
       </ScrollView>

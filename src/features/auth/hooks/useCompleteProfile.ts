@@ -7,13 +7,25 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import { ROUTES } from '@/config';
 import { triggerSuccessHaptic } from '@/shared/utils';
+import { formatApiGenderLabel } from '@/shared/utils/womenOnlyRide';
 import { authSession, showAppAlert } from '@/store';
+import { aadhaarRewardUiStore } from '@/features/profile/store/aadhaarRewardUiStore';
 import { verificationStore } from '@/features/profile/store';
 import { getMyVerifications } from '@/features/profile/api';
 import { authService } from '../services';
 import { profileSetupDraft } from '../store';
-import { mapCompleteProfileError, isDuplicateEmailError } from '../utils';
+import { mapCompleteProfileError, isDuplicateEmailError, mapGenderFromApi } from '../utils';
 import { profileValidationSchema, type ProfileFormValues } from '../validation';
+import type { ApiGender } from '../types';
+
+/** Registration finished → Home may show the Claim 50 Coins modal (UI only). */
+const markAadhaarClaimEligibleAfterRegistration = async (): Promise<void> => {
+  const userId = authSession.getUser()?.id?.trim();
+  if (!userId) {
+    return;
+  }
+  await aadhaarRewardUiStore.markClaimEligible(userId);
+};
 
 export interface UseCompleteProfileResult {
   form: UseFormReturn<ProfileFormValues>;
@@ -21,6 +33,7 @@ export interface UseCompleteProfileResult {
   setAvatarUri: (uri: string) => void;
   loading: boolean;
   isIdentityVerified: boolean;
+  genderLabel: string;
   saveDraft: () => void;
   submit: () => void;
 }
@@ -34,6 +47,9 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
   const [isIdentityVerified, setIsIdentityVerified] = useState(
     () => verificationStore.isIdentityVerified(),
   );
+  const [genderLabel, setGenderLabel] = useState(() =>
+    formatApiGenderLabel(authSession.getUser()?.gender ?? null),
+  );
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileValidationSchema),
@@ -41,7 +57,6 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
     defaultValues: {
       fullName: initialDraft.fullName,
       email: initialDraft.email,
-      gender: initialDraft.gender,
     },
   });
 
@@ -55,7 +70,6 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
     profileSetupDraft.set({
       fullName: values.fullName ?? '',
       email: values.email ?? '',
-      gender: values.gender,
       avatarUri,
     });
   }, [avatarUri, form]);
@@ -65,7 +79,6 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
       profileSetupDraft.set({
         fullName: values.fullName ?? '',
         email: values.email ?? '',
-        gender: values.gender,
         avatarUri,
       });
     });
@@ -88,7 +101,21 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
       .catch(() => {
         // Profile badge falls back to store snapshot; avoid blocking setup.
       });
-  }, []);
+
+    void authService
+      .getMe()
+      .then((response) => {
+        const apiGender = (response.profile?.gender ?? null) as ApiGender | null;
+        setGenderLabel(formatApiGenderLabel(apiGender));
+        const uiGender = mapGenderFromApi(apiGender);
+        if (uiGender) {
+          form.setValue('gender', uiGender, { shouldValidate: false });
+        }
+      })
+      .catch(() => {
+        setGenderLabel(formatApiGenderLabel(authSession.getUser()?.gender ?? null));
+      });
+  }, [form]);
 
   useEffect(() => {
     if (!initialDraft.promptFillDetails) {
@@ -121,12 +148,15 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
 
       try {
         const profile = await authService.completeProfile({
-          ...values,
+          fullName: values.fullName,
+          email: values.email,
           avatarUri: cloudinaryAvatar ?? avatarUri,
         });
         triggerSuccessHaptic();
         authSession.setUserFromProfile(profile);
+        await authService.hydrateAuthenticatedUser().catch(() => undefined);
         profileSetupDraft.clear();
+        await markAadhaarClaimEligibleAfterRegistration();
         router.replace(ROUTES.home);
       } catch (error) {
         const alreadyHasProfile =
@@ -141,10 +171,12 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
             id: authSession.getUser()?.id ?? '',
             fullName: values.fullName.trim(),
             email: values.email.trim(),
-            gender: values.gender,
+            gender: values.gender ?? 'other',
             avatarUri: cloudinaryAvatar ?? avatarUri ?? null,
           });
+          await authService.hydrateAuthenticatedUser().catch(() => undefined);
           profileSetupDraft.clear();
+          await markAadhaarClaimEligibleAfterRegistration();
           router.replace(ROUTES.home);
           return;
         }
@@ -163,6 +195,7 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
     setAvatarUri,
     loading,
     isIdentityVerified,
+    genderLabel,
     saveDraft,
     submit,
   };

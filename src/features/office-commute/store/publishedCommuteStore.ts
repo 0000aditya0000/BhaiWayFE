@@ -7,6 +7,11 @@ export interface PublishedCommuteSummary {
   seats: number;
   pricePerSeat: string;
   recurringDays: WeekdayId[];
+  rideId?: string;
+  seriesId?: string | null;
+  occurrenceSummary?: string;
+  outboundCount?: number;
+  returnCount?: number;
 }
 
 type Listener = (summary: PublishedCommuteSummary | null) => void;

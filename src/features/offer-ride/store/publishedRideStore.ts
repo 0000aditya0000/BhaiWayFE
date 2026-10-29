@@ -5,6 +5,14 @@ import type {
 } from '../types';
 
 export interface PublishedRideSummary {
+  /** Real backend ride UUID after POST /rides. */
+  rideId?: string;
+  /** Authoritative backend lifecycle status (e.g. ASSURANCE_ACTIVE). */
+  backendStatus?: string;
+  /** Passenger bookability from backend — not a lifecycle label. */
+  isBookable?: boolean;
+  /** User-facing status label derived from backendStatus. */
+  statusLabel?: string;
   pickupLabel: string;
   dropoffLabel: string;
   departureLabel: string;

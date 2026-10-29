@@ -1,0 +1,20 @@
+export const EMAIL_VERIFICATION_SCREEN = {
+  title: 'Verify your email',
+  corporateTitle: 'Verify corporate email',
+  description: (email: string) =>
+    `We've sent a 4-digit verification code to ${email}`,
+  descriptionPending: 'Request a verification code to confirm your email address.',
+  otpLabel: '4 digit email verification code',
+  verifyLabel: 'Verify',
+  verifyingLabel: 'Verifying…',
+  resendLabel: 'Resend code',
+  resendCountdown: (seconds: number) => `Resend code in ${seconds}s`,
+  successTitle: 'Email verified',
+  successMessage: 'Your email has been verified successfully.',
+  corporateSuccessTitle: 'Corporate email verified',
+  corporateSuccessMessage: 'Your corporate email has been verified successfully.',
+  missingEmailTitle: 'Email required',
+  missingEmailMessage: 'Add an email on Edit Profile before verifying.',
+  sendFailedTitle: 'Unable to send code',
+  verifyFailedTitle: 'Verification failed',
+} as const;

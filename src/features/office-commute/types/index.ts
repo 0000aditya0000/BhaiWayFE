@@ -22,6 +22,8 @@ export type {
 export type {
   CommuteRideResultItem,
   CommuteSearchSummary,
+  CommuteMatchFilterId,
+  CommuteResultSortId,
 } from './commute-ride-result.types';
 export type {
   CommuteReviewBookingData,

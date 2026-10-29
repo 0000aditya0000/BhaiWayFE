@@ -1,10 +1,7 @@
-import { env } from '@/config';
-import * as homeApi from '../api';
 import type { HomeDashboard } from '../types';
 import * as homeMock from './home.mock';
 
-const impl = env.useMocks ? homeMock : homeApi;
-
+/** Home cards are client-static; deployed backend has no `/home/dashboard` route. */
 export const homeService = {
-  fetchDashboard: (): Promise<HomeDashboard> => impl.fetchDashboard(),
+  fetchDashboard: (): Promise<HomeDashboard> => homeMock.fetchDashboard(),
 };

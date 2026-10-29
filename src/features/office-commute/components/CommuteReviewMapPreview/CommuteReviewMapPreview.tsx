@@ -1,118 +1,100 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
-import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
+import React, { useMemo } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import type { MapCoordinate } from '@/features/ride-search/types';
 import { AppText as Text } from '@/shared/components';
-import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
+import {
+  BhaiWayMap,
+  isValidMapCoordinate,
+  type BhaiWayMapMarker,
+  type MapLatLng,
+} from '@/shared/maps';
 import { styles } from './CommuteReviewMapPreview.styles';
 import type { CommuteReviewMapPreviewProps } from './CommuteReviewMapPreview.types';
 
-const EDGE_PADDING = { top: 40, right: 40, bottom: 56, left: 40 };
-
-const buildInitialRegion = (coordinates: MapCoordinate[]): Region => {
-  const latitudes = coordinates.map((point) => point.latitude);
-  const longitudes = coordinates.map((point) => point.longitude);
-  const minLat = Math.min(...latitudes);
-  const maxLat = Math.max(...latitudes);
-  const minLng = Math.min(...longitudes);
-  const maxLng = Math.max(...longitudes);
-
-  return {
-    latitude: (minLat + maxLat) / 2,
-    longitude: (minLng + maxLng) / 2,
-    latitudeDelta: Math.max((maxLat - minLat) * 1.7, 0.04),
-    longitudeDelta: Math.max((maxLng - minLng) * 1.7, 0.04),
-  };
-};
+const toValidCoordinate = (value?: MapLatLng | null): MapLatLng | null =>
+  isValidMapCoordinate(value) ? value : null;
 
 export const CommuteReviewMapPreview = ({
   pickup,
   dropoff,
+  pickupLabel = 'Pickup',
+  dropoffLabel = 'Drop-off',
   routeCoordinates,
   distanceLabel,
   durationLabel,
   distanceCaption,
   loading = false,
 }: CommuteReviewMapPreviewProps) => {
-  const mapRef = useRef<MapView>(null);
-  const fittedKeyRef = useRef('');
+  const source = toValidCoordinate(pickup);
+  const destination = toValidCoordinate(dropoff);
+
+  const markers = useMemo((): BhaiWayMapMarker[] => {
+    const next: BhaiWayMapMarker[] = [];
+    if (source) {
+      next.push({
+        id: 'commute-review-source',
+        coordinate: source,
+        kind: 'source',
+        title: pickupLabel,
+        pinColor: '#4B61C4',
+      });
+    }
+    if (destination) {
+      next.push({
+        id: 'commute-review-destination',
+        coordinate: destination,
+        kind: 'destination',
+        title: dropoffLabel,
+        pinColor: '#BA1A1A',
+      });
+    }
+    return next;
+  }, [destination, dropoffLabel, pickupLabel, source]);
 
   const polylineCoordinates = useMemo(() => {
-    if (routeCoordinates.length >= 2) {
-      return routeCoordinates;
+    const decoded = routeCoordinates.filter(isValidMapCoordinate);
+    if (decoded.length >= 2) {
+      const withEndpoints = [...decoded];
+      if (source) {
+        const first = withEndpoints[0];
+        if (first.latitude !== source.latitude || first.longitude !== source.longitude) {
+          withEndpoints.unshift(source);
+        }
+      }
+      if (destination) {
+        const last = withEndpoints[withEndpoints.length - 1];
+        if (last.latitude !== destination.latitude || last.longitude !== destination.longitude) {
+          withEndpoints.push(destination);
+        }
+      }
+      return withEndpoints;
     }
-    return [pickup, dropoff];
-  }, [dropoff, pickup, routeCoordinates]);
-
-  const initialRegion = useMemo(
-    () => buildInitialRegion(polylineCoordinates),
-    [polylineCoordinates],
-  );
-
-  const fitKey = useMemo(
-    () =>
-      `${polylineCoordinates.length}:${polylineCoordinates[0]?.latitude}:${polylineCoordinates[polylineCoordinates.length - 1]?.longitude}`,
-    [polylineCoordinates],
-  );
-
-  const fitRoute = useCallback(() => {
-    if (fittedKeyRef.current === fitKey) {
-      return;
+    if (source && destination) {
+      return [source, destination];
     }
-    fittedKeyRef.current = fitKey;
-    mapRef.current?.fitToCoordinates(polylineCoordinates, {
-      edgePadding: EDGE_PADDING,
-      animated: false,
-    });
-  }, [fitKey, polylineCoordinates]);
-
-  useEffect(() => {
-    fitRoute();
-  }, [fitRoute]);
+    return decoded;
+  }, [destination, routeCoordinates, source]);
 
   return (
     <View
       style={styles.container}
-      accessibilityLabel={`Best route ${distanceLabel}, ${durationLabel}`}
+      accessibilityLabel={`Selected route from ${pickupLabel} to ${dropoffLabel}, ${distanceLabel}, ${durationLabel}`}
     >
-      {isGoogleMapsBypassed() ? (
-        <MapBypassSurface
-          style={styles.map}
-          title="Commute route"
-          points={[
-            { ...pickup, label: 'Pickup' },
-            { ...dropoff, label: 'Drop-off' },
-          ]}
-        />
-      ) : (
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          initialRegion={initialRegion}
-          onMapReady={fitRoute}
-          scrollEnabled={false}
-          zoomEnabled={false}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          toolbarEnabled={false}
-          showsCompass={false}
-          liteMode={Platform.OS === 'android'}
-          pointerEvents="none"
-        >
-          <Marker coordinate={pickup} pinColor="#4B61C4" tracksViewChanges={false} />
-          <Marker coordinate={dropoff} pinColor="#BA1A1A" tracksViewChanges={false} />
-          <Polyline
-            coordinates={polylineCoordinates}
-            strokeColor="#4B61C4"
-            strokeWidth={4}
-            lineJoin="round"
-            lineCap="round"
-          />
-        </MapView>
-      )}
+      <BhaiWayMap
+        style={styles.map}
+        markers={markers}
+        routeCoordinates={polylineCoordinates}
+        autoFit
+        scrollEnabled={false}
+        zoomEnabled={false}
+        rotateEnabled={false}
+        pitchEnabled={false}
+        loading={loading}
+        bypassTitle="Commute route"
+        bypassSubtitle="Your selected driving route from pickup to drop-off will appear here."
+      />
 
       <LinearGradient
         colors={['rgba(248,249,255,0)', 'rgba(248,249,255,1)']}

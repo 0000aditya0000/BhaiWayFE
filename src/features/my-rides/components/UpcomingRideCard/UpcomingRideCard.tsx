@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { Avatar, AppText as Text } from '@/shared/components';
 import { MY_RIDES_SCREEN } from '../../constants';
+import { canModifyRegularUpcomingRide } from '../../utils';
 import { MyRidesRouteMap } from '../MyRidesRouteMap';
 import { styles } from './UpcomingRideCard.styles';
 import type { UpcomingRideCardProps } from './UpcomingRideCard.types';
@@ -23,32 +24,62 @@ export const UpcomingRideCard = React.memo(
   }: UpcomingRideCardProps) => {
     const peer = ride.peer ?? ride.driver;
     const isDriver = role === 'driver';
-    const showOtp = role === 'rider';
+    const showOtp = role === 'rider' && Boolean(ride.otp?.trim());
+    const isDriverDriving = isDriver;
+    const showRideDetails = isDriverDriving || role === 'rider';
     const isRegularDriving = isDriver && !ride.assured;
-    const CardWrapper = isRegularDriving ? Pressable : View;
-    const cardProps = isRegularDriving
-      ? {
-          onPress: onOpenDetails,
-          accessibilityRole: 'button' as const,
-          accessibilityLabel: `Open ${ride.pickupLabel} to ${ride.dropoffLabel}`,
-        }
-      : {};
+    const showModify =
+      isRegularDriving && canModifyRegularUpcomingRide(ride);
 
     return (
-      <CardWrapper style={styles.rideCard} {...cardProps}>
+      <View style={styles.rideCard}>
         <View style={styles.cardBody}>
           <View style={styles.cardHeader}>
             <View style={styles.cardHeaderLeft}>
               <Text style={styles.dateLabel}>{ride.dateLabel}</Text>
               <Text style={styles.rideTitle}>{ride.title}</Text>
-              {ride.assured ? (
-                <View style={styles.assuredBadge}>
-                  <Ionicons name="checkmark-circle" size={14} color="#374BB1" />
-                  <Text style={styles.assuredText}>{MY_RIDES_SCREEN.assuredLabel}</Text>
+              <View
+                style={[
+                  styles.rideTypeBadge,
+                  ride.assured ? styles.assuredBadge : styles.regularBadge,
+                ]}
+              >
+                <Ionicons
+                  name={ride.assured ? 'checkmark-circle' : 'car-outline'}
+                  size={14}
+                  color={ride.assured ? '#374BB1' : '#434655'}
+                />
+                <Text
+                  style={[
+                    styles.rideTypeText,
+                    ride.assured ? styles.assuredText : styles.regularText,
+                  ]}
+                >
+                  {ride.assured
+                    ? MY_RIDES_SCREEN.assuredLabel
+                    : ride.commute
+                      ? 'COMMUTE'
+                      : MY_RIDES_SCREEN.regularLabel}
+                </Text>
+              </View>
+              {isDriver && ride.commute && ride.seriesId ? (
+                <View style={styles.seriesBadge}>
+                  <Text style={styles.seriesBadgeText}>
+                    {ride.direction === 'RETURN' ? 'Series · Return' : 'Series'}
+                  </Text>
+                </View>
+              ) : null}
+              {isDriver && ride.commute && (ride.pendingRequestCount ?? 0) > 0 ? (
+                <View style={styles.pendingRequestsBadge}>
+                  <Text style={styles.pendingRequestsBadgeText}>
+                    {(ride.pendingRequestCount ?? 0) === 1
+                      ? '1 request'
+                      : `${ride.pendingRequestCount} requests`}
+                  </Text>
                 </View>
               ) : null}
             </View>
-            {isRegularDriving ? (
+            {showModify ? (
               <Pressable
                 style={({ pressed }) => [
                   styles.modifyChip,
@@ -76,7 +107,6 @@ export const UpcomingRideCard = React.memo(
                 dropoff={ride.dropoff}
                 pickupLabel={ride.pickupLabel}
                 dropoffLabel={ride.dropoffLabel}
-                onExpandPress={isRegularDriving ? onOpenDetails : onTrack}
                 height={160}
               />
             </View>
@@ -102,6 +132,17 @@ export const UpcomingRideCard = React.memo(
 
           <View style={styles.driverSection}>
             <Text style={styles.peerLabel}>{peerLabel}</Text>
+            {isDriver &&
+            ride.totalSeats != null &&
+            ride.availableSeats != null ? (
+              <Text style={styles.vehicleText}>
+                {ride.vehicleLabel ? `${ride.vehicleLabel} · ` : ''}
+                {MY_RIDES_SCREEN.passengersBookedSummary(
+                  ride.seatsBooked ?? 0,
+                  ride.availableSeats,
+                )}
+              </Text>
+            ) : null}
             {isDriver ? (
               ride.riders && ride.riders.length > 0 ? (
                 <View style={styles.ridersList}>
@@ -171,11 +212,29 @@ export const UpcomingRideCard = React.memo(
                     ) : null}
                   </View>
                   <Text style={styles.vehicleText}>
-                    {peer.vehicleLabel} • {peer.plateNumber}
+                    {[peer.vehicleLabel, peer.plateNumber]
+                      .map((part) => part?.trim())
+                      .filter(Boolean)
+                      .join(' • ')}
                   </Text>
                 </View>
               </View>
             )}
+
+            {showRideDetails ? (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.detailsButton,
+                  pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
+                ]}
+                onPress={onOpenDetails}
+                accessibilityRole="button"
+                accessibilityLabel={MY_RIDES_SCREEN.rideDetailsLabel}
+              >
+                <Ionicons name="document-text-outline" size={16} color="#374BB1" />
+                <Text style={styles.detailsLabel}>{MY_RIDES_SCREEN.rideDetailsLabel}</Text>
+              </Pressable>
+            ) : null}
 
             <View style={styles.actionRow}>
               <Pressable
@@ -204,7 +263,7 @@ export const UpcomingRideCard = React.memo(
             </View>
           </View>
         </View>
-      </CardWrapper>
+      </View>
     );
   },
 );

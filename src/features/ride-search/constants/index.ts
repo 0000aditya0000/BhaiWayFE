@@ -27,6 +27,14 @@ export {
   getRideResultPath,
 } from './ride-result.constants';
 export {
+  DRIVER_RECENT_RIDES_UI,
+  DRIVER_RECENT_RIDE_STATUS_META,
+} from './driver-recent-rides.constants';
+export type {
+  DriverRecentRideStatusId,
+  DriverRecentRideStatusItem,
+} from './driver-recent-rides.constants';
+export {
   REVIEW_BOOKING_SCREEN,
   ASSURED_BOOKING_FEE,
   DEFAULT_PROMO_CODE,
@@ -98,6 +106,7 @@ export {
 export {
   TRIP_COMPLETED_SCREEN,
   TRIP_COMPLETED_PAYMENT_OPTIONS,
+  buildTripCompletedPaymentOptions,
   getTripCompletedMock,
   getTripCompletedPath,
 } from './trip-completed.constants';

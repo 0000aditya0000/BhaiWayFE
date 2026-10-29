@@ -1,0 +1,23 @@
+export const MY_RATINGS_SCREEN = {
+  title: 'Ratings & Reviews',
+  receivedTab: 'Received',
+  givenTab: 'Given',
+  heroTitle: 'Your reputation on BhaiWay',
+  receivedHeroSubtitle: 'See how drivers and passengers have rated you after shared rides.',
+  givenHeroSubtitle: 'Reviews you have left for drivers and passengers after your rides.',
+  averageLabel: 'Average rating',
+  reviewsLabel: 'Total reviews',
+  receivedEmptyTitle: 'No reviews yet',
+  receivedEmptySubtitle:
+    'Complete rides and receive ratings from your co-riders to build your profile.',
+  givenEmptyTitle: 'No ratings given yet',
+  givenEmptySubtitle: 'After completing a ride you can rate your driver or co-passengers.',
+  loadErrorTitle: 'Unable to load ratings',
+  loadErrorMessage: 'Please check your connection and try again.',
+  retryLabel: 'Try again',
+  driverRoleLabel: 'As a driver',
+  passengerRoleLabel: 'As a passenger',
+  ratedByLabel: 'Rated by',
+  youRatedLabel: 'You rated',
+  anonymousReviewer: 'BhaiWay rider',
+} as const;

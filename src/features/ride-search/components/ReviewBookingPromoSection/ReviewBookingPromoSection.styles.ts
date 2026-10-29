@@ -54,6 +54,20 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textInverse,
   },
+  viewAvailableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  viewAvailableLink: {
+    ...typography.label,
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '700',
+    color: colors.primary,
+  },
   successRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -80,5 +94,25 @@ export const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '600',
     color: colors.primary,
+  },
+  applyButtonDisabled: {
+    opacity: 0.7,
+  },
+  errorText: {
+    ...typography.caption,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.error ?? '#B91C1C',
+  },
+  successRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  clearLabel: {
+    ...typography.caption,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
 });

@@ -59,3 +59,5 @@ export { RideDetailsFareCard } from './RideDetailsFareCard';
 export type { RideDetailsFareCardProps } from './RideDetailsFareCard';
 export { RideDetailsRulesCard } from './RideDetailsRulesCard';
 export type { RideDetailsRulesCardProps } from './RideDetailsRulesCard';
+export { DriverRecentRidesStatus } from './DriverRecentRidesStatus';
+export type { DriverRecentRidesStatusProps } from './DriverRecentRidesStatus';

@@ -6,11 +6,11 @@ export const OUTSTATION_RIDE_SCREEN = {
 
 export const OUTSTATION_RIDE_INTRO = {
   title: 'Choose your ride type',
-  subtitle: 'Select Regular Ride or Assured Ride to continue publishing.',
+  subtitle: 'Compare plans and pick what fits this trip.',
 } as const;
 
 export const OUTSTATION_INCENTIVE = {
-  message: 'Assured rides help you earn 1.5x more',
+  message: 'Assured rides help you earn 1.5× more',
 } as const;
 
 export const OUTSTATION_HERO_IMAGE = require('../../../../assets/images/offer-ride/outstation-hero.png');
@@ -21,21 +21,23 @@ export const OUTSTATION_RIDE_TYPES: readonly OutstationRideTypeOption[] = [
     title: 'Regular Ride',
     icon: 'car-outline',
     iconVariant: 'muted',
-    description: 'Standard intercity ride sharing. Flexible for both you and your passengers.',
+    description: 'Flexible intercity sharing for everyday trips.',
     buttonLabel: 'Select Regular',
     buttonVariant: 'accent',
+    perks: ['No deposit required', 'Flexible cancel', 'Standard payout'],
   },
   {
     id: 'assured',
     title: 'Assured Ride',
     icon: 'shield-checkmark',
     iconVariant: 'dark',
-    description: 'Guaranteed rides for passengers. Earn a premium booking amount upfront.',
+    description: 'Guaranteed seats with premium upfront earnings.',
     buttonLabel: 'Select Assured',
     buttonVariant: 'primary',
     highlighted: true,
-    badge: 'Best for Drivers',
-    note: '*Note: Cancellation fees apply for assured rides.*',
+    badge: 'Recommended',
+    note: 'Cancellation fees apply',
+    perks: ['1.5× earnings', 'Premium booking fee', 'Priority listing'],
   },
 ] as const;
 

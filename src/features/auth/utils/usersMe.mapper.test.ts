@@ -60,6 +60,7 @@ assertEqual(sessionUser.firstName, 'Aditya', 'session firstName');
 assertEqual(sessionUser.email, 'aditya@example.com', 'session email');
 assertEqual(sessionUser.phone, '+919876543210', 'session phone');
 assertEqual(sessionUser.avatarUri, 'https://cdn.example.com/photo.jpg', 'session avatar');
+assertEqual(sessionUser.gender, 'MALE', 'session gender from profile.gender');
 
 assertEqual(mapGetMeToGreetingFirstName(getMeResponse), 'Aditya', 'mapped greeting name');
 
@@ -70,6 +71,13 @@ const noProfile = mapGetMeToSessionUser({
 });
 assertEqual(noProfile.fullName, '', 'empty profile leaves fullName blank');
 assertEqual(noProfile.firstName, null, 'empty profile leaves firstName null');
+assertEqual(noProfile.gender, null, 'empty profile leaves gender null');
+
+const femaleMe = mapGetMeToSessionUser({
+  ...getMeResponse,
+  profile: { ...getMeResponse.profile!, gender: 'FEMALE' },
+});
+assertEqual(femaleMe.gender, 'FEMALE', 'FEMALE gender mapped');
 
 if (failed.length > 0) {
   throw new Error(`usersMe tests failed:\n${failed.join('\n')}`);

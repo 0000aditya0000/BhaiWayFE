@@ -8,6 +8,8 @@ import {
   mapProfileResponseToUserProfile,
   splitFullName,
   toCreateProfileRequest,
+  toUpdateProfileRequest,
+  resolveProfilePhotoForApi,
 } from './completeProfile.mapper';
 
 const failed: string[] = [];
@@ -48,13 +50,45 @@ assertEqual(
     firstName: 'Aditya',
     lastName: 'Gangwar',
     email: 'aditya@example.com',
-    gender: 'MALE',
   },
   'request body mapping',
 );
+assertEqual('gender' in body, false, 'does not send manual gender on create');
 assertEqual('accessToken' in body, false, 'does not send MSG91/BhaiWay tokens');
 assertEqual('fullName' in body, false, 'does not send UI fullName field');
 assertEqual('avatarUri' in body, false, 'does not send extra avatar field');
+
+const bodyWithPhoto = toCreateProfileRequest({
+  ...payload,
+  avatarUri: 'https://cdn.example.com/photos/user.jpg',
+});
+assertEqual(
+  bodyWithPhoto.profilePhoto,
+  'https://cdn.example.com/photos/user.jpg',
+  'maps Cloudinary URL to profilePhoto on create',
+);
+
+const localPhotoBody = toCreateProfileRequest({
+  ...payload,
+  avatarUri: 'file:///cache/profile.jpg',
+});
+assertEqual('profilePhoto' in localPhotoBody, false, 'does not send local file URIs');
+
+const patchBody = toUpdateProfileRequest({
+  ...payload,
+  avatarUri: 'https://cdn.example.com/photos/new.jpg',
+});
+assertEqual(
+  patchBody,
+  {
+    firstName: 'Aditya',
+    lastName: 'Gangwar',
+    profilePhoto: 'https://cdn.example.com/photos/new.jpg',
+  },
+  'patch body mapping',
+);
+assertEqual('email' in patchBody, false, 'patch does not include email');
+assertEqual('gender' in patchBody, false, 'patch does not send gender');
 
 const singleNameBody = toCreateProfileRequest({ ...payload, fullName: 'Aditya' });
 assertEqual(singleNameBody.firstName, 'Aditya', 'single firstName');
@@ -75,6 +109,23 @@ assertEqual(mapped.fullName, 'Aditya Gangwar', 'joins returned name');
 assertEqual(mapped.email, 'aditya@example.com', 'keeps submitted email');
 assertEqual(mapped.gender, 'male', 'maps gender back to UI');
 
+const mappedWithPhoto = mapProfileResponseToUserProfile(
+  {
+    id: 'profile-1',
+    firstName: 'Aditya',
+    lastName: 'Gangwar',
+    gender: 'MALE',
+    profilePhoto: 'https://cdn.example.com/avatar.jpg',
+  },
+  payload,
+  'user-42',
+);
+assertEqual(
+  mappedWithPhoto.avatarUri,
+  'https://cdn.example.com/avatar.jpg',
+  'uses API profilePhoto in session',
+);
+
 const duplicateEmail = { status: 409, code: 'HTTP_409', message: 'Email is already in use' };
 assertEqual(isDuplicateEmailError(duplicateEmail), true, 'detects duplicate email');
 assertEqual(
@@ -91,7 +142,7 @@ assertEqual(mapCompleteProfileError(duplicateEmail).includes('@'), false, 'does 
 
 assertEqual(
   mapCompleteProfileError({ status: 400, message: 'firstName should not be empty' }),
-  'Please check your name, email, and gender and try again.',
+  'Please check your name and email and try again.',
   '400 message',
 );
 assertEqual(
@@ -109,6 +160,11 @@ assertEqual(
   'network message',
 );
 
+assertEqual(
+  profileValidationSchema.safeParse({ fullName: 'Aditya Gangwar', email: 'aditya@example.com' }).success,
+  true,
+  'valid form without gender passes',
+);
 assertEqual(
   profileValidationSchema.safeParse({ fullName: '', email: '', gender: undefined }).success,
   false,

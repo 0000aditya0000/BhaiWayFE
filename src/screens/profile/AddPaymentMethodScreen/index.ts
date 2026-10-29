@@ -1,0 +1,1 @@
+export { AddPaymentMethodScreen } from './AddPaymentMethodScreen';

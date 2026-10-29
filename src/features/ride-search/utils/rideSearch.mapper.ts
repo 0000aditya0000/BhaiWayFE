@@ -1,7 +1,21 @@
 import type { ApiError } from '@/network/network.types';
 
 import type { RideSearchItemDto } from '../api/ridesSearch.types';
-import type { RidePreference, RideResultItem } from '../types';
+import type { RideFeature, RideResultItem, RideVehicleSummary } from '../types';
+import {
+  resolveWomenOnly,
+  WOMEN_ONLY_FEATURE,
+} from '@/shared/utils/womenOnlyRide';
+import {
+  mapRideSourceToPreferenceChips,
+  resolveRidePreferenceFlags,
+} from './mapRidePreferences';
+import {
+  mapDriverRatingFromSearch,
+  mapDriverRecentRidesFromSearch,
+  mapVehicleColorFromSearch,
+  mapVehicleLabelFromSearch,
+} from './mapDriverPassengerCard';
 
 const shortPlaceName = (value: string): string => {
   const segment = value.split(',')[0]?.trim();
@@ -48,55 +62,65 @@ export const parsePricePerSeat = (raw: string): number => {
 const mapApiRideType = (rideType: RideSearchItemDto['rideType']): RideResultItem['rideType'] =>
   rideType === 'ASSURED' ? 'assured' : 'regular';
 
-const mapVehicleLabel = (vehicle: RideSearchItemDto['vehicle']): string => {
-  const make = vehicle.make?.trim() ?? '';
-  const model = vehicle.model?.trim() ?? '';
-  const label = [make, model].filter(Boolean).join(' ');
-  return label || model || make || 'Car';
+const mapVehicleSummary = (
+  vehicle: RideSearchItemDto['vehicle'] | null | undefined,
+): RideVehicleSummary => {
+  const label = mapVehicleLabelFromSearch(vehicle);
+  return {
+    id: vehicle?.id?.trim() || '',
+    label,
+    color: mapVehicleColorFromSearch(vehicle),
+    vehicleType: vehicle?.vehicleType?.trim() || '',
+    seatingCapacity: Math.max(0, Math.floor(Number(vehicle?.seatingCapacity) || 0)),
+    make: vehicle?.make?.trim() || '',
+    model: vehicle?.model?.trim() || '',
+    variant: vehicle?.variant?.trim() || '',
+  };
 };
 
-const mapPreferences = (preferences: RideSearchItemDto['preferences']): RidePreference[] => {
-  const items: RidePreference[] = [];
-  if (preferences.noSmoking) {
-    items.push({ id: 'no-smoking', label: 'No smoking', icon: 'ban-outline' });
-  }
-  if (preferences.noPets) {
-    items.push({ id: 'no-pets', label: 'No pets', icon: 'paw-outline' });
-  }
-  if (preferences.luggageAllowed) {
-    items.push({ id: 'luggage', label: 'Luggage allowed', icon: 'briefcase-outline' });
-  }
-  if (preferences.maxTwoInBackSeat) {
-    items.push({ id: 'max-two-back', label: 'Max 2 in back', icon: 'people-outline' });
-  }
-  return items;
-};
+const mapWomenOnlyFeatures = (item: RideSearchItemDto): RideFeature[] =>
+  resolveWomenOnly(item)
+    ? [{ id: WOMEN_ONLY_FEATURE.id, label: WOMEN_ONLY_FEATURE.label, icon: WOMEN_ONLY_FEATURE.icon }]
+    : [];
 
-export const mapRideSearchItemToResult = (item: RideSearchItemDto): RideResultItem => ({
-  id: item.id,
-  rideType: mapApiRideType(item.rideType),
-  driver: {
-    id: item.driver.id,
-    name: item.driver.displayName?.trim() || 'BhaiWay Driver',
-    rating: 4.8,
-    verified: true,
-    yearsDriving: 3,
-    avatarUri: item.driver.profilePhoto?.trim() || undefined,
-  },
-  price: parsePricePerSeat(item.pricePerSeat),
-  departureTime: formatApiDepartureTime(item.departureTime),
-  carModel: mapVehicleLabel(item.vehicle),
-  seatsLeft: Math.max(0, item.availableSeats),
-  ac: true,
-  luggage: item.preferences.luggageAllowed ? 'Medium' : 'Small',
-  originCity: shortPlaceName(item.source),
-  destinationCity: shortPlaceName(item.destination),
-  distanceKm: 0,
-  durationMinutes: 0,
-  durationLabel: formatCivilDateLabel(item.departureDate),
-  preferences: mapPreferences(item.preferences),
-  features: [],
-});
+export const mapRideSearchItemToResult = (item: RideSearchItemDto): RideResultItem => {
+  const preferenceFlags = resolveRidePreferenceFlags(item);
+  const vehicle = mapVehicleSummary(item.vehicle);
+  const rating = mapDriverRatingFromSearch(item.driver);
+  const verified =
+    item.driver.verified === true ||
+    item.driver.isCorporateVerified === true ||
+    item.driver.corporateVerified === true;
+
+  return {
+    id: item.id,
+    rideType: mapApiRideType(item.rideType),
+    driver: {
+      id: item.driver.id,
+      name: item.driver.displayName?.trim() || 'BhaiWay Driver',
+      rating: rating.averageRating,
+      totalRatings: rating.totalRatings,
+      verified,
+      avatarUri: item.driver.profilePhoto?.trim() || undefined,
+      recentRides: mapDriverRecentRidesFromSearch(item.driver.recentRides),
+    },
+    vehicle,
+    price: parsePricePerSeat(String(item.pricePerSeat)),
+    departureTime: formatApiDepartureTime(item.departureTime),
+    carModel: vehicle.label,
+    seatsLeft: Math.max(0, item.availableSeats),
+    ac: true,
+    luggage: preferenceFlags.luggageAllowed ? 'Medium' : 'Small',
+    originCity: shortPlaceName(item.source),
+    destinationCity: shortPlaceName(item.destination),
+    distanceKm: 0,
+    durationMinutes: 0,
+    durationLabel: formatCivilDateLabel(item.departureDate),
+    preferences: mapRideSourceToPreferenceChips(item),
+    features: mapWomenOnlyFeatures(item),
+    womenOnly: resolveWomenOnly(item),
+  };
+};
 
 export const mapRideSearchItemsToResults = (
   items: readonly RideSearchItemDto[],

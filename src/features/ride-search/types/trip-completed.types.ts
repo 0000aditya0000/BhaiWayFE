@@ -1,7 +1,24 @@
 import type { MapCoordinate } from './map.types';
 import type { RideType } from './ride-result.types';
+import type { PayLaterPaymentResponse } from '../api/bookings.types';
 
-export type TripCompletedPaymentId = 'wallet' | 'upi' | 'cash';
+export type TripCompletedPaymentId = 'wallet' | 'cash';
+
+export type TripCompletedPaymentPhase =
+  | 'idle'
+  | 'processing'
+  | 'success'
+  | 'insufficient';
+
+export interface TripCompletedInsufficientBalance {
+  requiredAmount?: string;
+  requiredLabel?: string;
+  availableBalance?: string;
+  availableLabel?: string;
+  message: string;
+}
+
+export type { PayLaterPaymentResponse };
 
 export interface TripCompletedPaymentOption {
   id: TripCompletedPaymentId;

@@ -39,16 +39,20 @@ export const RideDetailsRulesCard = React.memo(({ rules }: RideDetailsRulesCardP
   <View style={styles.card} accessibilityRole="summary">
     <Text style={styles.title}>{RIDE_DETAILS_SCREEN.rulesTitle}</Text>
     <Text style={styles.subtitle}>{RIDE_DETAILS_SCREEN.rulesSubtitle}</Text>
-    <View style={styles.list}>
-      {rules.map((rule) => (
-        <View key={rule.id} style={styles.row}>
-          <View style={styles.iconWrap}>
-            <Ionicons name={iconName(rule.icon)} size={18} color={colors.primary} />
+    {rules.length === 0 ? (
+      <Text style={styles.emptyLabel}>{RIDE_DETAILS_SCREEN.rulesEmptyLabel}</Text>
+    ) : (
+      <View style={styles.list}>
+        {rules.map((rule) => (
+          <View key={rule.id} style={styles.row}>
+            <View style={styles.iconWrap}>
+              <Ionicons name={iconName(rule.icon)} size={18} color={colors.primary} />
+            </View>
+            <Text style={styles.label}>{rule.label}</Text>
           </View>
-          <Text style={styles.label}>{rule.label}</Text>
-        </View>
-      ))}
-    </View>
+        ))}
+      </View>
+    )}
   </View>
 ));
 

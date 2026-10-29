@@ -24,13 +24,18 @@ export const CancelUpcomingRideScreen = () => {
     dropoffLabel?: string;
     mode?: string;
     assured?: string;
+    commute?: string;
+    seriesId?: string;
   }>();
 
   const {
     summary,
     isDriving,
+    heading,
     subtitle,
     policyText,
+    showAssuredDriverWarning,
+    confirmLabel,
     reasons,
     selectedReasonId,
     otherNote,
@@ -38,6 +43,7 @@ export const CancelUpcomingRideScreen = () => {
     confirming,
     selectReason,
     setOtherNote,
+    keepRide,
     confirmCancel,
     goBack,
   } = useCancelUpcomingRide({
@@ -48,9 +54,15 @@ export const CancelUpcomingRideScreen = () => {
     dropoffLabel: getSearchParam(params.dropoffLabel),
     mode: getSearchParam(params.mode),
     assured: getSearchParam(params.assured),
+    commute: getSearchParam(params.commute),
   });
 
   const [otherFocused, setOtherFocused] = useState(false);
+
+  const handleKeepRide = useCallback(() => {
+    triggerLightHaptic();
+    keepRide();
+  }, [keepRide]);
 
   const handleConfirm = useCallback(() => {
     triggerLightHaptic();
@@ -91,15 +103,26 @@ export const CancelUpcomingRideScreen = () => {
           <View style={styles.cancelIconWrap}>
             <Ionicons name="close-circle" size={36} color="#BA1A1A" />
           </View>
-          <Text style={styles.heading}>{CANCEL_UPCOMING_RIDE_SCREEN.heading}</Text>
+          <Text style={styles.heading}>{heading}</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
+          {showAssuredDriverWarning ? (
+            <Text style={styles.assuredConfirmPrompt}>
+              {CANCEL_UPCOMING_RIDE_SCREEN.heading}
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.detailsCard}>
           <View style={styles.detailsHeader}>
             <Text style={styles.detailsLabel}>{CANCEL_UPCOMING_RIDE_SCREEN.rideDetailsLabel}</Text>
             {!isDriving ? (
-              summary.assured ? (
+              summary.commute ? (
+                <View style={styles.regularBadge}>
+                  <Text style={styles.regularBadgeText}>
+                    {CANCEL_UPCOMING_RIDE_SCREEN.commuteBadge}
+                  </Text>
+                </View>
+              ) : summary.assured ? (
                 <View style={styles.assuredBadge}>
                   <Text style={styles.assuredBadgeText}>
                     {CANCEL_UPCOMING_RIDE_SCREEN.assuredBadge}
@@ -138,35 +161,37 @@ export const CancelUpcomingRideScreen = () => {
 
         <View
           style={
-            isDriving || !summary.assured
-              ? styles.policyCardRegular
-              : styles.policyCardAssured
+            showAssuredDriverWarning || (summary.assured && !isDriving && !summary.commute)
+              ? styles.policyCardAssured
+              : styles.policyCardRegular
           }
         >
           <View style={styles.policyRow}>
             <Ionicons
-              name={summary.assured && !isDriving ? 'warning' : 'information-circle'}
+              name={showAssuredDriverWarning || (summary.assured && !isDriving && !summary.commute) ? 'warning' : 'information-circle'}
               size={22}
-              color={summary.assured && !isDriving ? '#BA1A1A' : '#374BB1'}
+              color={showAssuredDriverWarning || (summary.assured && !isDriving && !summary.commute) ? '#BA1A1A' : '#374BB1'}
             />
             <View style={styles.policyCopy}>
               <Text
                 style={
-                  summary.assured && !isDriving
+                  showAssuredDriverWarning || (summary.assured && !isDriving && !summary.commute)
                     ? styles.policyTitleAssured
                     : styles.policyTitleRegular
                 }
               >
                 {CANCEL_UPCOMING_RIDE_SCREEN.policyTitle}
               </Text>
-              {summary.assured && !isDriving ? (
-                <Text style={styles.policyTextAssured}>
-                  Note: This is an <Text style={styles.policyStrong}>Assured Ride</Text>. The
-                  booking fee of <Text style={styles.policyStrong}>50</Text> is non-refundable
-                  upon cancellation.
-                </Text>
+              {summary.assured && !isDriving && !summary.commute ? (
+                <Text style={styles.policyTextAssured}>{policyText}</Text>
               ) : (
-                <Text style={styles.policyTextRegular}>{policyText}</Text>
+                <Text
+                  style={
+                    showAssuredDriverWarning ? styles.policyTextAssured : styles.policyTextRegular
+                  }
+                >
+                  {policyText}
+                </Text>
               )}
             </View>
           </View>
@@ -221,6 +246,19 @@ export const CancelUpcomingRideScreen = () => {
         <View style={styles.actions}>
           <Pressable
             style={({ pressed }) => [
+              styles.keepButton,
+              pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
+              confirming && styles.confirmButtonDisabled,
+            ]}
+            onPress={handleKeepRide}
+            disabled={confirming}
+            accessibilityRole="button"
+            accessibilityLabel={CANCEL_UPCOMING_RIDE_SCREEN.keepLabel}
+          >
+            <Text style={styles.keepLabel}>{CANCEL_UPCOMING_RIDE_SCREEN.keepLabel}</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
               styles.confirmButton,
               pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
               confirming && styles.confirmButtonDisabled,
@@ -228,12 +266,12 @@ export const CancelUpcomingRideScreen = () => {
             onPress={handleConfirm}
             disabled={confirming}
             accessibilityRole="button"
-            accessibilityLabel={CANCEL_UPCOMING_RIDE_SCREEN.confirmLabel}
+            accessibilityLabel={confirmLabel}
           >
             {confirming ? (
               <ActivityIndicator color="#BA1A1A" />
             ) : (
-              <Text style={styles.confirmLabel}>{CANCEL_UPCOMING_RIDE_SCREEN.confirmLabel}</Text>
+              <Text style={styles.confirmLabel}>{confirmLabel}</Text>
             )}
           </Pressable>
         </View>

@@ -1,22 +1,40 @@
 import type { RideResponseDto } from '@/features/offer-ride/api/rides.types';
+import {
+  isUpcomingDriverRideStatus,
+  mapDriverUpcomingRideTitle,
+} from '@/features/offer-ride/utils/mapRideStatusLabel';
+import { isValidMapCoordinate, rideCoordsCache } from '@/shared/maps';
 
 import { DEFAULT_PROFILE_AVATAR } from '../constants';
 import type { HistoryRideItem, UpcomingRideSummary } from '../types';
-
-const FALLBACK_PICKUP = { latitude: 28.5921, longitude: 77.046 } as const;
-const FALLBACK_DROPOFF = { latitude: 28.4595, longitude: 77.0266 } as const;
+import { isCommuteApiRide } from './commuteMyRides.utils';
+import { resolveHistoryEndedMs, resolveUpcomingDepartureMs } from './sortMyRides';
 
 const normalizeStatus = (status: string | undefined): string =>
   String(status ?? '').trim().toUpperCase();
 
-export const isUpcomingRideStatus = (status: string | undefined): boolean => {
-  const value = normalizeStatus(status);
-  return value === 'PUBLISHED' || value === 'IN_PROGRESS';
-};
+export const isUpcomingRideStatus = (status: string | undefined): boolean =>
+  isUpcomingDriverRideStatus(status);
 
 export const isHistoryRideStatus = (status: string | undefined): boolean => {
   const value = normalizeStatus(status);
   return value === 'COMPLETED' || value === 'CANCELLED';
+};
+
+/** Driver Modify Ride is allowed for Regular and COMMUTE while still PUBLISHED. */
+export const canModifyRegularUpcomingRide = (ride: {
+  assured?: boolean;
+  commute?: boolean;
+  rideStatus?: string;
+}): boolean => {
+  if (ride.assured) {
+    return false;
+  }
+  const status = normalizeStatus(ride.rideStatus);
+  if (!status) {
+    return true;
+  }
+  return status === 'PUBLISHED';
 };
 
 const formatRideDateLabel = (date: string, time: string): string => {
@@ -31,29 +49,62 @@ const formatRideDateLabel = (date: string, time: string): string => {
 
 /** Map GET /rides/my RideResponseDto into a My Rides driver-mode upcoming card. */
 export const mapRideResponseToUpcoming = (ride: RideResponseDto): UpcomingRideSummary => {
-  const seats = Number.isFinite(ride.availableSeats) ? ride.availableSeats : ride.totalSeats;
+  const totalSeats = Number.isFinite(ride.totalSeats) ? ride.totalSeats : 0;
+  const availableSeats = Number.isFinite(ride.availableSeats)
+    ? ride.availableSeats
+    : totalSeats;
+  const bookedSeats = Math.max(0, totalSeats - availableSeats);
   const peer = {
-    name: 'Pending requests',
-    vehicleLabel: `${seats} seat${seats === 1 ? '' : 's'} open`,
+    name:
+      bookedSeats > 0
+        ? `${bookedSeats} booked · ${availableSeats} remaining`
+        : 'No passengers yet',
+    vehicleLabel: `${availableSeats} of ${totalSeats} seat${totalSeats === 1 ? '' : 's'} open`,
     plateNumber: ride.source,
     verified: false,
     avatarUri: DEFAULT_PROFILE_AVATAR,
   };
 
+  const cached = rideCoordsCache.getSync(ride.id);
+  const pickup = isValidMapCoordinate(cached?.origin) ? cached!.origin! : null;
+  const dropoff = isValidMapCoordinate(cached?.destination) ? cached!.destination! : null;
+
+  const isCommute = isCommuteApiRide(ride);
+  const seriesId = ride.seriesId?.trim() || null;
+  const direction = ride.direction ?? null;
+  const titleBase = mapDriverUpcomingRideTitle(ride);
+  const title =
+    isCommute && direction === 'RETURN'
+      ? `${titleBase} · Return`
+      : titleBase;
+
   return {
     id: ride.id,
-    dateLabel: formatRideDateLabel(ride.departureDate, ride.departureTime),
-    title: 'Ride Published',
+    rideId: ride.id,
+    rideStatus: ride.status,
+    dateLabel: formatRideDateLabel(
+      ride.occurrenceDate || ride.departureDate,
+      ride.departureTime,
+    ),
+    title,
     assured: ride.rideType === 'ASSURED',
+    commute: isCommute,
+    seriesId,
+    occurrenceDate: ride.occurrenceDate ?? null,
+    direction,
     otp: '',
     pickupLabel: ride.source || 'Pickup',
     dropoffLabel: ride.destination || 'Drop-off',
-    pickup: { ...FALLBACK_PICKUP },
-    dropoff: { ...FALLBACK_DROPOFF },
+    pickup,
+    dropoff,
     peer,
     driver: peer,
     riders: [],
     role: 'driver',
+    totalSeats,
+    availableSeats,
+    seatsBooked: bookedSeats,
+    sortAtMs: resolveUpcomingDepartureMs(ride.departureDate, ride.departureTime),
   };
 };
 
@@ -62,14 +113,27 @@ export const mapRideResponseToHistory = (ride: RideResponseDto): HistoryRideItem
   const cancelled = normalizeStatus(ride.status) === 'CANCELLED';
   return {
     id: upcoming.id,
+    rideId: upcoming.id,
     title: cancelled ? 'Ride Cancelled' : 'Trip Completed',
     routeLabel: `${upcoming.pickupLabel} → ${upcoming.dropoffLabel}`,
     dateLabel: upcoming.dateLabel,
     statusLabel: cancelled ? 'Cancelled' : 'Completed',
+    status: normalizeStatus(ride.status),
     pickupLabel: upcoming.pickupLabel,
     dropoffLabel: upcoming.dropoffLabel,
     pickup: upcoming.pickup,
     dropoff: upcoming.dropoff,
     role: 'driver',
+    assured: upcoming.assured,
+    commute: upcoming.commute,
+    direction: upcoming.direction ?? null,
+    seriesId: upcoming.seriesId ?? null,
+    occurrenceDate: upcoming.occurrenceDate ?? null,
+    sortAtMs: resolveHistoryEndedMs({
+      departureDate: ride.departureDate,
+      departureTime: ride.departureTime,
+      updatedAt: ride.updatedAt,
+      createdAt: ride.createdAt,
+    }),
   };
 };

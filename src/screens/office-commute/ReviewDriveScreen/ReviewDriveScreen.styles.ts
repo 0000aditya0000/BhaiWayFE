@@ -123,10 +123,8 @@ export const styles = StyleSheet.create({
   scheduleCard: {
     width: '100%',
   },
-  scheduleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  repeatCaption: {
+    marginTop: 16,
   },
   fieldCaption: {
     fontSize: 12,
@@ -149,15 +147,13 @@ export const styles = StyleSheet.create({
   },
   daysRow: {
     flexDirection: 'row',
-    gap: 4,
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-    maxWidth: 200,
+    alignItems: 'center',
+    gap: 6,
   },
   dayChip: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    flex: 1,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#E0E3E5',
@@ -168,7 +164,7 @@ export const styles = StyleSheet.create({
   dayLabel: {
     fontSize: 12,
     lineHeight: 16,
-    fontWeight: '500',
+    fontWeight: '700',
     color: '#626567',
   },
   dayLabelSelected: {

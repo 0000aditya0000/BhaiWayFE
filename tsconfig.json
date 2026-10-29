@@ -15,6 +15,10 @@
   ],
   "exclude": [
     "node_modules",
-    "BhaiWayFE"
+    "BhaiWayFE",
+    "_dump_*.ts",
+    "_tmp/**",
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ]
 }

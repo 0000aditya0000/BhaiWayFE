@@ -14,16 +14,9 @@ import {
   keyboardVerticalOffset,
   scrollKeyboardDismissMode,
 } from '@/shared/utils/platform';
-import { AvatarPicker, GenderCard, IdentityCard } from '@/features/auth/components';
+import { AvatarPicker, IdentityCard } from '@/features/auth/components';
 import { useCompleteProfile } from '@/features/auth/hooks';
-import type { Gender } from '@/features/auth/types';
 import { styles } from './CompleteProfileScreen.styles';
-
-const GENDER_OPTIONS: { label: string; value: Gender; fullWidth?: boolean }[] = [
-  { label: 'Male', value: 'male' },
-  { label: 'Female', value: 'female' },
-  { label: 'Prefer not to say / Other', value: 'other', fullWidth: true },
-];
 
 export const CompleteProfileScreen = () => {
   const router = useRouter();
@@ -34,28 +27,18 @@ export const CompleteProfileScreen = () => {
     setAvatarUri,
     loading,
     isIdentityVerified,
+    genderLabel,
     saveDraft,
     submit,
   } = useCompleteProfile();
   const {
     control,
-    watch,
-    setValue,
     formState: { errors, isValid },
   } = form;
 
-  const selectedGender = watch('gender');
-
-  const handleSelectGender = useCallback(
-    (value: Gender) => {
-      setValue('gender', value, { shouldValidate: true, shouldDirty: true });
-    },
-    [setValue],
-  );
-
   const handleVerifyIdentity = useCallback(() => {
     saveDraft();
-    router.push(ROUTES.authVerifyAadhaar);
+    router.push(ROUTES.authIdentityVerification);
   }, [router, saveDraft]);
 
   const handleHelp = useCallback(() => {
@@ -126,36 +109,18 @@ export const CompleteProfileScreen = () => {
                   />
                 )}
               />
-            </Animated.View>
 
-            <Animated.View entering={FadeInDown.delay(180).duration(400)}>
-              <Text style={styles.genderLabel}>Gender *</Text>
-              <View style={styles.genderRow}>
-                {GENDER_OPTIONS.filter((option) => !option.fullWidth).map((option) => (
-                  <GenderCard
-                    key={option.value}
-                    label={option.label}
-                    value={option.value}
-                    selected={selectedGender === option.value}
-                    onSelect={handleSelectGender}
-                  />
-                ))}
-              </View>
-              {GENDER_OPTIONS.filter((option) => option.fullWidth).map((option) => (
-                <GenderCard
-                  key={option.value}
-                  label={option.label}
-                  value={option.value}
-                  selected={selectedGender === option.value}
-                  onSelect={handleSelectGender}
-                  fullWidth
+              <View style={styles.genderReadOnly}>
+                <Input
+                  label="Gender"
+                  value={genderLabel}
+                  editable={false}
+                  pointerEvents="none"
                 />
-              ))}
-              {errors.gender?.message ? (
-                <Text style={styles.error} accessibilityLiveRegion="polite">
-                  {errors.gender.message}
+                <Text style={styles.genderHint}>
+                  Gender is set from identity verification and cannot be edited.
                 </Text>
-              ) : null}
+              </View>
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(260).duration(400)}>

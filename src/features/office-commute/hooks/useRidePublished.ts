@@ -3,6 +3,8 @@ import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
 import { formatBhaiWayCoins } from '@/shared/utils';
+import { myRidesSurfaceStore } from '@/features/my-rides/store';
+import { driverRidesRefreshStore } from '@/features/my-rides/store/driverRidesRefreshStore';
 import { WEEKDAY_OPTIONS } from '../constants/publish-commute.constants';
 import { RIDE_PUBLISHED_SCREEN } from '../constants/ride-published.constants';
 import { publishedCommuteStore, type PublishedCommuteSummary } from '../store/publishedCommuteStore';
@@ -16,6 +18,7 @@ export interface UseRidePublishedResult {
   priceLabel: string;
   dayChips: Array<{ id: string; label: string }>;
   isOneTime: boolean;
+  occurrenceSummary: string;
   openNotifications: () => void;
   viewMyRides: () => void;
   modifyRide: () => void;
@@ -57,6 +60,8 @@ export const useRidePublished = (): UseRidePublishedResult => {
   }, [router]);
 
   const viewMyRides = useCallback(() => {
+    myRidesSurfaceStore.setOfficeCommute();
+    driverRidesRefreshStore.bump();
     router.replace(ROUTES.myRides);
   }, [router]);
 
@@ -73,6 +78,7 @@ export const useRidePublished = (): UseRidePublishedResult => {
     priceLabel: formatBhaiWayCoins(Number(summary.pricePerSeat || '0')),
     dayChips,
     isOneTime: summary.recurringDays.length === 0,
+    occurrenceSummary: summary.occurrenceSummary ?? RIDE_PUBLISHED_SCREEN.subtitle,
     openNotifications,
     viewMyRides,
     modifyRide,

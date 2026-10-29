@@ -1,3 +1,5 @@
+import type { MapLatLng } from '@/shared/maps';
+
 export interface ActiveTripPassenger {
   id: string;
   name: string;
@@ -13,10 +15,17 @@ export interface ActiveTripNavStep {
 
 export interface ActiveTripSummary {
   destinationLabel: string;
-  etaMinutes: number;
+  /** Null when ETA cannot be derived from real GPS + destination coords. */
+  etaMinutes: number | null;
+  /** Human-readable ETA such as `7 hr 18 min`. */
+  etaLabel: string;
   distanceLabel: string;
   progress: number;
-  mapImageUri: string;
+  /** Assured/demo static map only. */
+  mapImageUri?: string;
+  destinationCoordinate: MapLatLng | null;
+  routeCoordinates: MapLatLng[];
+  locationErrorMessage: string | null;
   navStep: ActiveTripNavStep;
   passengers: readonly ActiveTripPassenger[];
 }

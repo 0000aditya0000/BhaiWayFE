@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Platform, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,7 +9,7 @@ import { APP_CONFIG } from '@/config';
 import { AppFooter, Avatar, IconButton, AppText as Text } from '@/shared/components';
 import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
 import { colors, spacing } from '@/shared/theme';
-import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
+import { formatBhaiWayCoins, getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { TRIP_COMPLETED_SCREEN } from '@/features/ride-search/constants';
 import { useTripCompleted } from '@/features/ride-search/hooks';
 import type { MapCoordinate, RideType, TripCompletedPaymentId } from '@/features/ride-search/types';
@@ -40,35 +40,14 @@ const buildRegion = (coordinates: MapCoordinate[]): Region => {
   };
 };
 
-const paymentIconName = (id: TripCompletedPaymentId) => {
-  if (id === 'wallet') {
-    return 'wallet' as const;
-  }
-  if (id === 'upi') {
-    return 'business-outline' as const;
-  }
-  return 'cash-outline' as const;
-};
+const paymentIconName = (id: TripCompletedPaymentId) =>
+  id === 'wallet' ? ('wallet' as const) : ('cash-outline' as const);
 
-const paymentIconStyle = (id: TripCompletedPaymentId) => {
-  if (id === 'wallet') {
-    return styles.paymentIconWallet;
-  }
-  if (id === 'upi') {
-    return styles.paymentIconUpi;
-  }
-  return styles.paymentIconCash;
-};
+const paymentIconStyle = (id: TripCompletedPaymentId) =>
+  id === 'wallet' ? styles.paymentIconWallet : styles.paymentIconCash;
 
-const paymentIconColor = (id: TripCompletedPaymentId) => {
-  if (id === 'wallet') {
-    return '#4B61C4';
-  }
-  if (id === 'upi') {
-    return '#585E72';
-  }
-  return '#434655';
-};
+const paymentIconColor = (id: TripCompletedPaymentId) =>
+  id === 'wallet' ? '#4B61C4' : '#434655';
 
 export const TripCompletedScreen = () => {
   const params = useLocalSearchParams<{
@@ -83,6 +62,7 @@ export const TripCompletedScreen = () => {
     originLng?: string;
     destinationLat?: string;
     destinationLng?: string;
+    bookingId?: string;
   }>();
 
   const rideTypeParam = getSearchParam(params.rideType);
@@ -96,10 +76,22 @@ export const TripCompletedScreen = () => {
   const {
     trip,
     routeCoordinates,
+    bookingLoading,
+    settlement,
+    showPaymentUi,
     paymentOptions,
     selectedPaymentId,
     selectPayment,
-    payNow,
+    paymentPhase,
+    paymentError,
+    insufficientBalance,
+    payButtonLabel,
+    payDisabled,
+    paymentResult,
+    submitPayment,
+    openAddMoney,
+    chooseCashAfterInsufficient,
+    continueAfterPayment,
     openNotifications,
   } = useTripCompleted({
     rideId: getSearchParam(params.rideId) || 'ride-default',
@@ -113,9 +105,13 @@ export const TripCompletedScreen = () => {
     originLng: Number.isFinite(originLng) ? originLng : undefined,
     destinationLat: Number.isFinite(destinationLat) ? destinationLat : undefined,
     destinationLng: Number.isFinite(destinationLng) ? destinationLng : undefined,
+    bookingId: getSearchParam(params.bookingId) || undefined,
   });
 
   const mapRef = useRef<MapView>(null);
+  const isProcessing = paymentPhase === 'processing';
+  const isSuccess = paymentPhase === 'success';
+  const payableLabel = settlement?.fareLabel ?? trip.amountLabel;
 
   const polyline = useMemo(() => {
     if (routeCoordinates.length >= 2) {
@@ -137,10 +133,24 @@ export const TripCompletedScreen = () => {
     fitRoute();
   }, [fitRoute]);
 
-  const handlePay = useCallback(() => {
+  const handlePrimaryAction = useCallback(() => {
     triggerLightHaptic();
-    payNow();
-  }, [payNow]);
+    if (isSuccess) {
+      continueAfterPayment();
+      return;
+    }
+    submitPayment();
+  }, [continueAfterPayment, isSuccess, submitPayment]);
+
+  const successAmountLabel = useMemo(() => {
+    const fareRaw = paymentResult?.fareAmount ?? settlement?.fareCoins;
+    if (fareRaw != null && fareRaw !== '') {
+      return formatBhaiWayCoins(Number(fareRaw), { spaced: false });
+    }
+    return payableLabel;
+  }, [payableLabel, paymentResult?.fareAmount, settlement?.fareCoins]);
+
+  const isCashSuccess = paymentResult?.paymentChannel?.toUpperCase() === 'CASH';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -169,13 +179,15 @@ export const TripCompletedScreen = () => {
 
         <View style={styles.card}>
           <View style={styles.summaryTop}>
-            <View>
+            <View style={styles.summaryTopRow}>
               <Text style={styles.summaryLabel}>{TRIP_COMPLETED_SCREEN.summaryLabel}</Text>
-              <Text style={styles.summaryDate}>{trip.dateLabel}</Text>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusText}>{trip.statusLabel}</Text>
+              </View>
             </View>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>{trip.statusLabel}</Text>
-            </View>
+            <Text style={styles.summaryDate} numberOfLines={2}>
+              {trip.dateLabel}
+            </Text>
           </View>
 
           <View style={styles.timeline}>
@@ -205,18 +217,29 @@ export const TripCompletedScreen = () => {
           <View style={styles.summaryFooter}>
             <View style={styles.driverLeft}>
               <Avatar size={48} accessibilityLabel={`${trip.driverName} photo`} />
-              <View>
+              <View style={styles.driverInfo}>
                 <Text style={styles.driverLabel}>{TRIP_COMPLETED_SCREEN.driverLabel}</Text>
-                <Text style={styles.driverName}>{trip.driverName}</Text>
+                <Text style={styles.driverName} numberOfLines={1}>
+                  {trip.driverName}
+                </Text>
                 <View style={styles.driverMetaRow}>
                   <Ionicons name="star" size={14} color="#F59E0B" />
-                  <Text style={styles.driverMeta}>{trip.driverMeta}</Text>
+                  <Text style={styles.driverMeta} numberOfLines={2}>
+                    {trip.driverMeta}
+                  </Text>
                 </View>
               </View>
             </View>
             <View style={styles.amountBlock}>
               <Text style={styles.amountLabel}>{TRIP_COMPLETED_SCREEN.amountLabel}</Text>
-              <Text style={styles.amountValue}>{trip.amountLabel}</Text>
+              <Text
+                style={styles.amountValue}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+              >
+                {payableLabel}
+              </Text>
             </View>
           </View>
         </View>
@@ -258,73 +281,209 @@ export const TripCompletedScreen = () => {
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.paymentTitle}>{TRIP_COMPLETED_SCREEN.paymentTitle}</Text>
-          <View style={styles.paymentList}>
-            {paymentOptions.map((option) => {
-              const selected = selectedPaymentId === option.id;
-              return (
-                <Pressable
-                  key={option.id}
-                  style={[styles.paymentOption, selected && styles.paymentOptionActive]}
-                  onPress={() => selectPayment(option.id)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={option.label}
-                >
-                  <View style={styles.paymentLeft}>
-                    <View style={[styles.paymentIcon, paymentIconStyle(option.id)]}>
-                      <Ionicons
-                        name={paymentIconName(option.id)}
-                        size={20}
-                        color={paymentIconColor(option.id)}
-                      />
-                    </View>
-                    <View>
-                      <Text style={styles.paymentLabel}>{option.label}</Text>
-                      <Text style={styles.paymentSubtitle}>{option.subtitle}</Text>
-                    </View>
-                  </View>
-                  <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
-                    {selected ? <View style={styles.radioInner} /> : null}
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <View style={styles.dashedDivider} />
-
-          <View style={styles.fareList}>
-            {trip.fareLines.map((line) => (
-              <View key={line.label} style={styles.fareRow}>
-                <Text style={styles.fareLabel}>{line.label}</Text>
-                <Text style={styles.fareValue}>{line.amountLabel}</Text>
+        {isSuccess ? (
+          <View style={styles.card}>
+            <View style={styles.successIconWrap}>
+              <Ionicons name="checkmark-circle" size={56} color="#059669" />
+            </View>
+            <Text style={styles.successTitle}>
+              {isCashSuccess
+                ? TRIP_COMPLETED_SCREEN.paidCashTitle
+                : TRIP_COMPLETED_SCREEN.paidTitle}
+            </Text>
+            <Text style={styles.successAmount}>{successAmountLabel}</Text>
+            <Text style={styles.successMessage}>
+              {isCashSuccess
+                ? TRIP_COMPLETED_SCREEN.paidCashMessage
+                : `${successAmountLabel} ${TRIP_COMPLETED_SCREEN.paidWalletMessage}`}
+            </Text>
+            {!isCashSuccess && paymentResult?.transactionId ? (
+              <View style={styles.paymentIdBlock}>
+                <Text style={styles.paymentIdLabel}>{TRIP_COMPLETED_SCREEN.paymentIdLabel}</Text>
+                <Text style={styles.paymentIdValue}>{paymentResult.transactionId}</Text>
               </View>
-            ))}
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total Payable</Text>
-              <Text style={styles.totalValue}>{trip.amountLabel}</Text>
+            ) : null}
+            <Text style={styles.successFootnote}>{TRIP_COMPLETED_SCREEN.paidFareMessage}</Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.payButton,
+                pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={handlePrimaryAction}
+              accessibilityRole="button"
+              accessibilityLabel={TRIP_COMPLETED_SCREEN.doneCta}
+            >
+              <Text style={styles.payLabel}>{TRIP_COMPLETED_SCREEN.doneCta}</Text>
+            </Pressable>
+          </View>
+        ) : showPaymentUi ? (
+          <View style={styles.card}>
+            {settlement?.isAssured ? (
+              <View style={styles.assuredFareBlock}>
+                <View style={styles.fareRow}>
+                  <Text style={styles.fareLabel}>{TRIP_COMPLETED_SCREEN.rideFareLabel}</Text>
+                  <Text style={styles.fareValue}>{settlement.fareLabel}</Text>
+                </View>
+                {settlement.securityDepositLabel ? (
+                  <View style={styles.assuredDepositRow}>
+                    <View>
+                      <Text style={styles.fareLabel}>{TRIP_COMPLETED_SCREEN.assuredDepositLabel}</Text>
+                      <Text style={styles.assuredDepositNote}>
+                        {TRIP_COMPLETED_SCREEN.assuredDepositNote}
+                      </Text>
+                    </View>
+                    <Text style={styles.fareValue}>{settlement.securityDepositLabel}</Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+
+            <Text style={styles.paymentTitle}>{TRIP_COMPLETED_SCREEN.paymentTitle}</Text>
+            <View style={styles.paymentList}>
+              {paymentOptions.map((option) => {
+                const selected = selectedPaymentId === option.id;
+                return (
+                  <Pressable
+                    key={option.id}
+                    style={[
+                      styles.paymentOption,
+                      selected && styles.paymentOptionActive,
+                      isProcessing && styles.paymentOptionDisabled,
+                    ]}
+                    onPress={() => selectPayment(option.id)}
+                    disabled={isProcessing}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected, disabled: isProcessing }}
+                    accessibilityLabel={option.label}
+                  >
+                    <View style={styles.paymentLeft}>
+                      <View style={[styles.paymentIcon, paymentIconStyle(option.id)]}>
+                        <Ionicons
+                          name={paymentIconName(option.id)}
+                          size={20}
+                          color={paymentIconColor(option.id)}
+                        />
+                      </View>
+                      <View>
+                        <Text style={styles.paymentLabel}>{option.label}</Text>
+                        <Text style={styles.paymentSubtitle}>{option.subtitle}</Text>
+                      </View>
+                    </View>
+                    <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
+                      {selected ? <View style={styles.radioInner} /> : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {insufficientBalance ? (
+              <View style={styles.insufficientCard}>
+                <Text style={styles.insufficientTitle}>
+                  {TRIP_COMPLETED_SCREEN.insufficientTitle}
+                </Text>
+                <Text style={styles.insufficientMessage}>
+                  {insufficientBalance.requiredLabel && insufficientBalance.availableLabel
+                    ? `You need ${insufficientBalance.requiredLabel} to pay for this ride, but your available BhaiWay Wallet balance is ${insufficientBalance.availableLabel}.`
+                    : insufficientBalance.message}
+                </Text>
+                <View style={styles.insufficientActions}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.secondaryActionButton,
+                      pressed && { opacity: 0.9 },
+                    ]}
+                    onPress={openAddMoney}
+                    accessibilityRole="button"
+                    accessibilityLabel={TRIP_COMPLETED_SCREEN.insufficientAddMoneyCta}
+                  >
+                    <Text style={styles.secondaryActionLabel}>
+                      {TRIP_COMPLETED_SCREEN.insufficientAddMoneyCta}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.secondaryActionButton,
+                      pressed && { opacity: 0.9 },
+                    ]}
+                    onPress={chooseCashAfterInsufficient}
+                    accessibilityRole="button"
+                    accessibilityLabel={TRIP_COMPLETED_SCREEN.insufficientPayCashCta}
+                  >
+                    <Text style={styles.secondaryActionLabel}>
+                      {TRIP_COMPLETED_SCREEN.insufficientPayCashCta}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
+
+            {paymentError ? <Text style={styles.paymentError}>{paymentError}</Text> : null}
+
+            <View style={styles.dashedDivider} />
+
+            <View style={styles.fareList}>
+              {trip.fareLines.map((line) => (
+                <View key={line.label} style={styles.fareRow}>
+                  <Text style={styles.fareLabel}>{line.label}</Text>
+                  <Text style={styles.fareValue}>{line.amountLabel}</Text>
+                </View>
+              ))}
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Amount to pay</Text>
+                <Text style={styles.totalValue}>{payableLabel}</Text>
+              </View>
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.payButton,
+                payDisabled && styles.payButtonDisabled,
+                pressed && !payDisabled && { opacity: 0.92, transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={handlePrimaryAction}
+              disabled={payDisabled}
+              accessibilityRole="button"
+              accessibilityLabel={payButtonLabel}
+              accessibilityState={{ disabled: payDisabled }}
+            >
+              {isProcessing || bookingLoading ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.payLabel}>{payButtonLabel}</Text>
+              )}
+            </Pressable>
+
+            <View style={styles.secureRow}>
+              <Ionicons name="shield-checkmark-outline" size={14} color="#434655" />
+              <Text style={styles.secureText}>{TRIP_COMPLETED_SCREEN.secureNote}</Text>
             </View>
           </View>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.payButton,
-              pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
-            ]}
-            onPress={handlePay}
-            accessibilityRole="button"
-            accessibilityLabel="Pay now and rate driver"
-          >
-            <Text style={styles.payLabel}>{TRIP_COMPLETED_SCREEN.payCta}</Text>
-          </Pressable>
-
-          <View style={styles.secureRow}>
-            <Ionicons name="shield-checkmark-outline" size={14} color="#434655" />
-            <Text style={styles.secureText}>{TRIP_COMPLETED_SCREEN.secureNote}</Text>
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.paymentTitle}>
+              {settlement?.paymentStatus === 'PAID'
+                ? TRIP_COMPLETED_SCREEN.alreadyPaidTitle
+                : TRIP_COMPLETED_SCREEN.paymentTitle}
+            </Text>
+            <Text style={styles.alreadyPaidMessage}>
+              {settlement?.paymentStatus === 'PAID'
+                ? TRIP_COMPLETED_SCREEN.alreadyPaidMessage
+                : TRIP_COMPLETED_SCREEN.paidFareMessage}
+            </Text>
+            <Pressable
+              style={({ pressed }) => [
+                styles.payButton,
+                pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
+              ]}
+              onPress={handlePrimaryAction}
+              accessibilityRole="button"
+              accessibilityLabel={TRIP_COMPLETED_SCREEN.continueToRatingCta}
+            >
+              <Text style={styles.payLabel}>{TRIP_COMPLETED_SCREEN.continueToRatingCta}</Text>
+            </Pressable>
           </View>
-        </View>
+        )}
       </ScrollView>
 
       <AppFooter activeTab="rides" />

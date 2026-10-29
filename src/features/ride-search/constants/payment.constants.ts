@@ -9,21 +9,36 @@ export const PAYMENT_SCREEN = {
   title: 'Payment Options',
   walletTitle: 'BhaiWay Coins',
   addCoinsLabel: 'Add BhaiWay Coins',
-  upiTitle: 'UPI Payments',
-  cardsTitle: 'Saved Cards',
-  bankingTitle: 'Net Banking',
   payAfterTitle: 'Pay After Ride',
-  addUpiLabel: 'Add New UPI ID',
-  addCardLabel: 'Add New Card',
-  seeAllBanksLabel: 'See All Banks',
   secureLabel: 'PCI-DSS SECURE PAYMENT',
   continueLabel: 'Continue',
   continueAssuredFeeLabel: 'Pay Assured Fee & Book',
-  assuredFeeNoticeTitle: 'Assured fee due now',
+  continueAssuredDepositLabel: 'Confirm Assured Booking',
+  assuredFeeNoticeTitle: 'Assured deposit due now',
   assuredFeeNoticeBody:
-    'Assured booking fee is charged before the ride. You can still pay the ride fare after the trip.',
+    'The Assured security deposit is held from your BhaiWay Coins wallet when you confirm. Ride fare is paid separately.',
   payAfterAssuredSubtitle:
     'Pay ride fare after the trip. Assured fee is charged now from your BhaiWay Coins wallet.',
+  assuredHeading: 'Assured Ride',
+  assuredDepositTitle: 'Security Deposit',
+  assuredDepositMandatory: 'Mandatory · Held in wallet',
+  assuredDepositHint: 'Required to confirm your Assured ride. This is a wallet hold, not fare payment.',
+  assuredPenaltyPreviousCancellationMessage: (percentage: number) =>
+    `Your security deposit is ${percentage}% for this ride because you cancelled your previous Assured ride.`,
+  assuredPenaltyNextBookingOnly:
+    'This applies to your next Assured booking only.',
+  assuredWalletBalanceLabel: 'Wallet Balance',
+  assuredFareTitle: 'Ride Fare',
+  assuredFareChoiceTitle: 'How would you like to pay your fare?',
+  assuredPayNowLabel: 'Pay Now',
+  assuredPayNowSubtitle: (amount: string) => `Pay ${amount} before your trip`,
+  assuredPayLaterLabel: 'Pay After Ride',
+  assuredPayLaterSubtitle: 'Pay the fare after completing the ride',
+  assuredSummaryTitle: 'Wallet impact now',
+  assuredSummaryDeposit: 'Security deposit (hold)',
+  assuredSummaryFare: 'Fare payment',
+  assuredSummaryFareZero: '₹0 — pay after ride',
+  assuredCoveredByWallet: 'Covered by Wallet',
 } as const;
 
 export const BOOKED_SCREEN = {
@@ -33,13 +48,24 @@ export const BOOKED_SCREEN = {
   dropLabel: 'Drop',
   vehicleLabel: 'Vehicle',
   dateTimeLabel: 'Date & Time',
+  seatsLabel: 'Seats',
+  fareLabel: 'Fare',
+  paymentMethodLabel: 'Payment Method',
+  paymentStatusLabel: 'Payment Status',
+  payAfterRideLabel: 'Pay After Ride',
+  unpaidLabel: 'UNPAID',
+  paidLabel: 'PAID',
+  heldLabel: 'Held',
+  securityDepositLabel: 'Security Deposit',
+  farePaymentLabel: 'Fare Payment',
   addToCalendarLabel: 'Add to Calendar',
   trackLabel: 'Track My Ride',
   rideDetailsActionLabel: 'Ride Details',
+  myRidesLabel: 'My Rides',
   assuredRefundNote:
-    'Note: Your assured booking amount will be refunded after the trip ends.',
+    'Note: Your Assured security deposit will be released after the trip ends (subject to Assured rules).',
   assuredCancelNote:
-    'Note: You have booked an assured ride. If you cancel this ride, booking amount will be not refunded!',
+    'Note: You have booked an assured ride. If you cancel this ride, the security deposit will not be refunded.',
 } as const;
 
 export const WALLET_BALANCE = 450;
@@ -50,25 +76,6 @@ export const PAYMENT_METHODS: readonly PaymentMethodOption[] = [
     kind: 'wallet',
     label: 'BhaiWay Coins Wallet',
     icon: 'wallet',
-  },
-  {
-    id: 'gpay',
-    kind: 'upi',
-    label: 'Google Pay',
-    icon: 'ellipse-outline',
-  },
-  {
-    id: 'phonepe',
-    kind: 'upi',
-    label: 'PhonePe',
-    icon: 'cash-outline',
-  },
-  {
-    id: 'visa',
-    kind: 'card',
-    label: 'Visa Debit Card',
-    subtitle: '•••• •••• •••• 4242',
-    icon: 'card-outline',
   },
   {
     id: 'pay-after-ride',
@@ -92,8 +99,18 @@ export const getPaymentPath = (params: {
   destination?: string;
   driverName?: string;
   carModel?: string;
+  /** For Regular: pricePerSeat. For Assured: total due (legacy). */
   price?: number;
+  seats?: number;
   assuredFee?: number;
+  assuredDepositCoins?: string | null;
+  assuredDepositPercentage?: number | null;
+  assuredDepositPenaltyNotice?: boolean;
+  /** Catalog coupon applied at review — server reapplies on create. */
+  couponCode?: string | null;
+  couponChargeScope?: 'RIDE_FARE' | 'ASSURED_SECURITY_DEPOSIT' | null;
+  /** Preview discount for display only. */
+  couponDiscount?: string | null;
   dateLabel?: string;
   departureTime?: string;
   originLat?: number;
@@ -110,7 +127,17 @@ export const getPaymentPath = (params: {
     driverName: params.driverName ?? '',
     carModel: params.carModel ?? '',
     price: params.price != null ? String(params.price) : '',
+    seats: params.seats != null ? String(params.seats) : '',
     assuredFee: params.assuredFee != null ? String(params.assuredFee) : '',
+    assuredDepositCoins: params.assuredDepositCoins?.trim() ?? '',
+    assuredDepositPercentage:
+      params.assuredDepositPercentage != null
+        ? String(params.assuredDepositPercentage)
+        : '',
+    assuredDepositPenaltyNotice: params.assuredDepositPenaltyNotice ? '1' : '0',
+    couponCode: params.couponCode?.trim().toUpperCase() ?? '',
+    couponChargeScope: params.couponChargeScope ?? '',
+    couponDiscount: params.couponDiscount?.trim() ?? '',
     dateLabel: params.dateLabel ?? '',
     departureTime: params.departureTime ?? '',
     originLat: params.originLat != null ? String(params.originLat) : '',
@@ -123,11 +150,13 @@ export const getPaymentPath = (params: {
 export const getBookedPath = (params: {
   rideId: string;
   rideType: RideType;
+  bookingId?: string;
   origin?: string;
   destination?: string;
   driverName?: string;
   carModel?: string;
   price?: number;
+  seats?: number;
   originLat?: number;
   originLng?: number;
   destinationLat?: number;
@@ -137,11 +166,13 @@ export const getBookedPath = (params: {
   params: {
     rideId: params.rideId,
     rideType: params.rideType,
+    bookingId: params.bookingId ?? '',
     origin: params.origin ?? '',
     destination: params.destination ?? '',
     driverName: params.driverName ?? '',
     carModel: params.carModel ?? '',
     price: params.price != null ? String(params.price) : '',
+    seats: params.seats != null ? String(params.seats) : '',
     originLat: params.originLat != null ? String(params.originLat) : '',
     originLng: params.originLng != null ? String(params.originLng) : '',
     destinationLat: params.destinationLat != null ? String(params.destinationLat) : '',

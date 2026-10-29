@@ -16,7 +16,8 @@ import {
   RideSearchTopBar,
   SearchSummaryCard,
 } from '@/features/ride-search/components';
-import { getReviewBookingPath, getRideDetailsPath, RIDE_RESULT_SCREEN } from '@/features/ride-search/constants';
+import { getRideDetailsPath, RIDE_RESULT_SCREEN } from '@/features/ride-search/constants';
+import { parseSearchCoordinate } from '@/features/ride-search/api';
 import { useRideResult } from '@/features/ride-search/hooks';
 import type { RideResultItem } from '@/features/ride-search/types';
 import { formatDistanceLabel } from '@/features/ride-search/utils/route';
@@ -36,10 +37,10 @@ export const RideResultScreen = () => {
     destinationLng?: string;
   }>();
 
-  const originLat = Number(getSearchParam(params.originLat));
-  const originLng = Number(getSearchParam(params.originLng));
-  const destinationLat = Number(getSearchParam(params.destinationLat));
-  const destinationLng = Number(getSearchParam(params.destinationLng));
+  const originLat = parseSearchCoordinate(params.originLat);
+  const originLng = parseSearchCoordinate(params.originLng);
+  const destinationLat = parseSearchCoordinate(params.destinationLat);
+  const destinationLng = parseSearchCoordinate(params.destinationLng);
 
   const {
     summary,
@@ -58,6 +59,10 @@ export const RideResultScreen = () => {
     date: getSearchParam(params.date),
     dateLabel: getSearchParam(params.dateLabel),
     passengers: getSearchParam(params.passengers),
+    pickupLatitude: originLat,
+    pickupLongitude: originLng,
+    dropoffLatitude: destinationLat,
+    dropoffLongitude: destinationLng,
   });
 
   const handleMenuPress = useCallback(() => {
@@ -74,7 +79,8 @@ export const RideResultScreen = () => {
     }
   }, [router]);
 
-  const handleRidePress = useCallback(
+  /** Book Now → Ride Details (preview). Card body is not navigable. */
+  const handleBookPress = useCallback(
     (ride: RideResultItem) => {
       router.push(
         getRideDetailsPath({
@@ -90,42 +96,10 @@ export const RideResultScreen = () => {
           durationLabel: ride.durationLabel,
           dateLabel: summary.dateLabel,
           departureTime: ride.departureTime,
-          originLat: Number.isFinite(originLat) ? originLat : undefined,
-          originLng: Number.isFinite(originLng) ? originLng : undefined,
-          destinationLat: Number.isFinite(destinationLat) ? destinationLat : undefined,
-          destinationLng: Number.isFinite(destinationLng) ? destinationLng : undefined,
-        }),
-      );
-    },
-    [
-      destinationLat,
-      destinationLng,
-      originLat,
-      originLng,
-      router,
-      summary.dateLabel,
-      summary.destinationCity,
-      summary.originCity,
-    ],
-  );
-
-  const handleBookPress = useCallback(
-    (ride: RideResultItem) => {
-      router.push(
-        getReviewBookingPath({
-          rideId: ride.id,
-          rideType: ride.rideType,
-          origin: summary.originCity,
-          destination: summary.destinationCity,
-          driverName: ride.driver.name,
-          carModel: ride.carModel,
-          price: ride.price,
-          dateLabel: summary.dateLabel,
-          departureTime: ride.departureTime,
-          originLat: Number.isFinite(originLat) ? originLat : undefined,
-          originLng: Number.isFinite(originLng) ? originLng : undefined,
-          destinationLat: Number.isFinite(destinationLat) ? destinationLat : undefined,
-          destinationLng: Number.isFinite(destinationLng) ? destinationLng : undefined,
+          originLat,
+          originLng,
+          destinationLat,
+          destinationLng,
         }),
       );
     },
@@ -144,14 +118,10 @@ export const RideResultScreen = () => {
   const renderItem = useCallback<ListRenderItem<RideResultItem>>(
     ({ item, index }) => (
       <Animated.View entering={FadeInUp.duration(320).delay(Math.min(index * 60, 240))}>
-        <RideResultCard
-          ride={item}
-          onPress={handleRidePress}
-          onBookPress={handleBookPress}
-        />
+        <RideResultCard ride={item} onBookPress={handleBookPress} />
       </Animated.View>
     ),
-    [handleBookPress, handleRidePress],
+    [handleBookPress],
   );
 
   const keyExtractor = useCallback((item: RideResultItem) => item.id, []);

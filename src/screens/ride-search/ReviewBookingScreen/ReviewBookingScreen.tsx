@@ -1,20 +1,35 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Keyboard, Platform, ScrollView, View, type LayoutChangeEvent } from 'react-native';
+import {
+  ActivityIndicator,
+  Keyboard,
+  Platform,
+  Pressable,
+  ScrollView,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ROUTES } from '@/config';
-import { AppFooter, Button, IconButton, KeyboardAwareScrollView, ScreenHeader } from '@/shared/components';
+import {
+  AppFooter,
+  AppText as Text,
+  Button,
+  IconButton,
+  KeyboardAwareScrollView,
+  ScreenHeader,
+} from '@/shared/components';
 import { colors, spacing } from '@/shared/theme';
 import { getSearchParam } from '@/shared/utils';
 import {
   ReviewBookingAssuredSection,
-  ReviewBookingCoPassengersCard,
   ReviewBookingDriverCard,
   ReviewBookingFareCard,
   ReviewBookingMapPreview,
   ReviewBookingPromoSection,
   ReviewBookingRouteCard,
+  PassengerStepper,
 } from '@/features/ride-search/components';
 import { REVIEW_BOOKING_SCREEN } from '@/features/ride-search/constants';
 import { useReviewBooking } from '@/features/ride-search/hooks';
@@ -36,6 +51,8 @@ export const ReviewBookingScreen = () => {
     driverName?: string;
     carModel?: string;
     price?: string;
+    seats?: string;
+    availableSeats?: string;
     dateLabel?: string;
     departureTime?: string;
     originLat?: string;
@@ -47,6 +64,8 @@ export const ReviewBookingScreen = () => {
   const rideTypeParam = getSearchParam(params.rideType);
   const rideType: RideType = isRideType(rideTypeParam) ? rideTypeParam : 'regular';
   const priceParam = Number(getSearchParam(params.price));
+  const seatsParam = Number(getSearchParam(params.seats));
+  const availableSeatsParam = Number(getSearchParam(params.availableSeats));
   const originLat = Number(getSearchParam(params.originLat));
   const originLng = Number(getSearchParam(params.originLng));
   const destinationLat = Number(getSearchParam(params.destinationLat));
@@ -57,8 +76,23 @@ export const ReviewBookingScreen = () => {
     routeCoordinates,
     promoInput,
     promoApplied,
+    promoApplying,
+    promoError,
+    selectedSeats,
+    maxSeats,
+    isRegular,
+    isAssured,
+    assuredLoadState,
+    assuredErrorMessage,
+    canConfirmAssured,
+    assuredDepositPercentage,
+    assuredDepositPenaltyNotice,
+    retryAssuredLoad,
+    setSelectedSeats,
     setPromoInput,
     applyPromo,
+    clearPromo,
+    openAvailableCoupons,
     confirmBooking,
   } = useReviewBooking({
     rideId: getSearchParam(params.rideId) || 'ride-default',
@@ -68,6 +102,11 @@ export const ReviewBookingScreen = () => {
     driverName: getSearchParam(params.driverName),
     carModel: getSearchParam(params.carModel),
     price: Number.isFinite(priceParam) ? priceParam : undefined,
+    seats: Number.isFinite(seatsParam) && seatsParam > 0 ? seatsParam : undefined,
+    availableSeats:
+      Number.isFinite(availableSeatsParam) && availableSeatsParam > 0
+        ? availableSeatsParam
+        : undefined,
     dateLabel: getSearchParam(params.dateLabel),
     departureTime: getSearchParam(params.departureTime),
     originLat: Number.isFinite(originLat) ? originLat : undefined,
@@ -105,7 +144,6 @@ export const ReviewBookingScreen = () => {
 
   const handlePromoFocus = useCallback(() => {
     promoFocusedRef.current = true;
-    // Defer so KeyboardAvoidingView can shrink first, then scroll promo above keyboard.
     requestAnimationFrame(scrollPromoIntoView);
   }, [scrollPromoIntoView]);
 
@@ -129,22 +167,81 @@ export const ReviewBookingScreen = () => {
     }
   }, [router]);
 
-  const isAssured = booking.rideType === 'assured';
+  const header = (
+    <ScreenHeader
+      title={REVIEW_BOOKING_SCREEN.title}
+      onBack={handleBack}
+      right={
+        <IconButton
+          icon="notifications-outline"
+          onPress={handleNotifications}
+          color={colors.primary}
+          accessibilityLabel="Open notifications"
+        />
+      }
+    />
+  );
+
+  if (isAssured && assuredLoadState === 'loading') {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        {header}
+        <View style={styles.centerState} accessibilityLabel="Loading Assured ride details">
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.centerStateText}>{REVIEW_BOOKING_SCREEN.loadingLabel}</Text>
+        </View>
+        <AppFooter activeTab="rides" />
+      </SafeAreaView>
+    );
+  }
+
+  if (isAssured && (assuredLoadState === 'error' || assuredLoadState === 'unavailable')) {
+    const isUnavailable = assuredLoadState === 'unavailable';
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        {header}
+        <View style={styles.centerState}>
+          <Text style={styles.centerStateTitle}>
+            {isUnavailable
+              ? REVIEW_BOOKING_SCREEN.unavailableTitle
+              : REVIEW_BOOKING_SCREEN.loadErrorTitle}
+          </Text>
+          <Text style={styles.centerStateText}>
+            {assuredErrorMessage ||
+              (isUnavailable
+                ? REVIEW_BOOKING_SCREEN.unavailableBody
+                : 'Could not load this Assured ride. Please try again.')}
+          </Text>
+          {isUnavailable ? (
+            <Pressable
+              style={styles.retryBtn}
+              onPress={handleBack}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Text style={styles.retryLabel}>Back</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              style={styles.retryBtn}
+              onPress={retryAssuredLoad}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading ride"
+            >
+              <Text style={styles.retryLabel}>{REVIEW_BOOKING_SCREEN.loadErrorRetry}</Text>
+            </Pressable>
+          )}
+        </View>
+        <AppFooter activeTab="rides" />
+      </SafeAreaView>
+    );
+  }
+
+  const confirmDisabled = isAssured && !canConfirmAssured;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <ScreenHeader
-        title={REVIEW_BOOKING_SCREEN.title}
-        onBack={handleBack}
-        right={
-          <IconButton
-            icon="notifications-outline"
-            onPress={handleNotifications}
-            color={colors.primary}
-            accessibilityLabel="Open notifications"
-          />
-        }
-      />
+      {header}
 
       <KeyboardAwareScrollView
         contentContainerStyle={styles.scrollContent}
@@ -152,10 +249,15 @@ export const ReviewBookingScreen = () => {
         footer={
           <View style={styles.footer}>
             <Button
-              label={REVIEW_BOOKING_SCREEN.confirmLabel}
+              label={
+                isRegular
+                  ? REVIEW_BOOKING_SCREEN.confirmRegularLabel
+                  : REVIEW_BOOKING_SCREEN.confirmLabel
+              }
               onPress={confirmBooking}
               showArrow
-              accessibilityLabel="Confirm and pay for booking"
+              disabled={confirmDisabled}
+              accessibilityLabel="Confirm booking and continue to payment"
             />
           </View>
         }
@@ -177,26 +279,45 @@ export const ReviewBookingScreen = () => {
 
         <ReviewBookingDriverCard driver={booking.driver} />
 
-        <ReviewBookingCoPassengersCard
-          passengers={booking.coPassengers}
-          maxPassengers={booking.maxPassengers}
+        <PassengerStepper
+          value={selectedSeats}
+          min={1}
+          max={maxSeats}
+          onChange={setSelectedSeats}
         />
 
         <View onLayout={handlePromoLayout}>
           <ReviewBookingPromoSection
             value={promoInput}
             applied={promoApplied}
+            applying={promoApplying}
             discount={booking.fare.promoDiscount}
+            error={promoError}
             onChange={setPromoInput}
             onApply={applyPromo}
+            onClear={clearPromo}
+            onViewAvailableCoupons={openAvailableCoupons}
             onFocus={handlePromoFocus}
             onBlur={handlePromoBlur}
           />
         </View>
 
-        {isAssured ? <ReviewBookingAssuredSection fee={booking.fare.assuredFee} /> : null}
+        {isAssured ? (
+          <ReviewBookingAssuredSection
+            fee={booking.fare.assuredFee}
+            percentage={assuredDepositPercentage}
+            showPreviousCancellationNotice={
+              assuredDepositPenaltyNotice.showPreviousCancellationNotice
+            }
+            penaltyPercentage={assuredDepositPenaltyNotice.percentage}
+          />
+        ) : null}
 
-        <ReviewBookingFareCard fare={booking.fare} showAssuredFee={isAssured} />
+        <ReviewBookingFareCard
+          fare={booking.fare}
+          showAssuredFee={isAssured}
+          showPlatformFee={!isRegular && booking.fare.platformFee > 0}
+        />
       </KeyboardAwareScrollView>
 
       <AppFooter activeTab="rides" />

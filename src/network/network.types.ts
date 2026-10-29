@@ -19,4 +19,17 @@ export interface RequestConfig {
   body?: unknown;
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Gateway webhooks (e.g. wallet top-up callback) must not send user JWT. */
+  skipAuth?: boolean;
+  /**
+   * `json` (default) parses the body as JSON.
+   * `arraybuffer` returns raw bytes — used for authenticated PDF downloads.
+   */
+  responseType?: 'json' | 'arraybuffer';
+}
+
+export interface BinaryResponse {
+  bytes: ArrayBuffer;
+  contentType: string;
+  contentDisposition: string | null;
 }

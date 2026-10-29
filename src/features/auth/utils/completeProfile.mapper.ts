@@ -4,6 +4,7 @@ import type {
   CreateProfileRequest,
   Gender,
   ProfileResponse,
+  UpdateProfileRequest,
   UserProfile,
 } from '../types';
 
@@ -48,10 +49,47 @@ export const joinProfileName = (
   lastName?: string | null,
 ): string => [firstName, lastName].filter((part) => Boolean(part?.trim())).join(' ');
 
+/** Cloudinary / CDN URL only — local `file://` paths are not sent to the API. */
+export const resolveProfilePhotoForApi = (
+  avatarUri?: string | null,
+): string | undefined => {
+  const trimmed = avatarUri?.trim();
+  if (!trimmed || !/^https?:\/\//i.test(trimmed)) {
+    return undefined;
+  }
+  return trimmed;
+};
+
 /**
  * Maps Setup Profile form values to `CreateProfileDto`.
  * Omits empty optional fields so we never send `lastName: ""`.
  */
+/** Maps edit-profile form values to `PATCH /users/profile` body. */
+export const toUpdateProfileRequest = (
+  payload: CompleteProfilePayload,
+): UpdateProfileRequest => {
+  const { firstName, lastName } = splitFullName(payload.fullName);
+  const body: UpdateProfileRequest = {};
+
+  if (firstName) {
+    body.firstName = firstName;
+  }
+
+  if (lastName) {
+    body.lastName = lastName;
+  }
+
+  // Gender is controlled by backend Aadhaar/identity verification — never send from edit.
+  const profilePhoto = resolveProfilePhotoForApi(payload.avatarUri);
+  if (profilePhoto) {
+    body.profilePhoto = profilePhoto;
+  } else if (payload.avatarUri === null) {
+    body.profilePhoto = null;
+  }
+
+  return body;
+};
+
 export const toCreateProfileRequest = (
   payload: CompleteProfilePayload,
 ): CreateProfileRequest => {
@@ -67,7 +105,11 @@ export const toCreateProfileRequest = (
     body.email = email;
   }
 
-  body.gender = mapGenderToApi(payload.gender);
+  // Gender is set by backend verification — do not send manual gender on create.
+  const profilePhoto = resolveProfilePhotoForApi(payload.avatarUri);
+  if (profilePhoto) {
+    body.profilePhoto = profilePhoto;
+  }
 
   return body;
 };
@@ -80,7 +122,7 @@ export const mapProfileResponseToUserProfile = (
   id: sessionUserId?.trim() || response.id,
   fullName: joinProfileName(response.firstName, response.lastName) || payload.fullName.trim(),
   email: payload.email.trim(),
-  gender: mapGenderFromApi(response.gender) ?? payload.gender,
+  gender: mapGenderFromApi(response.gender) ?? payload.gender ?? 'other',
   avatarUri:
     typeof response.profilePhoto === 'string' && response.profilePhoto
       ? response.profilePhoto
@@ -142,7 +184,7 @@ export const mapCompleteProfileError = (error: unknown): string => {
   }
 
   if (status === 400) {
-    return 'Please check your name, email, and gender and try again.';
+    return 'Please check your name and email and try again.';
   }
 
   if (status === 0) {

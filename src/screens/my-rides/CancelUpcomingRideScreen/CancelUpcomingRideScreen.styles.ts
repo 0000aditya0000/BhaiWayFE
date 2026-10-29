@@ -84,6 +84,15 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 340,
   },
+  assuredConfirmPrompt: {
+    marginTop: 8,
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '600',
+    color: ON_SURFACE,
+    textAlign: 'center',
+    maxWidth: 340,
+  },
   detailsCard: {
     backgroundColor: colors.white,
     borderRadius: 16,
@@ -305,6 +314,22 @@ export const styles = StyleSheet.create({
   actions: {
     gap: 12,
     marginBottom: 24,
+  },
+  keepButton: {
+    width: '100%',
+    minHeight: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: OUTLINE_VARIANT,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  keepLabel: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '700',
+    color: ON_SURFACE,
   },
   confirmButton: {
     width: '100%',

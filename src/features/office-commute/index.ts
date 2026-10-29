@@ -12,6 +12,9 @@ export {
   CommuteRideBookedScreen,
   CommuteCancelRideScreen,
   CommuteCancelConfirmedScreen,
+  CommuteRewardsScreen,
+  CommuteRewardDetailScreen,
+  CommuteRewardClaimsScreen,
 } from '@/screens/office-commute';
 export {
   usePublishCommute,

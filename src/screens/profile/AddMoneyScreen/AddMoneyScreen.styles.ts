@@ -96,7 +96,16 @@ export const styles = StyleSheet.create({
   },
   amountInputWrap: {
     position: 'relative',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rupeePrefix: {
+    position: 'absolute',
+    left: spacing.lg,
+    zIndex: 1,
+    fontSize: 32,
+    fontWeight: '600',
+    color: addMoneyTokens.ON_SURFACE_VARIANT,
   },
   currencyPrefix: {
     position: 'absolute',
@@ -119,6 +128,49 @@ export const styles = StyleSheet.create({
   },
   amountInputFocused: {
     borderColor: addMoneyTokens.PRIMARY,
+  },
+  hint: {
+    marginTop: spacing.sm,
+    fontSize: 13,
+    color: addMoneyTokens.ON_SURFACE_VARIANT,
+  },
+  previewBlock: {
+    marginTop: spacing.xl,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: addMoneyTokens.OUTLINE_VARIANT,
+    gap: spacing.sm,
+  },
+  previewLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: addMoneyTokens.ON_SURFACE_VARIANT,
+  },
+  previewRow: {
+    gap: spacing.xs,
+  },
+  rupeePreview: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: addMoneyTokens.ON_SURFACE,
+  },
+  previewCoinsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  coinsPreview: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: addMoneyTokens.PRIMARY,
+  },
+  chipsRowWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
   },
   chipsRow: {
     flexDirection: 'row',

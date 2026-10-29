@@ -1,5 +1,6 @@
 import { ENDPOINTS, httpClient } from '@/network';
 import { env } from '@/config';
+import { authService } from '@/features/auth/services';
 import { userDetailsSheetSync } from '@/DemoData';
 import {
   DRIVING_LICENSE_DOCUMENT_TYPE,
@@ -68,15 +69,23 @@ export const persistCloudinaryAsset = async (
 export const saveProfilePhotoUrl = async (
   result: CloudinaryUploadResponse,
 ): Promise<string> => {
-  const saved = await persistCloudinaryAsset({
-    kind: 'profile',
-    secureUrl: result.secureUrl,
-    publicId: result.publicId,
-    format: result.format,
-    bytes: result.bytes,
-  });
-  await syncUserDetailsMedia({ profilePicture: saved.secureUrl });
-  return saved.secureUrl;
+  const secureUrl = result.secureUrl;
+
+  // Profile photos are stored on POST/PATCH /users/profile — not /media/assets.
+  if (authSession.getToken() && authSession.getProfileCompleted()) {
+    try {
+      const profile = await authService.updateProfilePhoto(secureUrl);
+      authSession.setUserFromProfile(profile);
+    } catch (error) {
+      logger.warn('PATCH /users/profile profilePhoto failed after Cloudinary upload', {
+        secureUrl,
+        error,
+      });
+    }
+  }
+
+  await syncUserDetailsMedia({ profilePicture: secureUrl });
+  return secureUrl;
 };
 
 export const saveDrivingLicenseUrl = async (

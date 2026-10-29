@@ -2,6 +2,8 @@ export type InboxRideType = 'outstation' | 'office' | 'published';
 
 export interface InboxThread {
   id: string;
+  conversationId?: string;
+  bookingId?: string;
   role: 'rider' | 'driver';
   rideType: InboxRideType;
   peerName: string;
@@ -12,4 +14,5 @@ export interface InboxThread {
   unreadCount: number;
   isOnline: boolean;
   avatarUri?: string;
+  status?: 'OPEN' | 'CLOSED';
 }

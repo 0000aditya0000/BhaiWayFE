@@ -24,6 +24,9 @@ export const LinkUpiScreen = () => {
     saving,
     canSave,
     avatarUri,
+    screenTitle,
+    settingsSubtitle,
+    saveLabel,
     setUpiId,
     verifyUpi,
     saveUpi,
@@ -66,7 +69,7 @@ export const LinkUpiScreen = () => {
           />
         </View>
         <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
-            {LINK_UPI_SCREEN.title}
+            {screenTitle}
           </Text>
 
         <Pressable
@@ -91,7 +94,7 @@ export const LinkUpiScreen = () => {
             </View>
             <View style={styles.settingsText}>
               <Text style={styles.settingsTitle}>{LINK_UPI_SCREEN.settingsTitle}</Text>
-              <Text style={styles.settingsSubtitle}>{LINK_UPI_SCREEN.settingsSubtitle}</Text>
+              <Text style={styles.settingsSubtitle}>{settingsSubtitle}</Text>
             </View>
           </View>
 
@@ -173,12 +176,12 @@ export const LinkUpiScreen = () => {
             onPress={handleSave}
             disabled={!canSave || saving}
             accessibilityRole="button"
-            accessibilityLabel={LINK_UPI_SCREEN.saveLabel}
+            accessibilityLabel={saveLabel}
           >
             {saving ? (
               <ActivityIndicator color={linkUpiTokens.ON_PRIMARY} />
             ) : (
-              <Text style={styles.saveLabel}>{LINK_UPI_SCREEN.saveLabel}</Text>
+              <Text style={styles.saveLabel}>{saveLabel}</Text>
             )}
           </Pressable>
 

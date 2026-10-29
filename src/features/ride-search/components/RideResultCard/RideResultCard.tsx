@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Avatar, Button, AppText as Text } from '@/shared/components';
@@ -10,11 +10,12 @@ import {
   getSeatUrgency,
   RIDE_RESULT_SCREEN,
 } from '../../constants';
+import { DriverRecentRidesStatus } from '../DriverRecentRidesStatus';
 import { styles } from './RideResultCard.styles';
 import type { RideResultCardProps } from './RideResultCard.types';
 
 export const RideResultCard = React.memo(
-  ({ ride, onPress, onBookPress }: RideResultCardProps) => {
+  ({ ride, onBookPress }: RideResultCardProps) => {
     const urgency = useMemo(() => getSeatUrgency(ride.seatsLeft), [ride.seatsLeft]);
     const isUrgent = urgency === 'last';
     const seatSuffix = ride.seatsLeft === 1 ? 'seat left' : 'seats left';
@@ -22,17 +23,16 @@ export const RideResultCard = React.memo(
       () => formatDistanceLabel(ride.distanceKm),
       [ride.distanceKm],
     );
+    const isWomenOnly =
+      Boolean(ride.womenOnly) ||
+      ride.features.some((feature) => feature.id === 'women-only');
 
-    const handlePress = useCallback(() => onPress(ride), [onPress, ride]);
     const handleBook = useCallback(() => onBookPress(ride), [onBookPress, ride]);
 
     return (
-      <Pressable
+      <View
         style={styles.card}
-        onPress={handlePress}
-        accessibilityRole="button"
         accessibilityLabel={`Ride with ${ride.driver.name}, ${formatRidePrice(ride.price)}, ${distanceLabel}, ${ride.durationLabel}`}
-        android_ripple={{ color: 'rgba(29, 78, 216, 0.08)' }}
       >
         <View style={styles.header}>
           <View style={styles.driverRow}>
@@ -45,9 +45,22 @@ export const RideResultCard = React.memo(
               <Text style={styles.driverName} numberOfLines={1}>
                 {ride.driver.name}
               </Text>
-              <View style={styles.ratingBadge}>
-                <Ionicons name="star" size={14} color="#4B61C4" />
-                <Text style={styles.ratingText}>{ride.driver.rating.toFixed(1)}</Text>
+              <View style={styles.driverSubRow}>
+                <View style={styles.ratingBadge}>
+                  <Ionicons name="star" size={12} color="#4B61C4" />
+                  <Text style={styles.ratingText}>{ride.driver.rating.toFixed(1)}</Text>
+                  {ride.driver.totalRatings > 0 ? (
+                    <Text style={styles.ratingCount}>
+                      ({ride.driver.totalRatings})
+                    </Text>
+                  ) : null}
+                </View>
+                {isWomenOnly ? (
+                  <View style={styles.womenOnlyBadge} accessibilityLabel="Women Only ride">
+                    <Ionicons name="woman-outline" size={12} color="#9D174D" />
+                    <Text style={styles.womenOnlyBadgeText}>WOMEN ONLY</Text>
+                  </View>
+                ) : null}
               </View>
             </View>
           </View>
@@ -67,33 +80,43 @@ export const RideResultCard = React.memo(
             <Text style={styles.infoLabel}>Departure</Text>
             <Text style={styles.infoValue}>{ride.departureTime}</Text>
           </View>
+          <View style={styles.infoDivider} />
           <View style={styles.infoCol}>
-            <Text style={styles.infoLabel}>Car Model</Text>
+            <Text style={styles.infoLabel}>Car</Text>
             <Text style={styles.infoValue} numberOfLines={1}>
-              {ride.carModel}
+              {[ride.vehicle?.color, ride.vehicle?.label || ride.carModel]
+                .filter(Boolean)
+                .join(' ') || 'Car'}
+            </Text>
+          </View>
+          <View style={styles.infoDivider} />
+          <View style={styles.infoCol}>
+            <Text style={styles.infoLabel}>Date</Text>
+            <Text style={styles.infoValue} numberOfLines={1}>
+              {ride.durationLabel || '—'}
             </Text>
           </View>
         </View>
 
-        <View style={styles.statsRow}>
-          <View style={styles.statChip}>
-            <Ionicons name="navigate-outline" size={14} color={colors.primary} />
-            <Text style={styles.statText}>{distanceLabel}</Text>
-          </View>
-          <View style={styles.statChip}>
-            <Ionicons name="time-outline" size={14} color={colors.primary} />
-            <Text style={styles.statText}>{ride.durationLabel}</Text>
-          </View>
+        <View style={styles.midRow}>
+          <DriverRecentRidesStatus
+            items={ride.driver.recentRides ?? []}
+            variant="compact"
+          />
+          {distanceLabel && distanceLabel !== '—' ? (
+            <View style={styles.statChip}>
+              <Ionicons name="navigate-outline" size={13} color={colors.primary} />
+              <Text style={styles.statText}>{distanceLabel}</Text>
+            </View>
+          ) : null}
         </View>
-
-        <View style={styles.footerDivider} />
 
         <View style={styles.footer}>
           <View style={styles.seatsRow}>
             {isUrgent ? (
-              <Ionicons name="warning" size={18} color="#D97706" />
+              <Ionicons name="warning" size={16} color="#D97706" />
             ) : (
-              <Ionicons name="car-outline" size={18} color={colors.textSecondary} />
+              <Ionicons name="car-outline" size={16} color={colors.textSecondary} />
             )}
             <Text style={[styles.seatsText, isUrgent && styles.seatsTextUrgent]}>
               <Text style={[styles.seatsCount, isUrgent && styles.seatsCountUrgent]}>
@@ -107,10 +130,10 @@ export const RideResultCard = React.memo(
             onPress={handleBook}
             fullWidth={false}
             style={styles.bookButton}
-            accessibilityLabel={`Book ride with ${ride.driver.name}`}
+            accessibilityLabel={`View details and book ride with ${ride.driver.name}`}
           />
         </View>
-      </Pressable>
+      </View>
     );
   },
 );

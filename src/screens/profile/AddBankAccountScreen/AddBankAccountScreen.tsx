@@ -22,6 +22,9 @@ export const AddBankAccountScreen = () => {
     form,
     submitState,
     avatarUri,
+    isEditMode,
+    screenTitle,
+    screenSubtitle,
     setHolderName,
     setBankName,
     setAccountNumber,
@@ -51,10 +54,14 @@ export const AddBankAccountScreen = () => {
 
   const submitLabel =
     submitState === 'submitting'
-      ? ADD_BANK_ACCOUNT_SCREEN.submittingLabel
+      ? isEditMode
+        ? ADD_BANK_ACCOUNT_SCREEN.editSubmittingLabel
+        : ADD_BANK_ACCOUNT_SCREEN.submittingLabel
       : submitState === 'success'
         ? ADD_BANK_ACCOUNT_SCREEN.successLabel
-        : ADD_BANK_ACCOUNT_SCREEN.submitLabel;
+        : isEditMode
+          ? ADD_BANK_ACCOUNT_SCREEN.editSubmitLabel
+          : ADD_BANK_ACCOUNT_SCREEN.submitLabel;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -88,8 +95,8 @@ export const AddBankAccountScreen = () => {
         bottomInset={40}
       >
         <View style={styles.intro}>
-          <Text style={styles.title}>{ADD_BANK_ACCOUNT_SCREEN.title}</Text>
-          <Text style={styles.subtitle}>{ADD_BANK_ACCOUNT_SCREEN.subtitle}</Text>
+          <Text style={styles.title}>{screenTitle}</Text>
+          <Text style={styles.subtitle}>{screenSubtitle}</Text>
         </View>
 
         <View style={styles.formCard}>

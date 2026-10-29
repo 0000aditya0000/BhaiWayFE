@@ -7,6 +7,7 @@ import { AppFooter, IconButton, KeyboardAwareScrollView, UploadDocumentSheet, Ap
 import { triggerLightHaptic } from '@/shared/utils';
 import { EDIT_CONTACT_SCREEN } from '@/features/profile/constants';
 import { useEditContact } from '@/features/profile/hooks';
+import { relationshipDisplayLabel } from '@/features/profile/utils/trustedContacts.mapper';
 import { editContactTokens, styles } from './EditContactScreen.styles';
 
 type FocusField = 'name' | 'phone' | null;
@@ -21,6 +22,8 @@ export const EditContactScreen = () => {
     submitState,
     uploadSheetVisible,
     saveLabel,
+    uploadingPhoto,
+    loadingContact,
     setName,
     setRelation,
     setPhone,
@@ -33,7 +36,7 @@ export const EditContactScreen = () => {
   } = useEditContact();
 
   const [focused, setFocused] = useState<FocusField>(null);
-  const isBusy = submitState !== 'idle';
+  const isBusy = submitState !== 'idle' || uploadingPhoto || loadingContact;
   const initials =
     form.name
       .split(/\s+/)
@@ -144,10 +147,10 @@ export const EditContactScreen = () => {
                   disabled={isBusy}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
-                  accessibilityLabel={relation}
+                  accessibilityLabel={relationshipDisplayLabel(relation)}
                 >
                   <Text style={[styles.relationLabel, active && styles.relationLabelActive]}>
-                    {relation}
+                    {relationshipDisplayLabel(relation)}
                   </Text>
                 </Pressable>
               );

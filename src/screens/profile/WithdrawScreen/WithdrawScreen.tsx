@@ -1,32 +1,44 @@
 import React, { useCallback, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ROUTES } from '@/config';
-import { AppFooter, IconButton, KeyboardAwareScrollView, BhaiWayCoinIcon, AppText as Text, AppTextInput as TextInput } from '@/shared/components';
-import { triggerLightHaptic } from '@/shared/utils';
 import { WITHDRAW_SCREEN } from '@/features/profile/constants';
 import { useWithdraw } from '@/features/profile/hooks';
+import {
+  AppFooter,
+  BhaiWayCoinIcon,
+  IconButton,
+  KeyboardAwareScrollView,
+  AppText as Text,
+  AppTextInput as TextInput,
+} from '@/shared/components';
+import { triggerLightHaptic } from '@/shared/utils';
 import { styles, withdrawTokens } from './WithdrawScreen.styles';
 
 export const WithdrawScreen = () => {
-  const router = useRouter();
   const {
     title,
     balanceLabel,
     balanceValueLabel,
     amount,
-    selectedBankId,
-    banks,
+    selectedPaymentMethodId,
+    methods,
+    methodsLoading,
     quickAmounts,
+    submitting,
+    submitError,
+    canSubmit,
     setAmount,
     addQuickAmount,
-    selectBank,
-    addBankAccount,
+    setMaxAmount,
+    selectPaymentMethod,
+    addPaymentMethod,
     proceed,
     goBack,
+    openHistory,
+    methodTitle,
+    methodSubtitle,
   } = useWithdraw();
 
   const [amountFocused, setAmountFocused] = useState(false);
@@ -35,11 +47,6 @@ export const WithdrawScreen = () => {
     triggerLightHaptic();
     goBack();
   }, [goBack]);
-
-  const handleNotifications = useCallback(() => {
-    triggerLightHaptic();
-    router.push(ROUTES.notifications);
-  }, [router]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -53,14 +60,13 @@ export const WithdrawScreen = () => {
           />
         </View>
         <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
-            {title}
-          </Text>
-
+          {title}
+        </Text>
         <IconButton
-          icon="notifications-outline"
-          onPress={handleNotifications}
+          icon="time-outline"
+          onPress={openHistory}
           color={withdrawTokens.PRIMARY}
-          accessibilityLabel="Notifications"
+          accessibilityLabel={WITHDRAW_SCREEN.historyLabel}
         />
       </View>
 
@@ -92,7 +98,7 @@ export const WithdrawScreen = () => {
                 onBlur={() => setAmountFocused(false)}
                 placeholder={WITHDRAW_SCREEN.amountPlaceholder}
                 placeholderTextColor={withdrawTokens.OUTLINE_VARIANT}
-                keyboardType="decimal-pad"
+                keyboardType="number-pad"
                 accessibilityLabel={WITHDRAW_SCREEN.amountLabel}
               />
             </View>
@@ -106,70 +112,74 @@ export const WithdrawScreen = () => {
             {quickAmounts.map((chip) => (
               <Pressable
                 key={chip.id}
-                style={({ pressed }) => [
-                  styles.chip,
-                  pressed && styles.chipActive,
-                ]}
+                style={styles.chip}
                 onPress={() => addQuickAmount(chip.amount)}
                 accessibilityRole="button"
                 accessibilityLabel={chip.label}
               >
-                {({ pressed }) => (
-                  <Text style={[styles.chipLabel, pressed && styles.chipLabelActive]}>
-                    {chip.label}
-                  </Text>
-                )}
+                <Text style={styles.chipLabel}>{chip.label}</Text>
               </Pressable>
             ))}
+            <Pressable
+              style={styles.chip}
+              onPress={setMaxAmount}
+              accessibilityRole="button"
+              accessibilityLabel={WITHDRAW_SCREEN.maxLabel}
+            >
+              <Text style={styles.chipLabel}>{WITHDRAW_SCREEN.maxLabel}</Text>
+            </Pressable>
           </ScrollView>
         </View>
 
         <View style={styles.accountsSection}>
           <Text style={styles.fieldLabel}>{WITHDRAW_SCREEN.selectAccountLabel}</Text>
           <View style={styles.accountsList}>
-            {banks.map((bank) => {
-              const selected = bank.id === selectedBankId;
-              return (
-                <Pressable
-                  key={bank.id}
-                  style={({ pressed }) => [
-                    styles.bankCard,
-                    selected && styles.bankCardActive,
-                    pressed && { opacity: 0.94 },
-                  ]}
-                  onPress={() => selectBank(bank.id)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={`${bank.bankName} ${bank.accountTypeLabel} ${bank.maskedNumber}`}
-                >
-                  <View style={[styles.bankIcon, selected && styles.bankIconActive]}>
+            {methodsLoading ? (
+              <ActivityIndicator color={withdrawTokens.PRIMARY} />
+            ) : methods.length === 0 ? (
+              <View style={styles.addAccountCard}>
+                <View style={styles.bankMeta}>
+                  <Text style={styles.addAccountTitle}>{WITHDRAW_SCREEN.noMethodsTitle}</Text>
+                  <Text style={styles.addAccountSubtitle}>
+                    {WITHDRAW_SCREEN.noMethodsSubtitle}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              methods.map((method) => {
+                const selected = method.id === selectedPaymentMethodId;
+                return (
+                  <Pressable
+                    key={method.id}
+                    style={[styles.bankCard, selected && styles.bankCardActive]}
+                    onPress={() => selectPaymentMethod(method.id)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                  >
+                    <View style={[styles.bankIcon, selected && styles.bankIconActive]}>
+                      <Ionicons
+                        name={method.type === 'UPI' ? 'phone-portrait' : 'business'}
+                        size={26}
+                        color={selected ? withdrawTokens.PRIMARY : withdrawTokens.OUTLINE}
+                      />
+                    </View>
+                    <View style={styles.bankMeta}>
+                      <Text style={styles.bankName}>{methodTitle(method)}</Text>
+                      <Text style={styles.bankDetails}>{methodSubtitle(method)}</Text>
+                    </View>
                     <Ionicons
-                      name="business"
-                      size={26}
-                      color={selected ? withdrawTokens.PRIMARY : withdrawTokens.OUTLINE}
+                      name={selected ? 'radio-button-on' : 'radio-button-off'}
+                      size={22}
+                      color={selected ? withdrawTokens.PRIMARY : withdrawTokens.OUTLINE_VARIANT}
                     />
-                  </View>
-                  <View style={styles.bankMeta}>
-                    <Text style={styles.bankName}>{bank.bankName}</Text>
-                    <Text style={styles.bankDetails}>
-                      {bank.accountTypeLabel} {bank.maskedNumber}
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name={selected ? 'checkmark-circle' : 'checkmark-circle-outline'}
-                    size={24}
-                    color={selected ? withdrawTokens.PRIMARY : 'transparent'}
-                  />
-                </Pressable>
-              );
-            })}
+                  </Pressable>
+                );
+              })
+            )}
 
             <Pressable
-              style={({ pressed }) => [
-                styles.addAccountCard,
-                pressed && { opacity: 0.94, borderColor: withdrawTokens.PRIMARY },
-              ]}
-              onPress={addBankAccount}
+              style={styles.addAccountCard}
+              onPress={addPaymentMethod}
               accessibilityRole="button"
               accessibilityLabel={WITHDRAW_SCREEN.addAccountTitle}
             >
@@ -189,17 +199,31 @@ export const WithdrawScreen = () => {
       </KeyboardAwareScrollView>
 
       <View style={styles.bottomBar}>
+        {submitError ? (
+          <Text style={styles.submitError} accessibilityLiveRegion="polite">
+            {submitError}
+          </Text>
+        ) : null}
         <Pressable
-          style={({ pressed }) => [
+          style={[
             styles.proceedButton,
-            pressed && { transform: [{ scale: 0.98 }], backgroundColor: withdrawTokens.PRIMARY_CONTAINER },
+            (!canSubmit || submitting) && { opacity: 0.55 },
           ]}
           onPress={proceed}
+          disabled={!canSubmit || submitting}
           accessibilityRole="button"
           accessibilityLabel={WITHDRAW_SCREEN.proceedLabel}
         >
-          <Text style={styles.proceedLabel}>{WITHDRAW_SCREEN.proceedLabel}</Text>
-          <Ionicons name="arrow-forward" size={20} color={withdrawTokens.ON_PRIMARY} />
+          <Text style={styles.proceedLabel}>
+            {submitting
+              ? WITHDRAW_SCREEN.submittingLabel
+              : amount
+                ? `${WITHDRAW_SCREEN.proceedLabel} ${amount} Coins`
+                : WITHDRAW_SCREEN.proceedLabel}
+          </Text>
+          {!submitting ? (
+            <Ionicons name="arrow-forward" size={20} color={withdrawTokens.ON_PRIMARY} />
+          ) : null}
         </Pressable>
       </View>
 

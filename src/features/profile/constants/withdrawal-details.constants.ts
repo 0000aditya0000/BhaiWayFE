@@ -1,0 +1,16 @@
+export const WITHDRAWAL_DETAILS_SCREEN = {
+  title: 'Withdrawal',
+  statusHeading: 'Status',
+  paymentHeading: 'Payment Method',
+  referenceHeading: 'Withdrawal Reference',
+  timelineHeading: 'Timeline',
+  requestedLabel: 'Requested',
+  processingLabel: 'Processing',
+  completedLabel: 'Completed',
+  pendingLabel: 'Pending',
+  historyLabel: 'View Withdrawal History',
+  walletLabel: 'Back to Wallet',
+  retryLabel: 'Retry',
+  accountLabel: 'Account',
+  ifscLabel: 'IFSC',
+} as const;

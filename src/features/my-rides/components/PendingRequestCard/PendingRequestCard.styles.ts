@@ -145,4 +145,23 @@ export const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: colors.textInverse,
   },
+  actionDisabled: {
+    opacity: 0.65,
+  },
+  detailBlock: {
+    gap: 2,
+  },
+  detailLine: {
+    ...typography.caption,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  detailMuted: {
+    ...typography.caption,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.textSecondary,
+  },
 });

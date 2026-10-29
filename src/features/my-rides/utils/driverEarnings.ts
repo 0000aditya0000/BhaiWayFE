@@ -23,10 +23,15 @@ export const formatInrBonus = (amount: number, options?: { spaced?: boolean }): 
   });
 };
 
-export const getPassengerRideTag = (rideType: DriverRideKind): string =>
-  isAssuredRide(rideType)
-    ? DRIVER_EARNINGS.assuredPassengerTag
-    : DRIVER_EARNINGS.regularPassengerTag;
+export const getPassengerRideTag = (rideType: DriverRideKind): string => {
+  if (rideType === 'assured') {
+    return DRIVER_EARNINGS.assuredPassengerTag;
+  }
+  if (rideType === 'commute') {
+    return 'Commute';
+  }
+  return DRIVER_EARNINGS.regularPassengerTag;
+};
 
 export const getDriverRideFareAmount = (): number => DRIVER_EARNINGS.rideFareAmount;
 

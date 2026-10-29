@@ -8,6 +8,11 @@ import { getRouteTooCloseMessage } from '@/features/ride-search/utils';
 import { formatTimeLabel, getSelectLocationPath, parseTimeLabel, PUBLISH_SEAT_LIMITS } from '../constants';
 import { publishRideDraft } from '../store';
 import type { LocationFieldType, OutstationRideTypeId, PublishRideDraft } from '../types';
+import {
+  CREATE_RIDE_USER_MESSAGES,
+  isLocalDepartureInPast,
+} from '../utils/createRide.mapper';
+import { ROUTE_SELECTION_USER_MESSAGES, toRouteEndpoints } from '../utils/routeSelection';
 
 const isRideType = (value: string): value is OutstationRideTypeId =>
   value === 'regular' || value === 'assured';
@@ -69,6 +74,18 @@ export const usePublishRide = () => {
 
   const selectTime = useCallback(
     (date: Date) => {
+      const selectedDay = parseSlashDate(publishRideDraft.get().departureDate);
+      if (selectedDay) {
+        const today = startOfDay(new Date());
+        if (
+          startOfDay(selectedDay).getTime() === today.getTime() &&
+          date.getTime() <= Date.now()
+        ) {
+          showAppAlert('Invalid time', CREATE_RIDE_USER_MESSAGES.departureInPast);
+          setTimePickerOpen(false);
+          return;
+        }
+      }
       updateDraft({ departureTime: formatTimeLabel(date) });
       setTimePickerOpen(false);
     },
@@ -96,6 +113,11 @@ export const usePublishRide = () => {
       return;
     }
 
+    if (isLocalDepartureInPast(draft.departureDate, draft.departureTime)) {
+      showAppAlert('Invalid schedule', CREATE_RIDE_USER_MESSAGES.departureInPast);
+      return;
+    }
+
     if (
       !Number.isInteger(draft.availableSeats) ||
       draft.availableSeats < PUBLISH_SEAT_LIMITS.min ||
@@ -116,32 +138,34 @@ export const usePublishRide = () => {
 
     const originLocation = draft.originLocation;
     const destinationLocation = draft.destinationLocation;
-    if (
-      originLocation &&
-      destinationLocation &&
-      Number.isFinite(originLocation.latitude) &&
-      Number.isFinite(originLocation.longitude) &&
-      Number.isFinite(destinationLocation.latitude) &&
-      Number.isFinite(destinationLocation.longitude)
-    ) {
-      const tooCloseMessage = getRouteTooCloseMessage(
-        {
-          latitude: originLocation.latitude!,
-          longitude: originLocation.longitude!,
-        },
-        {
-          latitude: destinationLocation.latitude!,
-          longitude: destinationLocation.longitude!,
-        },
-        'outstation',
-      );
-      if (tooCloseMessage) {
-        showAppAlert('Locations too close', tooCloseMessage);
-        return;
-      }
+    const endpoints = toRouteEndpoints(
+      originLocation?.latitude,
+      originLocation?.longitude,
+      destinationLocation?.latitude,
+      destinationLocation?.longitude,
+    );
+    if (!endpoints) {
+      showAppAlert('Map locations required', ROUTE_SELECTION_USER_MESSAGES.missingCoords);
+      return;
     }
 
-    router.push(ROUTES.offerRidePreferences);
+    const tooCloseMessage = getRouteTooCloseMessage(
+      {
+        latitude: originLocation!.latitude!,
+        longitude: originLocation!.longitude!,
+      },
+      {
+        latitude: destinationLocation!.latitude!,
+        longitude: destinationLocation!.longitude!,
+      },
+      'outstation',
+    );
+    if (tooCloseMessage) {
+      showAppAlert('Locations too close', tooCloseMessage);
+      return;
+    }
+
+    router.push(ROUTES.offerRideSelectRoute);
   }, [draft, router]);
 
   const closeMissingLocation = useCallback(() => {

@@ -130,8 +130,10 @@ export const styles = StyleSheet.create({
     minHeight: 56,
     borderRadius: layout.radiusXl,
     backgroundColor: colors.primary,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.sm,
     ...createShadow({
       color: colors.primary,
       opacity: 0.28,
@@ -139,6 +141,47 @@ export const styles = StyleSheet.create({
       offsetY: 4,
       elevation: 4,
     }),
+  },
+  skipBtn: {
+    width: '100%',
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipLabel: {
+    ...typography.body,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  progress: {
+    ...typography.caption,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  centerState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xxxl,
+    gap: spacing.md,
+  },
+  errorText: {
+    ...typography.body,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: layout.radiusLg,
+    backgroundColor: colors.primary,
+  },
+  retryLabel: {
+    ...typography.button,
+    color: colors.white,
   },
   submitBtnDisabled: {
     opacity: 0.55,

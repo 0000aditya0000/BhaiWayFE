@@ -8,6 +8,7 @@ import type {
 } from '../api/vehicle.api';
 import type { VerificationStatus } from '../api/verification.types';
 import type { AddVehicleForm, GarageVehicle, VehicleCategoryId, VehicleRcStatus } from '../types';
+import { resolveVehicleRcUiStatus } from './vehicleRcVerification.mapper';
 
 /** Swagger VehicleType enum */
 export const API_VEHICLE_TYPES = ['CAR', 'BIKE'] as const;
@@ -69,7 +70,15 @@ export const mapAddVehicleFormToCreateDto = (form: AddVehicleForm): CreateVehicl
 
 export const mapVerificationStatusToRcStatus = (
   status?: VerificationStatus | null,
-): VehicleRcStatus => (status === 'VERIFIED' ? 'approved' : 'pending');
+): VehicleRcStatus => {
+  if (status === 'VERIFIED') {
+    return 'verified';
+  }
+  if (status === 'REJECTED') {
+    return 'failed';
+  }
+  return 'required';
+};
 
 export const inferCategoryFromVehicle = (row: VehicleResponse): VehicleCategoryId => {
   if (row.seatingCapacity >= 7) {
@@ -146,7 +155,13 @@ export const mapVehicleResponseToGarageVehicle = (
     plateNumber: plate || '—',
     vehicleType: row.vehicleType,
     isActive: row.isActive,
-    rcStatus: mapVerificationStatusToRcStatus(vehicleVerificationStatus),
+    rcStatus: resolveVehicleRcUiStatus({
+      response: row,
+      aggregateVehicleStatus: vehicleVerificationStatus,
+    }),
+    ownerMatchStatus: row.ownerMatchStatus ?? null,
+    rcVerifiedAt: row.rcVerifiedAt ?? row.verifiedAt ?? null,
+    lastRcVerificationStatus: row.rcVerificationStatus ?? null,
   };
 };
 

@@ -11,8 +11,9 @@ export const RIDE_DETAILS_SCREEN = {
   fareTitle: 'Fare Details',
   rideFareLabel: 'Ride Fare',
   totalLabel: 'Total Amount',
-  rulesTitle: 'Ride Rules',
-  rulesSubtitle: 'Please follow these guidelines for a smooth trip.',
+  rulesTitle: 'Ride Preferences',
+  rulesSubtitle: 'Preferences set by the driver for this ride.',
+  rulesEmptyLabel: 'No special preferences for this ride.',
   bookLabel: 'Book Ride',
   contactDriverLabel: 'Contact Driver',
   cancelLabel: 'Cancel Ride',
@@ -21,23 +22,19 @@ export const RIDE_DETAILS_SCREEN = {
   cancelConfirmMessage: 'Are you sure you want to cancel this ride?',
   cancelConfirmAction: 'Yes, Cancel',
   keepRideAction: 'Keep Ride',
-  previewFooterHint: 'Review fare and rules, then book your seat.',
+  previewFooterHint: 'Review fare and preferences, then book your seat.',
+  assuredLabel: 'ASSURED',
+  regularLabel: 'REGULAR',
+  ratingsCountLabel: (count: number) =>
+    count === 1 ? '1 rating' : `${count} ratings`,
+  seatsCapacityLabel: (count: number) =>
+    count > 0 ? `${count} seats` : '',
 } as const;
 
-export const DEFAULT_RIDE_RULES: readonly RideRule[] = [
-  { id: 'no-smoking', label: 'No smoking inside the vehicle', icon: 'ban' },
-  { id: 'ac-on', label: 'AC will be available throughout the ride', icon: 'snow' },
-  { id: 'on-time', label: 'Please arrive 5 minutes before departure', icon: 'time' },
-  { id: 'luggage', label: '1 cabin bag per passenger allowed', icon: 'bag' },
-  { id: 'seats', label: 'Seat belts must be worn at all times', icon: 'checkmark-circle' },
-  { id: 'no-pets', label: 'Pets are not allowed', icon: 'paw' },
-] as const;
+/** Fallback only when live preferences have not loaded yet. */
+export const DEFAULT_RIDE_RULES: readonly RideRule[] = [] as const;
 
-const CO_PASSENGERS = [
-  { id: 'cp-as', name: 'Amit S.', company: 'Google', verified: true },
-  { id: 'cp-ps', name: 'Priya S.', company: 'Microsoft', verified: true },
-] as const;
-
+/** Skeleton shell until GET /rides/public/:id hydrates real passenger-card data. */
 export const getRideDetailsMock = (params: {
   rideId: string;
   rideType: RideType;
@@ -53,45 +50,49 @@ export const getRideDetailsMock = (params: {
   distanceLabel?: string;
   durationLabel?: string;
 }): RideDetailsData => {
-  const rideFare = params.price != null && params.price > 0 ? params.price : 240;
-  const pickupTitle = shortName(params.origin) || 'Saket';
-  const dropoffTitle = shortName(params.destination) || 'Cyber City';
+  const rideFare = params.price != null && params.price > 0 ? params.price : 0;
+  const pickupTitle = shortName(params.origin) || 'Pickup';
+  const dropoffTitle = shortName(params.destination) || 'Drop-off';
 
   return {
     rideId: params.rideId,
     rideType: params.rideType,
-    dateTimeLabel: 'Oct 24, 2023 | 08:45 AM',
+    dateTimeLabel: params.durationLabel || '',
     pickup: {
       title: pickupTitle,
-      address: params.origin || 'Select Citywalk, New Delhi',
-      latitude: params.originLat ?? 28.5245,
-      longitude: params.originLng ?? 77.2066,
+      address: params.origin || '',
+      latitude: params.originLat ?? 0,
+      longitude: params.originLng ?? 0,
     },
     dropoff: {
       title: dropoffTitle,
-      address: params.destination || 'Building 10C, DLF Phase 2, Gurgaon',
-      latitude: params.destinationLat ?? 28.4946,
-      longitude: params.destinationLng ?? 77.0888,
+      address: params.destination || '',
+      latitude: params.destinationLat ?? 0,
+      longitude: params.destinationLng ?? 0,
     },
     driver: {
-      name: params.driverName || 'Vikram K.',
-      company: 'Altus Mindstream',
-      rating: 4.9,
-      verified: true,
-      vehicleColor: 'White',
-      vehicleModel: params.carModel || 'Honda City',
-      plateNumber: 'DL 3C AB 1234',
+      id: '',
+      name: params.driverName || '',
+      company: '',
+      rating: 0,
+      totalRatings: 0,
+      verified: false,
+      vehicleColor: '',
+      vehicleModel: params.carModel || '',
+      vehicleType: '',
+      seatingCapacity: 0,
+      recentRides: [],
     },
-    coPassengers: [...CO_PASSENGERS],
-    maxPassengers: 3,
-    seatsLeft: 1,
+    coPassengers: [],
+    maxPassengers: 0,
+    seatsLeft: 0,
     fare: {
       rideFare,
       total: rideFare,
     },
     rules: [...DEFAULT_RIDE_RULES],
-    distanceLabel: params.distanceLabel || '12.4 km',
-    durationLabel: params.durationLabel || '24 mins',
+    distanceLabel: params.distanceLabel || '',
+    durationLabel: params.durationLabel || '',
   };
 };
 

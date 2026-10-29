@@ -26,8 +26,9 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
+# Firebase client configs (mobile app only — never commit Admin SDK service accounts)
+google-services.json
+GoogleService-Info.plist
 *.pem
 
 # local env files

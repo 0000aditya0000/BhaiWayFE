@@ -11,6 +11,10 @@ export interface EmergencyContact {
 }
 
 export interface EmergencyRideSummary {
+  /** False when the user has no IN_PROGRESS ride/booking. */
+  hasActiveRide: boolean;
+  role: 'rider' | 'driver' | null;
+  /** Counterpart name: driver (as rider) or passenger (as driver). */
   driverName: string;
   vehicleLabel: string;
   plateNumber: string;

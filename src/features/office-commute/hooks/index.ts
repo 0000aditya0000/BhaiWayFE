@@ -3,6 +3,7 @@ export type { UsePublishCommuteResult } from './usePublishCommute';
 export { useSelectCommuteLocation } from './useSelectCommuteLocation';
 export { useReviewDrive } from './useReviewDrive';
 export type { UseReviewDriveResult } from './useReviewDrive';
+export { useCorporateVerified } from './useCorporateVerified';
 export { useCorporateVerification } from './useCorporateVerification';
 export type { UseCorporateVerificationResult } from './useCorporateVerification';
 export { useCorporateVerificationSuccess } from './useCorporateVerificationSuccess';
@@ -19,6 +20,8 @@ export type {
   UseCommuteReviewBookingParams,
   UseCommuteReviewBookingResult,
 } from './useCommuteReviewBooking';
+export { useCommutePayment } from './useCommutePayment';
+export type { UseCommutePaymentParams, UseCommutePaymentResult } from './useCommutePayment';
 export { useCommuteRideBooked } from './useCommuteRideBooked';
 export type {
   UseCommuteRideBookedParams,

@@ -11,3 +11,6 @@ export { CommutePaymentScreen } from './CommutePaymentScreen';
 export { CommuteRideBookedScreen } from './CommuteRideBookedScreen';
 export { CommuteCancelRideScreen } from './CommuteCancelRideScreen';
 export { CommuteCancelConfirmedScreen } from './CommuteCancelConfirmedScreen';
+export { CommuteRewardsScreen } from './CommuteRewardsScreen';
+export { CommuteRewardDetailScreen } from './CommuteRewardDetailScreen';
+export { CommuteRewardClaimsScreen } from './CommuteRewardClaimsScreen';

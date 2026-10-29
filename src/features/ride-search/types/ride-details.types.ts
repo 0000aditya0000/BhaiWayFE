@@ -1,5 +1,6 @@
 import type { RideType } from './ride-result.types';
 import type { CoPassenger } from './review-booking.types';
+import type { DriverRecentRideStatusItem } from '../constants/driver-recent-rides.constants';
 
 export type RideDetailsMode = 'preview' | 'booked';
 
@@ -11,14 +12,20 @@ export interface RideDetailsLocation {
 }
 
 export interface RideDetailsDriver {
+  id: string;
   name: string;
   company: string;
   rating: number;
+  totalRatings: number;
   verified: boolean;
   vehicleColor: string;
   vehicleModel: string;
-  plateNumber: string;
+  vehicleType: string;
+  seatingCapacity: number;
+  /** Not returned on passenger search/public vehicle payloads. */
+  plateNumber?: string;
   avatarUri?: string;
+  recentRides: readonly DriverRecentRideStatusItem[];
 }
 
 export interface RideDetailsFare {
@@ -46,4 +53,6 @@ export interface RideDetailsData {
   rules: RideRule[];
   distanceLabel: string;
   durationLabel: string;
+  /** Backend womenOnly for preview booking UX. */
+  womenOnly?: boolean;
 }

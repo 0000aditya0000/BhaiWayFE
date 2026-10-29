@@ -8,148 +8,26 @@ import {
   AppFooter,
   IconButton,
   AppText as Text,
-  AppTextInput as TextInput,
 } from '@/shared/components';
 import { colors } from '@/shared/theme';
 import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { DRIVER_TRIP_COMPLETED_SCREEN } from '@/features/my-rides/constants';
 import { useDriverTripCompleted } from '@/features/my-rides/hooks';
-import type {
-  DriverPassengerReviewDraft,
-  DriverTripCompletedPassenger,
-  PassengerRatingValue,
-} from '@/features/my-rides/types';
-import { STAR_COLOR, styles } from './DriverTripCompletedScreen.styles';
-
-const STAR_VALUES = [1, 2, 3, 4, 5] as const;
-
-const PassengerStars = ({
-  name,
-  value,
-  onChange,
-}: {
-  name: string;
-  value: PassengerRatingValue;
-  onChange: (next: PassengerRatingValue) => void;
-}) => (
-  <View style={styles.starsRow} accessibilityLabel={`Rate ${name}`}>
-    {STAR_VALUES.map((star) => {
-      const filled = star <= value;
-      return (
-        <Pressable
-          key={star}
-          style={({ pressed }) => [
-            styles.starButton,
-            pressed && { transform: [{ scale: 1.15 }] },
-          ]}
-          onPress={() => onChange(star)}
-          accessibilityRole="button"
-          accessibilityLabel={`${star} star${star === 1 ? '' : 's'} for ${name}`}
-        >
-          <Ionicons
-            name={filled ? 'star' : 'star-outline'}
-            size={18}
-            color={filled ? STAR_COLOR : '#C4C5D7'}
-          />
-        </Pressable>
-      );
-    })}
-  </View>
-);
-
-const PassengerReviewCard = ({
-  passenger,
-  draft,
-  onRate,
-  onToggleCompliment,
-  onChangeNote,
-  onPressAvatar,
-}: {
-  passenger: DriverTripCompletedPassenger;
-  draft: DriverPassengerReviewDraft;
-  onRate: (value: PassengerRatingValue) => void;
-  onToggleCompliment: (compliment: string) => void;
-  onChangeNote: (note: string) => void;
-  onPressAvatar: () => void;
-}) => (
-  <View style={styles.reviewCard}>
-    <View style={styles.passengerRow}>
-      <Pressable
-        onPress={onPressAvatar}
-        accessibilityRole="button"
-        accessibilityLabel={`View ${passenger.name} profile`}
-      >
-        <View style={styles.avatar}>
-          {passenger.avatarUri ? (
-            <Image
-              source={{ uri: passenger.avatarUri }}
-              style={styles.avatarImage}
-              accessibilityLabel={`${passenger.name} photo`}
-            />
-          ) : (
-            <Text style={styles.initials}>{passenger.initials || passenger.name.slice(0, 2)}</Text>
-          )}
-        </View>
-      </Pressable>
-      <View style={styles.passengerMeta}>
-        <Text style={styles.passengerName}>{passenger.name}</Text>
-        <PassengerStars name={passenger.name} value={draft.rating} onChange={onRate} />
-      </View>
-    </View>
-
-    <View style={styles.chipsRow}>
-      {passenger.complimentOptions.map((compliment) => {
-        const selected = draft.compliments.includes(compliment);
-        return (
-          <Pressable
-            key={compliment}
-            style={({ pressed }) => [
-              styles.chip,
-              selected && styles.chipSelected,
-              pressed && { opacity: 0.9 },
-            ]}
-            onPress={() => onToggleCompliment(compliment)}
-            accessibilityRole="button"
-            accessibilityState={{ selected }}
-            accessibilityLabel={`${compliment} for ${passenger.name}`}
-          >
-            <Text style={[styles.chipLabel, selected && styles.chipLabelSelected]}>
-              {compliment}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-
-    <TextInput
-      style={styles.reviewInput}
-      value={draft.note}
-      onChangeText={onChangeNote}
-      placeholder={DRIVER_TRIP_COMPLETED_SCREEN.reviewPlaceholder}
-      placeholderTextColor="rgba(67, 70, 85, 0.5)"
-      multiline
-      numberOfLines={2}
-      accessibilityLabel={`Written review for ${passenger.name}`}
-    />
-  </View>
-);
+import { styles } from './DriverTripCompletedScreen.styles';
 
 export const DriverTripCompletedScreen = () => {
-  const params = useLocalSearchParams<{ destination?: string }>();
+  const params = useLocalSearchParams<{ destination?: string; rideId?: string; rideType?: string }>();
   const destination = getSearchParam(params.destination);
+  const rideId = getSearchParam(params.rideId);
 
   const {
     trip,
-    reviews,
-    canSubmit,
-    setRating,
-    toggleCompliment,
-    setReviewNote,
+    continuing,
     submitReviews,
-    openRiderProfile,
     goBack,
   } = useDriverTripCompleted({
     destination: destination || undefined,
+    rideId: rideId || undefined,
   });
 
   const handleBack = useCallback(() => {
@@ -218,34 +96,25 @@ export const DriverTripCompletedScreen = () => {
         </View>
 
         <Text style={styles.sectionTitle}>{DRIVER_TRIP_COMPLETED_SCREEN.reviewSectionTitle}</Text>
-
-        <View style={styles.reviewList}>
-          {trip.passengers.map((passenger) => (
-            <PassengerReviewCard
-              key={passenger.id}
-              passenger={passenger}
-              draft={reviews[passenger.id] ?? { rating: 0, compliments: [], note: '' }}
-              onRate={(value) => setRating(passenger.id, value)}
-              onToggleCompliment={(compliment) => toggleCompliment(passenger.id, compliment)}
-              onChangeNote={(note) => setReviewNote(passenger.id, note)}
-              onPressAvatar={() => openRiderProfile(passenger)}
-            />
-          ))}
-        </View>
+        <Text style={styles.communityMessage}>
+          {DRIVER_TRIP_COMPLETED_SCREEN.communityMessage}
+        </Text>
 
         <View style={styles.submitWrap}>
           <Pressable
             style={({ pressed }) => [
               styles.submitBtn,
-              !canSubmit && styles.submitBtnDisabled,
-              pressed && canSubmit && { opacity: 0.92, transform: [{ scale: 0.98 }] },
+              continuing && styles.submitBtnDisabled,
+              pressed && !continuing && { opacity: 0.92, transform: [{ scale: 0.98 }] },
             ]}
             onPress={handleSubmit}
+            disabled={continuing}
             accessibilityRole="button"
-            accessibilityLabel={DRIVER_TRIP_COMPLETED_SCREEN.submitLabel}
-            accessibilityState={{ disabled: !canSubmit }}
+            accessibilityLabel={DRIVER_TRIP_COMPLETED_SCREEN.continueLabel}
           >
-            <Text style={styles.submitLabel}>{DRIVER_TRIP_COMPLETED_SCREEN.submitLabel}</Text>
+            <Text style={styles.submitLabel}>
+              {continuing ? 'Loading...' : DRIVER_TRIP_COMPLETED_SCREEN.continueLabel}
+            </Text>
             <Ionicons name="arrow-forward" size={22} color="#EAEBFF" />
           </Pressable>
         </View>

@@ -1,5 +1,5 @@
 export const VERIFY_AADHAAR_SCREEN = {
-  headerTitle: 'Verify Identity',
+  headerTitle: 'Verify Aadhaar',
   heroTitle: 'Aadhar Verification',
   heroBody:
     'We use your Aadhar details to securely verify your identity. This helps keep our community safe and trusted.',

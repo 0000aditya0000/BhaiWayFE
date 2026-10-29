@@ -9,6 +9,8 @@ export const PUBLISH_COMMUTE_SCREEN = {
   startPlaceholder: 'Select pickup point',
   officeLabel: 'Office Location',
   officePlaceholder: 'Select destination',
+  departureDateLabel: 'Departure Date',
+  departureDatePlaceholder: 'Select date',
   departureLabel: 'Departure Time',
   seatsLabel: 'Available Seats',
   recurringLabel: 'Schedule Recurring Ride',
@@ -17,6 +19,8 @@ export const PUBLISH_COMMUTE_SCREEN = {
   returningLabel: 'Returning Back',
   returningHint:
     'Automatically schedule the return journey (Office to Home) for the same days.',
+  returnTimeLabel: 'Return Departure',
+  returnTimePlaceholder: '--:-- --',
   priceLabel: 'Price per seat (BhaiWay Coins)',
   pricePlaceholder: 'e.g. 150',
   recommendedBadge: 'Recommended',
@@ -27,13 +31,13 @@ export const PUBLISH_COMMUTE_SCREEN = {
 } as const;
 
 export const WEEKDAY_OPTIONS: readonly WeekdayOption[] = [
-  { id: 'mon', label: 'M' },
-  { id: 'tue', label: 'T' },
-  { id: 'wed', label: 'W' },
-  { id: 'thu', label: 'T' },
-  { id: 'fri', label: 'F' },
-  { id: 'sat', label: 'S' },
-  { id: 'sun', label: 'S' },
+  { id: 'mon', label: 'Mo' },
+  { id: 'tue', label: 'Tu' },
+  { id: 'wed', label: 'We' },
+  { id: 'thu', label: 'Th' },
+  { id: 'fri', label: 'Fr' },
+  { id: 'sat', label: 'Sa' },
+  { id: 'sun', label: 'Su' },
 ] as const;
 
 export { DEFAULT_PUBLISH_COMMUTE_DRAFT } from './select-location.constants';

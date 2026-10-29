@@ -6,21 +6,28 @@ export const DRIVER_ACTIVE_TRIP_SCREEN = {
   brandName: 'BhaiWay',
   arrivingLabel: 'Arriving At',
   etaUnit: 'min',
+  openMapsLabel: 'Open in Google Maps',
   sosLabel: 'EMERGENCY SOS',
   swipeLabel: 'Swipe to Complete Trip',
   completedLabel: 'Trip Completed!',
   completedTitle: 'Trip completed',
   completedMessage: 'Trip to {destination} completed. Thank you!',
   voiceLabel: 'Voice guidance',
+  mapsUnavailableTitle: 'Directions unavailable',
+  mapsUnavailableMessage: 'Destination coordinates are not available yet for this trip.',
 } as const;
 
 export const DEFAULT_DRIVER_ACTIVE_TRIP: ActiveTripSummary = {
   destinationLabel: 'BhaiWay Corporate Office',
   etaMinutes: 2,
+  etaLabel: '2 min',
   distanceLabel: '0.4 miles',
   progress: 0.72,
   mapImageUri:
     'https://lh3.googleusercontent.com/aida-public/AB6AXuCVXZeqcQRiyiaZs9_hKuoF4XVMbs0PD-SD7AJNNHffGTvFzIcP5Bd0a8SwJlJkTeeBTS670hJyQ539eTtvL-yyR4-UoPtcBydDNCs94k7ri_IWp0ZEaUZOJtBCOlsvKFE7VMipr7ZcwukTJZ4K1mQX5ot5Sv5adrGwgU9MXghfp1t2gu-xiOBlUy3ulZX8n9DZNuZhSvhWPa2FWtgUDQDPEmWsnpTwusooVwjvkq4aHYxaK2qa1o8UVtJg9yvmPMLvkMR36QNYuhI',
+  destinationCoordinate: null,
+  routeCoordinates: [],
+  locationErrorMessage: null,
   navStep: {
     instruction: 'Turn right onto Tech Way',
     distanceLabel: 'In 500 feet',
@@ -44,7 +51,28 @@ export const DEFAULT_DRIVER_ACTIVE_TRIP: ActiveTripSummary = {
   ],
 };
 
-export const getDriverActiveTripPath = (rideType: DriverRideKind = 'assured') => ({
-  pathname: ROUTES.myRidesActiveTrip,
-  params: { rideType },
-});
+export const getDriverActiveTripPath = (
+  rideTypeOrParams:
+    | DriverRideKind
+    | {
+        rideType?: DriverRideKind;
+        rideId?: string;
+        destination?: string;
+      } = 'assured',
+) => {
+  if (typeof rideTypeOrParams === 'string') {
+    return {
+      pathname: ROUTES.myRidesActiveTrip,
+      params: { rideType: rideTypeOrParams, rideId: '', destination: '' },
+    };
+  }
+
+  return {
+    pathname: ROUTES.myRidesActiveTrip,
+    params: {
+      rideType: rideTypeOrParams.rideType ?? 'assured',
+      rideId: rideTypeOrParams.rideId ?? '',
+      destination: rideTypeOrParams.destination ?? '',
+    },
+  };
+};

@@ -1,14 +1,10 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
-import { saveVehicleRcUrl } from '@/features/media';
+import { useVehicleRcVerification } from '@/hooks/useVehicleRcVerification';
 import { authSession } from '@/store';
-import { uploadFile } from '@/services/cloudinary';
-import type { UploadedDocument } from '@/shared/components';
-import { compressImage } from '@/utils/imageCompression';
-import { CloudinaryUploadError } from '@/types/cloudinary';
 import {
   getErrorMessage,
   triggerLightHaptic,
@@ -16,24 +12,38 @@ import {
   showAppAlert,
 } from '@/shared/utils';
 import {
+  CACHE_STALE_TIMES,
+  cacheKeys,
+  invalidateAfterVehicleRc,
+  invalidateVehiclesCache,
+  resourceCache,
+} from '@/network/resourceCache';
+import {
   getMyVerifications,
   listVehicles,
-  updateVehicle,
   deleteVehicleById,
   activateVehicle,
-  type VerificationStatus,
 } from '../api';
+import type { MyVerificationsResponse, VehicleResponse } from '../api';
 import { MY_GARAGE_SCREEN } from '../constants';
 import type { GarageVehicle } from '../types';
-import { mapUpdateVehicleError, mapVehicleResponseToGarageVehicle } from '../utils';
+import {
+  applyRcVerificationToGarageVehicle,
+  formatRcVerifiedAt,
+  mapUpdateVehicleError,
+  mapVehicleRcVerificationError,
+  mapVehicleResponseToGarageVehicle,
+  ownerMatchLabel,
+} from '../utils';
 
 export interface UseMyGarageResult {
   vehicles: readonly GarageVehicle[];
   loading: boolean;
   refreshing: boolean;
   verifySheetVisible: boolean;
+  verifyTarget: GarageVehicle | null;
   verifyUploading: boolean;
-  verifyProgress: number;
+  verifyingVehicleId: string | null;
   togglingVehicleId: string | null;
   goBack: () => void;
   deleteVehicle: (vehicle: GarageVehicle) => void;
@@ -42,7 +52,9 @@ export interface UseMyGarageResult {
   toggleVehicleActive: (vehicle: GarageVehicle, nextActive: boolean) => void;
   openVerifyVehicle: (vehicle: GarageVehicle) => void;
   closeVerifySheet: () => void;
-  applyVerifyDocument: (document: UploadedDocument) => void;
+  confirmVerifyRc: () => void;
+  ownerMatchHint: (vehicle: GarageVehicle) => string | null;
+  verifiedAtLabel: (vehicle: GarageVehicle) => string | null;
 }
 
 const isApiError = (error: unknown): error is { status: number; message?: string } =>
@@ -53,45 +65,64 @@ const isApiError = (error: unknown): error is { status: number; message?: string
 
 export const useMyGarage = (): UseMyGarageResult => {
   const router = useRouter();
+  const {
+    verify,
+    isVerifying,
+    verifyingVehicleId,
+    reset: resetVerify,
+  } = useVehicleRcVerification();
   const [vehicles, setVehicles] = useState<readonly GarageVehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [vehicleVerificationStatus, setVehicleVerificationStatus] =
-    useState<VerificationStatus | null>(null);
   const [verifySheetVisible, setVerifySheetVisible] = useState(false);
-  const [verifyUploading, setVerifyUploading] = useState(false);
-  const [verifyProgress, setVerifyProgress] = useState(0);
   const [verifyTarget, setVerifyTarget] = useState<GarageVehicle | null>(null);
   const [togglingVehicleId, setTogglingVehicleId] = useState<string | null>(null);
-  const verifyGenerationRef = useRef(0);
 
   const loadVehicles = useCallback(async (mode: 'initial' | 'refresh') => {
     if (!authSession.getToken()) {
       setVehicles([]);
-      setVehicleVerificationStatus(null);
       setLoading(false);
       setRefreshing(false);
       return;
     }
 
-    if (mode === 'refresh') {
+    const force = mode === 'refresh';
+    if (force) {
       setRefreshing(true);
-    } else {
+    } else if (!resourceCache.peek(cacheKeys.vehicles.list())) {
       setLoading(true);
     }
 
     try {
-      const [rows, verifications] = await Promise.all([
-        listVehicles(),
-        getMyVerifications().catch(() => null),
+      const [vehiclesResult, verificationsResult] = await Promise.all([
+        resourceCache.query<VehicleResponse[]>({
+          key: cacheKeys.vehicles.list(),
+          staleTime: CACHE_STALE_TIMES.VEHICLES,
+          force,
+          fetcher: listVehicles,
+        }),
+        resourceCache
+          .query<MyVerificationsResponse>({
+            key: cacheKeys.verification.me(),
+            staleTime: CACHE_STALE_TIMES.VERIFICATION,
+            force,
+            fetcher: getMyVerifications,
+          })
+          .catch(() => null),
       ]);
+      const rows = vehiclesResult.data;
+      const verifications = verificationsResult?.data ?? null;
       const verificationStatus = verifications?.vehicle?.status ?? null;
-      setVehicleVerificationStatus(verificationStatus);
       setVehicles(
         rows.map((row) => mapVehicleResponseToGarageVehicle(row, verificationStatus)),
       );
     } catch (error) {
       console.log('[My Garage] GET /vehicles failed', getErrorMessage(error));
+      const kept = resourceCache.peek<VehicleResponse[]>(cacheKeys.vehicles.list());
+      if (kept) {
+        setVehicles(kept.map((row) => mapVehicleResponseToGarageVehicle(row, null)));
+        return;
+      }
       const status = isApiError(error) ? error.status : undefined;
       if (status === 401) {
         authSession.clear();
@@ -135,6 +166,7 @@ export const useMyGarage = (): UseMyGarageResult => {
             void (async () => {
               try {
                 await deleteVehicleById(vehicle.id);
+                invalidateVehiclesCache();
                 triggerSuccessHaptic();
                 await loadVehicles('refresh');
               } catch (error) {
@@ -203,6 +235,7 @@ export const useMyGarage = (): UseMyGarageResult => {
       void (async () => {
         try {
           await activateVehicle(vehicle.id);
+          invalidateVehiclesCache();
           triggerSuccessHaptic();
           await loadVehicles('refresh');
         } catch (error) {
@@ -226,108 +259,129 @@ export const useMyGarage = (): UseMyGarageResult => {
 
   const openVerifyVehicle = useCallback(
     (vehicle: GarageVehicle) => {
-      if (vehicleVerificationStatus === 'VERIFIED') {
+      if (vehicle.rcStatus === 'verified') {
         showAppAlert(
           MY_GARAGE_SCREEN.verifySuccessTitle,
-          'Your vehicle verification is already approved.',
+          'This vehicle RC is already verified.',
         );
         return;
       }
+      if (isVerifying) {
+        return;
+      }
       triggerLightHaptic();
+      resetVerify();
       setVerifyTarget(vehicle);
       setVerifySheetVisible(true);
     },
-    [vehicleVerificationStatus],
+    [isVerifying, resetVerify],
   );
 
   const closeVerifySheet = useCallback(() => {
-    if (verifyUploading) {
+    if (isVerifying) {
       return;
     }
     setVerifySheetVisible(false);
     setVerifyTarget(null);
-  }, [verifyUploading]);
+    resetVerify();
+  }, [isVerifying, resetVerify]);
 
-  const applyVerifyDocument = useCallback(
-    (document: UploadedDocument) => {
-      const vehicle = verifyTarget;
-      if (!vehicle || !authSession.getToken()) {
-        showAppAlert('Session expired', 'Please sign in again to verify your vehicle.');
-        return;
-      }
+  const confirmVerifyRc = useCallback(() => {
+    const vehicle = verifyTarget;
+    if (!vehicle || isVerifying) {
+      return;
+    }
 
-      const generation = ++verifyGenerationRef.current;
-      const stamp = Date.now();
-      const fileName = document.fileName?.trim() || `rc_${vehicle.id}_${stamp}.jpg`;
-      const mimeType = document.mimeType?.trim() || 'image/jpeg';
+    if (!authSession.getToken()) {
+      showAppAlert('Session expired', 'Please sign in again to verify your vehicle.');
+      return;
+    }
 
-      setVerifySheetVisible(false);
-      setVerifyUploading(true);
-      setVerifyProgress(0);
+    triggerLightHaptic();
+    setVerifySheetVisible(false);
 
-      void (async () => {
-        try {
-          const compressed = await compressImage(document.uri, {
-            maxDimension: 1600,
-            quality: 0.75,
-            squareCrop: false,
-          });
+    void (async () => {
+      const plate =
+        vehicle.plateNumber && vehicle.plateNumber !== '—'
+          ? vehicle.plateNumber
+          : undefined;
 
-          if (generation !== verifyGenerationRef.current) {
-            return;
-          }
+      try {
+        const verification = await verify(vehicle.id, plate);
 
-          const uploaded = await uploadFile({
-            uri: compressed.uri,
-            kind: 'rc',
-            fileName,
-            mimeType: compressed.mimeType ?? mimeType,
-            resourceType: 'image',
-            onProgress: setVerifyProgress,
-          });
-
-          if (generation !== verifyGenerationRef.current) {
-            return;
-          }
-
-          await saveVehicleRcUrl(uploaded);
-          await updateVehicle(vehicle.id, {
-            documentUrl: uploaded.secureUrl,
-            documentType: 'RC',
-            documentReference: uploaded.publicId,
-          });
-
+        if (verification?.status === 'VERIFIED') {
+          setVehicles((prev) =>
+            prev.map((row) =>
+              row.id === vehicle.id
+                ? applyRcVerificationToGarageVehicle(row, verification)
+                : row,
+            ),
+          );
           triggerSuccessHaptic();
           showAppAlert(
             MY_GARAGE_SCREEN.verifySuccessTitle,
             MY_GARAGE_SCREEN.verifySuccessMessage,
           );
+          setVerifyTarget(null);
+          invalidateAfterVehicleRc();
           await loadVehicles('refresh');
-        } catch (error) {
-          if (generation !== verifyGenerationRef.current) {
-            return;
-          }
-          if (isApiError(error) && error.status === 401) {
-            authSession.clear();
-            showAppAlert('Session expired', 'Please sign in again.');
-            router.replace(ROUTES.welcome);
-            return;
-          }
-          const message =
-            error instanceof CloudinaryUploadError
-              ? error.message
-              : mapUpdateVehicleError(error);
-          showAppAlert(MY_GARAGE_SCREEN.verifyFailedTitle, message);
-        } finally {
-          if (generation === verifyGenerationRef.current) {
-            setVerifyUploading(false);
-            setVerifyProgress(0);
-            setVerifyTarget(null);
-          }
+          return;
         }
-      })();
-    },
-    [loadVehicles, router, verifyTarget],
+
+        const message =
+          verification?.status === 'INVALID'
+            ? mapVehicleRcVerificationError({
+                status: 422,
+                code: 'VEHICLE_RC_INVALID',
+                message: 'VEHICLE_RC_INVALID',
+              })
+            : mapVehicleRcVerificationError({
+                status: 422,
+                code: 'UNKNOWN',
+                message: 'RC verification failed',
+              });
+
+        showAppAlert(MY_GARAGE_SCREEN.verifyFailedTitle, message);
+        setVehicles((prev) =>
+          prev.map((row) => {
+            if (row.id !== vehicle.id) {
+              return row;
+            }
+            if (!verification) {
+              return {
+                ...row,
+                rcStatus: row.rcStatus === 'verified' ? 'verified' : 'failed',
+              };
+            }
+            return applyRcVerificationToGarageVehicle(row, verification);
+          }),
+        );
+        setVerifyTarget(null);
+      } catch (error) {
+        showAppAlert(
+          MY_GARAGE_SCREEN.verifyFailedTitle,
+          mapVehicleRcVerificationError(error),
+        );
+        setVehicles((prev) =>
+          prev.map((row) =>
+            row.id === vehicle.id && row.rcStatus !== 'verified'
+              ? { ...row, rcStatus: 'failed' }
+              : row,
+          ),
+        );
+        setVerifyTarget(null);
+      }
+    })();
+  }, [isVerifying, loadVehicles, verify, verifyTarget]);
+
+  const ownerMatchHint = useCallback(
+    (vehicle: GarageVehicle) => ownerMatchLabel(vehicle.ownerMatchStatus),
+    [],
+  );
+
+  const verifiedAtLabel = useCallback(
+    (vehicle: GarageVehicle) => formatRcVerifiedAt(vehicle.rcVerifiedAt),
+    [],
   );
 
   return {
@@ -335,8 +389,9 @@ export const useMyGarage = (): UseMyGarageResult => {
     loading,
     refreshing,
     verifySheetVisible,
-    verifyUploading,
-    verifyProgress,
+    verifyTarget,
+    verifyUploading: isVerifying,
+    verifyingVehicleId,
     togglingVehicleId,
     goBack,
     deleteVehicle,
@@ -345,6 +400,8 @@ export const useMyGarage = (): UseMyGarageResult => {
     toggleVehicleActive,
     openVerifyVehicle,
     closeVerifySheet,
-    applyVerifyDocument,
+    confirmVerifyRc,
+    ownerMatchHint,
+    verifiedAtLabel,
   };
 };

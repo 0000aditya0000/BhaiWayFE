@@ -37,12 +37,14 @@ export type {
   DriverTrackConfirmedPassenger,
   DriverTrackPendingRequest,
   DriverTrackRideSummary,
+  CommutePendingRequestGroup,
 } from './driver-track-ride.types';
 export type {
   RiderProfileMutualConnection,
   RiderProfileSummary,
 } from './rider-profile.types';
 export type {
+  TripDetailsEarningsLineKind,
   TripDetailsEarningsLine,
   TripDetailsVehicle,
   TripDetailsSummary,

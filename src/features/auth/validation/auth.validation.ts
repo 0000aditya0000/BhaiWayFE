@@ -17,9 +17,8 @@ export const otpValidationSchema = z.object({
 export const profileValidationSchema = z.object({
   fullName: z.string().trim().min(3, 'Name must be at least 3 characters'),
   email: z.string().trim().email('Enter a valid email address'),
-  gender: z.enum(['male', 'female', 'other'], {
-    message: 'Please select a gender',
-  }),
+  /** Gender is backend-controlled via identity verification — not required on mobile forms. */
+  gender: z.enum(['male', 'female', 'other']).optional(),
 });
 
 export const isProfileFormComplete = (

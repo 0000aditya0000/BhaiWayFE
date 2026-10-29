@@ -4,18 +4,23 @@ export const MY_GARAGE_SCREEN = {
   title: 'My Garage',
   heroEyebrow: 'Active Fleet',
   heroTitle: 'Manage Your Vehicles',
-  heroSubtitle: 'Ensure your RC documents are verified for a seamless driving experience.',
+  heroSubtitle: 'Verify vehicle RC to publish rides and build passenger trust.',
   whyTitle: 'Why Verify RC?',
   whyBody:
-    'Verified vehicles gain higher trust scores, attracting more passengers and ensuring compliance with regional transport regulations. Process typically takes 24-48 hours.',
+    'Vehicle RC verification is required before publishing rides. Verification is completed instantly through BhaiWay’s secure checks.',
   addVehicleLabel: 'Add New Vehicle',
   editVehicleLabel: 'Edit',
   verifyVehicleLabel: 'Verify RC',
-  verifyingVehicleLabel: 'Submitting…',
-  verifySuccessTitle: 'Verification submitted',
-  verifySuccessMessage:
-    'Your vehicle RC has been submitted for verification. This usually takes 24–48 hours.',
-  verifyFailedTitle: 'Verification failed',
+  verifyingVehicleLabel: 'Verifying RC...',
+  tryAgainLabel: 'Try Again',
+  verifySuccessTitle: 'RC verified successfully',
+  verifySuccessMessage: 'Your vehicle RC is verified. You can publish rides with this vehicle.',
+  verifyFailedTitle: 'RC verification failed',
+  verifyConfirmTitle: 'Confirm vehicle number',
+  verifyConfirmSubtitle:
+    'We will verify this registration number with the transport records. Only a successful backend result marks the vehicle as verified.',
+  verifyConfirmCta: 'Verify RC',
+  vehicleNumberLabel: 'Vehicle Number',
   emptyTitle: 'No vehicles yet',
   emptySubtitle:
     'Add one or more vehicles. They are saved to your garage and you can use the app as a driver and a rider.',
@@ -24,22 +29,23 @@ export const MY_GARAGE_SCREEN = {
   deleteMessage: (name: string) => `Remove ${name} from your garage?`,
   deleteConfirmLabel: 'Delete',
   deleteFailedTitle: 'Unable to delete',
-  verifyUploadTitle: 'Vehicle RC',
-  verifyUploadSubtitle: 'Upload the RC document for this vehicle to start verification.',
   colorLabel: 'Color',
   activeVehicleToggleLabel: 'Active vehicle',
   activateFailedTitle: 'Unable to update vehicle',
   deactivateInfoTitle: 'Activate another vehicle',
   deactivateInfoMessage:
     'To mark this vehicle inactive, turn on Active vehicle for another car in your garage.',
+  requiredStatusHint: 'RC Verification Required',
+  verifyingStatusHint: 'Verifying RC...',
 } as const;
 
-/** @deprecated Mock list removed — garage reads vehicles from the UserDetails sheet. */
+/** @deprecated Mock list removed — garage reads vehicles from the API. */
 export const GARAGE_VEHICLES: readonly GarageVehicle[] = [];
 
 export const VEHICLE_RC_STATUS_LABEL = {
-  approved: 'RC Approved',
-  pending: 'RC Verification Pending',
+  verified: 'Verified',
+  required: 'RC Verification Required',
+  failed: 'RC Verification Failed',
 } as const;
 
 export const VEHICLE_ACTIVE_LABEL = 'Active Vehicle';

@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AppFooter, Avatar, AppText as Text, IconButton } from '@/shared/components';
+import { BhaiWayMap, isValidMapCoordinate, type BhaiWayMapMarker } from '@/shared/maps';
 import { triggerLightHaptic } from '@/shared/utils';
 import { SwipeToComplete } from '@/features/my-rides/components';
 import { DRIVER_ACTIVE_TRIP_SCREEN } from '@/features/my-rides/constants';
@@ -19,8 +20,23 @@ import { useDriverActiveTrip } from '@/features/my-rides/hooks';
 import { styles } from './DriverActiveTripScreen.styles';
 
 export const DriverActiveTripScreen = () => {
-  const { trip, completed, completeTrip, triggerSos, toggleVoice, goBack } =
-    useDriverActiveTrip();
+  const {
+    trip,
+    driverCoordinate,
+    isRegular,
+    completed,
+    completeTrip,
+    triggerSos,
+    toggleVoice,
+    goBack,
+    openLocationSettings,
+    openGoogleMaps,
+  } = useDriverActiveTrip();
+
+  const handleOpenMaps = useCallback(() => {
+    triggerLightHaptic();
+    openGoogleMaps();
+  }, [openGoogleMaps]);
 
   const pulse = useSharedValue(1);
 
@@ -98,9 +114,10 @@ export const DriverActiveTripScreen = () => {
               </View>
             </View>
             <View style={styles.etaBlock}>
-              <Text style={styles.etaValue}>{trip.etaMinutes}</Text>
-              <Text style={styles.etaUnit}>{DRIVER_ACTIVE_TRIP_SCREEN.etaUnit}</Text>
-              <Text style={styles.distance}>{trip.distanceLabel}</Text>
+              <Text style={styles.etaValue} numberOfLines={2}>
+                {trip.etaLabel || '—'}
+              </Text>
+              <Text style={styles.distance}>{trip.distanceLabel || '—'}</Text>
             </View>
           </View>
           <View style={styles.progressTrack}>
@@ -129,12 +146,57 @@ export const DriverActiveTripScreen = () => {
         </ScrollView>
 
         <View style={styles.mapCard}>
-          <Image
-            source={{ uri: trip.mapImageUri }}
-            style={styles.mapImage}
-            resizeMode="cover"
-            accessibilityLabel="Navigation map"
-          />
+          {isRegular ? (
+            <>
+              <BhaiWayMap
+                style={styles.mapImage}
+                markers={(() => {
+                  const markers: BhaiWayMapMarker[] = [];
+                  if (isValidMapCoordinate(driverCoordinate)) {
+                    markers.push({
+                      id: 'driver',
+                      coordinate: driverCoordinate,
+                      kind: 'driver',
+                      title: 'You',
+                    });
+                  }
+                  if (isValidMapCoordinate(trip.destinationCoordinate)) {
+                    markers.push({
+                      id: 'destination',
+                      coordinate: trip.destinationCoordinate,
+                      kind: 'destination',
+                      title: trip.destinationLabel,
+                    });
+                  }
+                  return markers;
+                })()}
+                routeCoordinates={trip.routeCoordinates}
+                autoFit
+                showsUserLocation={false}
+                bypassTitle="Live trip map"
+                bypassSubtitle="Add a Google Maps API key to show navigation"
+                errorMessage={trip.locationErrorMessage}
+              />
+              {trip.locationErrorMessage ? (
+                <Pressable
+                  style={styles.locationErrorBanner}
+                  onPress={openLocationSettings}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open location settings"
+                >
+                  <Text style={styles.locationErrorText}>{trip.locationErrorMessage}</Text>
+                  <Text style={styles.locationErrorAction}>Open settings</Text>
+                </Pressable>
+              ) : null}
+            </>
+          ) : (
+            <Image
+              source={{ uri: trip.mapImageUri }}
+              style={styles.mapImage}
+              resizeMode="cover"
+              accessibilityLabel="Navigation map"
+            />
+          )}
           <View style={styles.mapOverlay}>
             <View style={styles.navRow}>
               <View style={styles.navIcon}>
@@ -158,6 +220,19 @@ export const DriverActiveTripScreen = () => {
             </Pressable>
           </View>
         </View>
+        <Pressable
+          style={({ pressed }) => [
+            styles.mapsButton,
+            pressed && { opacity: 0.92, transform: [{ scale: 0.98 }] },
+          ]}
+          onPress={handleOpenMaps}
+          accessibilityRole="button"
+          accessibilityLabel="Open in Google Maps"
+        >
+          <Ionicons name="navigate" size={20} color="#374BB1" />
+          <Text style={styles.mapsButtonLabel}>Open in Google Maps</Text>
+        </Pressable>
+
 
         <Pressable
           style={({ pressed }) => [

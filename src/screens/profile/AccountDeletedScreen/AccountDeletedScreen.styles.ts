@@ -56,7 +56,11 @@ export const styles = StyleSheet.create({
     marginBottom: spacing.huge,
   },
   glow: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
     borderRadius: 96,
     backgroundColor: 'rgba(51, 94, 234, 0.12)',
   },

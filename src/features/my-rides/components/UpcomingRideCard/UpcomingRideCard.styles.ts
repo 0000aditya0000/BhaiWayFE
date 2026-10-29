@@ -65,7 +65,7 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     color: PRIMARY,
   },
-  assuredBadge: {
+  rideTypeBadge: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
@@ -74,15 +74,26 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
-    backgroundColor: 'rgba(51, 94, 234, 0.1)',
     borderWidth: 1,
+  },
+  assuredBadge: {
+    backgroundColor: 'rgba(51, 94, 234, 0.1)',
     borderColor: PRIMARY_CONTAINER,
   },
-  assuredText: {
+  regularBadge: {
+    backgroundColor: 'rgba(67, 70, 85, 0.08)',
+    borderColor: OUTLINE_VARIANT,
+  },
+  rideTypeText: {
     fontSize: 10,
     lineHeight: 14,
     fontWeight: '700',
+  },
+  assuredText: {
     color: PRIMARY,
+  },
+  regularText: {
+    color: ON_SURFACE_VARIANT,
   },
   otpBox: {
     backgroundColor: 'rgba(51, 94, 234, 0.1)',
@@ -265,6 +276,26 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+  detailsButton: {
+    minHeight: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: PRIMARY,
+    backgroundColor: '#EAEBFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  detailsLabel: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    color: PRIMARY,
+  },
   cancelButton: {
     flex: 1,
     minHeight: 48,
@@ -303,5 +334,33 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.6,
     color: colors.white,
+  },
+  pendingRequestsBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    backgroundColor: '#FFF4E5',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  pendingRequestsBadgeText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '700',
+    color: '#B45309',
+  },
+  seriesBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    backgroundColor: 'rgba(51, 94, 234, 0.08)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  seriesBadgeText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '700',
+    color: PRIMARY,
   },
 });
