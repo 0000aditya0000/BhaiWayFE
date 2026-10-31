@@ -23,6 +23,7 @@ export const PROFILE_SCREEN = {
   verifyEmailLabel: 'Verify',
   addEmailLabel: 'Add email',
   emailMissingLabel: 'No email on file',
+  changeEmailLabel: 'Change Email',
 } as const;
 
 export const DEFAULT_PROFILE_AVATAR = '';

@@ -34,6 +34,8 @@ export {
   CorporateIdentityVerifyScreen,
   IdentityVerifiedSuccessScreen,
   EmailVerificationScreen,
+  ChangeEmailScreen,
+  ChangeEmailVerifyScreen,
 } from '@/screens/profile';
 export {
   useMasterProfile,
@@ -77,6 +79,8 @@ export {
   useIdentityVerifiedSuccess,
   useMyVerification,
   useAadhaarReward,
+  useChangeEmail,
+  useVerifyChangeEmail,
 } from './hooks';
 export type {
   UseMasterProfileResult,
@@ -273,5 +277,7 @@ export {
   CORPORATE_IDENTITY_VERIFY_SCREEN,
   IDENTITY_VERIFIED_SUCCESS_SCREEN,
   EMAIL_VERIFICATION_SCREEN,
+  CHANGE_EMAIL_SCREEN,
+  CHANGE_EMAIL_VERIFY_SCREEN,
 } from './constants';
 export { trustedContactsStore, aadhaarVerificationStore, verificationStore, walletStore } from './store';

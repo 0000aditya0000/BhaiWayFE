@@ -33,3 +33,5 @@ export { CorporateIdentityScreen } from './CorporateIdentityScreen';
 export { CorporateIdentityVerifyScreen } from './CorporateIdentityVerifyScreen';
 export { IdentityVerifiedSuccessScreen } from './IdentityVerifiedSuccessScreen';
 export { EmailVerificationScreen } from './EmailVerificationScreen';
+export { ChangeEmailScreen } from './ChangeEmailScreen';
+export { ChangeEmailVerifyScreen } from './ChangeEmailVerifyScreen';

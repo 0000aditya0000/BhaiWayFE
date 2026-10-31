@@ -39,6 +39,21 @@ export {
 } from './emailVerification.mapper';
 
 export {
+  EMAIL_CHANGE_COOLDOWN_SECONDS,
+  EMAIL_CHANGE_ERROR_CODES,
+  EMAIL_CHANGE_ERROR_MESSAGES,
+  EMAIL_CHANGE_OTP_LENGTH,
+  isValidChangeEmailOtp,
+  isValidNewEmail,
+  mapEmailChangeError,
+  maskEmail,
+  normalizeChangeEmailOtp,
+  normalizeNewEmail,
+  parseEmailChangeError,
+} from './emailChange.mapper';
+export type { ParsedEmailChangeError } from './emailChange.mapper';
+
+export {
   CORPORATE_DOMAIN_POLICY_OWNER,
   CORPORATE_IDENTITY_ERROR_MESSAGES,
   CORPORATE_OTP_LENGTH,

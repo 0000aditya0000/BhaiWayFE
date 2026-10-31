@@ -23,6 +23,12 @@ export const ENDPOINTS = {
       /** Current email verification status (Bearer JWT). */
       status: '/users/email-verification/status',
     },
+    emailChange: {
+      /** Request OTP to change email address (Bearer JWT). */
+      request: '/users/me/email/change/request',
+      /** Verify OTP and update email address (Bearer JWT). */
+      verify: '/users/me/email/change/verify',
+    },
   },
   corporateIdentity: {
     /** Send corporate identity OTP (Bearer JWT). */

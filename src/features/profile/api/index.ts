@@ -67,6 +67,17 @@ export type {
 } from './emailVerification.api';
 
 export {
+  requestEmailChangeOtp,
+  verifyEmailChangeOtp,
+} from './emailChange.api';
+export type {
+  RequestEmailChangeRequest,
+  RequestEmailChangeResponse,
+  VerifyEmailChangeRequest,
+  VerifyEmailChangeResponse,
+} from './emailChange.api';
+
+export {
   getCorporateIdentityStatus,
   sendCorporateIdentityOtp,
   verifyCorporateIdentityOtp,

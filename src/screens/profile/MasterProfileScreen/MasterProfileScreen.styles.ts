@@ -260,6 +260,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
+    gap: spacing.sm,
   },
   verifyEmailButton: {
     flexDirection: 'row',
@@ -275,6 +276,23 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  changeEmailButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: layout.radiusMd,
+    backgroundColor: profileTokens.PRIMARY_SOFT,
+    borderWidth: 1,
+    borderColor: 'rgba(55, 75, 177, 0.25)',
+  },
+  changeEmailButtonLabel: {
+    ...typography.label,
+    fontSize: 12,
+    fontWeight: '700',
+    color: profileTokens.PRIMARY,
   },
   badgeRow: {
     flexDirection: 'row',

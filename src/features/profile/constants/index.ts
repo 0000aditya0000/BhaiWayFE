@@ -117,3 +117,7 @@ export {
 } from './corporate-identity.constants';
 export { IDENTITY_VERIFIED_SUCCESS_SCREEN } from './identity-verified-success.constants';
 export { EMAIL_VERIFICATION_SCREEN } from './email-verification.constants';
+export {
+  CHANGE_EMAIL_SCREEN,
+  CHANGE_EMAIL_VERIFY_SCREEN,
+} from './change-email.constants';

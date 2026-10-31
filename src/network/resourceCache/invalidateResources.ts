@@ -4,6 +4,7 @@ import { resourceCache } from './resourceCache';
 /** Profile / GET /users/me related. */
 export const invalidateUserProfileCache = (): void => {
   resourceCache.invalidate(cacheKeys.user.me());
+  resourceCache.invalidate(cacheKeys.emailVerification.status());
 };
 
 /** Wallet balance + transactions (financial mutations). */

@@ -62,6 +62,7 @@ export interface UseMasterProfileResult {
   openPaymentMethods: () => void;
   openEditProfile: () => void;
   openVerifyEmail: () => void;
+  openChangeEmail: () => void;
   openRatings: () => void;
   onMenuPress: (id: ProfileMenuActionId) => void;
   openLogout: () => void;
@@ -77,6 +78,13 @@ export const useMasterProfile = (): UseMasterProfileResult => {
   const identityVerified = verifications?.identity?.status === 'VERIFIED';
   const [email, setEmail] = useState<string | null>(() => user?.email?.trim() || null);
   const [emailVerified, setEmailVerified] = useState(false);
+
+  useEffect(() => {
+    const nextEmail = user?.email?.trim() || null;
+    if (nextEmail) {
+      setEmail(nextEmail);
+    }
+  }, [user?.email]);
 
   const menuItems = useMemo((): readonly ProfileMenuItem[] => PROFILE_MENU_ITEMS, []);
   const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
@@ -114,17 +122,18 @@ export const useMasterProfile = (): UseMasterProfileResult => {
         return;
       }
       void (async () => {
-        // Soft hydrate — uses shared GET /users/me cache when fresh.
-        await authService.hydrateAuthenticatedUser().catch(() => undefined);
+        // Hydrate from backend — force refresh ensures immediate consistency
+        await authService.hydrateAuthenticatedUser({ force: true }).catch(() => undefined);
         try {
           const emailResult = await resourceCache.query({
             key: cacheKeys.emailVerification.status(),
             staleTime: CACHE_STALE_TIMES.USER_PROFILE,
+            force: true,
             fetcher: getEmailVerificationStatus,
           });
-          setEmail(
-            emailResult.data.email?.trim() || authSession.getUser()?.email?.trim() || null,
-          );
+          const sessionEmail = authSession.getUser()?.email?.trim();
+          const backendEmail = emailResult.data.email?.trim();
+          setEmail(sessionEmail || backendEmail || null);
           setEmailVerified(Boolean(emailResult.data.verified));
         } catch {
           setEmail(authSession.getUser()?.email?.trim() || null);
@@ -212,7 +221,7 @@ export const useMasterProfile = (): UseMasterProfileResult => {
       ...DEFAULT_MASTER_PROFILE,
       fullName,
       phoneLabel,
-      email: email?.trim() || user?.email?.trim() || null,
+      email: user?.email?.trim() || email?.trim() || null,
       emailVerified,
       avatarUri,
       walletBalanceLabel,
@@ -325,6 +334,11 @@ export const useMasterProfile = (): UseMasterProfileResult => {
     router.push(ROUTES.verifyEmail);
   }, [email, router, user?.email]);
 
+  const openChangeEmail = useCallback(() => {
+    triggerLightHaptic();
+    router.push(ROUTES.changeEmail);
+  }, [router]);
+
   const openRatings = useCallback(() => {
     triggerLightHaptic();
     router.push(ROUTES.myRatings);
@@ -425,6 +439,7 @@ export const useMasterProfile = (): UseMasterProfileResult => {
     openPaymentMethods,
     openEditProfile,
     openVerifyEmail,
+    openChangeEmail,
     openRatings,
     onMenuPress,
     openLogout,

@@ -96,3 +96,7 @@ export { useMyVerification } from './useMyVerification';
 export type { UseMyVerificationResult } from './useMyVerification';
 export { useAadhaarReward } from './useAadhaarReward';
 export type { UseAadhaarRewardResult } from './useAadhaarReward';
+export { useChangeEmail } from './useChangeEmail';
+export type { UseChangeEmailResult } from './useChangeEmail';
+export { useVerifyChangeEmail } from './useVerifyChangeEmail';
+export type { UseVerifyChangeEmailResult } from './useVerifyChangeEmail';

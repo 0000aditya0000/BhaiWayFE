@@ -74,6 +74,7 @@ export const MasterProfileScreen = () => {
     openPaymentMethods,
     openEditProfile,
     openVerifyEmail,
+    openChangeEmail,
     openRatings,
     onMenuPress,
     openLogout,
@@ -98,6 +99,11 @@ export const MasterProfileScreen = () => {
     triggerLightHaptic();
     openVerifyEmail();
   }, [openVerifyEmail]);
+
+  const handleChangeEmail = useCallback(() => {
+    triggerLightHaptic();
+    openChangeEmail();
+  }, [openChangeEmail]);
 
   const handleWallet = useCallback(() => {
     triggerLightHaptic();
@@ -370,24 +376,40 @@ export const MasterProfileScreen = () => {
                     </Text>
                   </Pressable>
                 </View>
-              ) : !profile.emailVerified ? (
+              ) : (
                 <View style={styles.emailActionRow}>
+                  {!profile.emailVerified ? (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.verifyEmailButton,
+                        pressed && { opacity: 0.88 },
+                      ]}
+                      onPress={handleVerifyEmail}
+                      accessibilityRole="button"
+                      accessibilityLabel={PROFILE_SCREEN.verifyEmailLabel}
+                    >
+                      <Ionicons name="shield-checkmark-outline" size={14} color="#FFFFFF" />
+                      <Text style={styles.verifyEmailButtonLabel}>
+                        {PROFILE_SCREEN.verifyEmailLabel}
+                      </Text>
+                    </Pressable>
+                  ) : null}
                   <Pressable
                     style={({ pressed }) => [
-                      styles.verifyEmailButton,
+                      styles.changeEmailButton,
                       pressed && { opacity: 0.88 },
                     ]}
-                    onPress={handleVerifyEmail}
+                    onPress={handleChangeEmail}
                     accessibilityRole="button"
-                    accessibilityLabel={PROFILE_SCREEN.verifyEmailLabel}
+                    accessibilityLabel={PROFILE_SCREEN.changeEmailLabel}
                   >
-                    <Ionicons name="shield-checkmark-outline" size={14} color="#FFFFFF" />
-                    <Text style={styles.verifyEmailButtonLabel}>
-                      {PROFILE_SCREEN.verifyEmailLabel}
+                    <Ionicons name="mail-outline" size={14} color={profileTokens.PRIMARY} />
+                    <Text style={styles.changeEmailButtonLabel}>
+                      {PROFILE_SCREEN.changeEmailLabel}
                     </Text>
                   </Pressable>
                 </View>
-              ) : null}
+              )}
             </View>
 
             <View style={styles.badgeRow}>

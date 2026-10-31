@@ -78,6 +78,18 @@ export const ROOT_SCREENS = {
     path: '/verify-email',
     title: 'Verify Email',
   },
+  changeEmail: {
+    id: 'change-email',
+    segment: 'change-email',
+    path: '/change-email',
+    title: 'Change Email Address',
+  },
+  changeEmailVerify: {
+    id: 'change-email-verify',
+    segment: 'change-email-verify',
+    path: '/change-email-verify',
+    title: 'Verify Your New Email',
+  },
   identityVerification: {
     id: 'identity-verification',
     segment: 'identity-verification',
@@ -846,6 +858,8 @@ export const ROUTES = {
   corporateIdentity: ROOT_SCREENS.corporateIdentity.path,
   corporateIdentityVerify: ROOT_SCREENS.corporateIdentityVerify.path,
   verifyEmail: ROOT_SCREENS.verifyEmail.path,
+  changeEmail: ROOT_SCREENS.changeEmail.path,
+  changeEmailVerify: ROOT_SCREENS.changeEmailVerify.path,
   myRatings: ROOT_SCREENS.myRatings.path,
   home: ROOT_SCREENS.home.path,
   rideSearch: ROOT_SCREENS.rideSearch.path,

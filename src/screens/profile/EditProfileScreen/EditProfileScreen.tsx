@@ -99,24 +99,22 @@ export const EditProfileScreen = () => {
                 )}
               />
 
-              <Controller
-                control={control}
-                name="email"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <Input
-                    label="Email Address *"
-                    placeholder="name@example.com"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    error={errors.email?.message}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="next"
-                  />
-                )}
-              />
+              <View style={styles.phoneBlock}>
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { value } }) => (
+                    <Input
+                      label={EDIT_PROFILE_SCREEN.emailLabel}
+                      placeholder="name@example.com"
+                      value={value}
+                      editable={false}
+                      pointerEvents="none"
+                    />
+                  )}
+                />
+                <Text style={styles.phoneHint}>{EDIT_PROFILE_SCREEN.emailHint}</Text>
+              </View>
 
               <View style={styles.phoneBlock}>
                 <Input

@@ -1,0 +1,32 @@
+export const CHANGE_EMAIL_SCREEN = {
+  title: 'Change Email Address',
+  description: 'Enter your new email address. We will send a verification code to confirm it.',
+  emailLabel: 'New Email Address',
+  emailPlaceholder: 'e.g. name@example.com',
+  sendButtonLabel: 'Send Verification Code',
+  sendingButtonLabel: 'Sending Code…',
+  currentEmailLabel: 'Current Email',
+  currentEmailMissing: 'None on file',
+} as const;
+
+export const CHANGE_EMAIL_VERIFY_SCREEN = {
+  title: 'Verify Your New Email',
+  description: 'Enter the 4-digit verification code sent to your new email address.',
+  maskedEmailPrefix: 'Code sent to:',
+  otpLabel: '4 digit email verification code',
+  verifyButtonLabel: 'Verify & Update Email',
+  verifyingButtonLabel: 'Verifying…',
+  resendLabel: 'Resend Code',
+  resendingLabel: 'Sending…',
+  resendCountdown: (seconds: number) => `Resend code in ${seconds}s`,
+  successTitle: 'Email Updated',
+  successMessage: 'Your email address has been updated successfully.',
+  changeEmailPrompt: 'Wrong email address?',
+  changeEmailAction: 'Change',
+  sessionExpiredTitle: 'Session Mismatch',
+  sessionExpiredMessage: 'The verification session is no longer active. Please request a new code.',
+  attemptsExceededTitle: 'Attempts Exceeded',
+  attemptsExceededMessage: 'You have exceeded the maximum verification attempts. Please request a new code.',
+  rateLimitedTitle: 'Rate Limited',
+  rateLimitedMessage: 'Too many verification attempts. Please wait a while before trying again.',
+} as const;

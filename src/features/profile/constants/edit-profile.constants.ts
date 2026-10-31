@@ -3,6 +3,8 @@ export const EDIT_PROFILE_SCREEN = {
   saveLabel: 'Save Changes',
   phoneLabel: 'Phone Number',
   phoneHint: 'Phone number is linked to your account and cannot be changed here.',
+  emailLabel: 'Email Address',
+  emailHint: 'Email address cannot be changed here. Use Change Email on your profile.',
   loadErrorTitle: 'Unable to load profile',
   loadErrorMessage: 'Please check your connection and try again.',
   saveSuccessTitle: 'Profile updated',
