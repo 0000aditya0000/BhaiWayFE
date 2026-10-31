@@ -6,6 +6,8 @@ export {
   previewCoupon,
 } from './api/coupons.api';
 export type {
+  CouponActorContext,
+  CouponApplicableTo,
   CouponBenefitType,
   CouponChargeScope,
   CouponDto,
@@ -47,6 +49,25 @@ export type {
   PreviewCouponApplyResult,
 } from './utils/previewCouponApply';
 export {
+  couponActorContextFromAppMode,
+  couponCatalogCacheKey,
+  couponVisibleForContext,
+  filterCouponsForContext,
+  parseCouponActorContext,
+  parseCouponApplicableTo,
+  resolveCouponActorContext,
+} from './utils/couponAudience';
+export {
+  applyDriverCouponRedemption,
+  COUPON_ERROR_CODES,
+  DRIVER_COUPON_CAPABILITIES,
+  DRIVER_COUPON_REDEMPTION_UNSUPPORTED,
+  couponErrorUserMessage,
+  getCouponErrorCode,
+  isCouponAudienceMismatchError,
+} from './utils/couponErrors';
+export { couponCatalogCache } from './store/couponCatalogCache';
+export {
   buildCouponContextKey,
   couponApplyBridgeStore,
 } from './store/couponApplyBridgeStore';
@@ -64,6 +85,9 @@ export { useAvailableCoupons, usePromotionsCoupons } from './hooks';
 export type {
   UseAvailableCouponsParams,
   UseAvailableCouponsResult,
+  UsePromotionsCouponsParams,
   UsePromotionsCouponsResult,
 } from './hooks';
+export { CouponTicketCard } from './components';
+export type { CouponTicketCardProps, CouponTicketChip } from './components';
 export { AvailableCouponsScreen, PromotionsCouponsScreen } from '@/screens/coupons';

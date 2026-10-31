@@ -33,9 +33,10 @@ import type { AppMode } from '@/store';
 import { authSession } from '@/store';
 import { logger, showAppAlert, triggerLightHaptic } from '@/shared/utils';
 import {
-  CANCEL_RIDE_REASONS,
   CANCEL_UPCOMING_RIDE_SCREEN,
+  getCancelRideReasons,
   type CancelRideReasonId,
+  type CancelRideReasonOption,
 } from '../constants';
 import { driverRidesRefreshStore } from '../store/driverRidesRefreshStore';
 import { assuredPassengerCancelStore } from '../store/assuredPassengerCancelStore';
@@ -69,7 +70,7 @@ export interface UseCancelUpcomingRideResult {
   policyText: string;
   showAssuredDriverWarning: boolean;
   confirmLabel: string;
-  reasons: typeof CANCEL_RIDE_REASONS;
+  reasons: readonly CancelRideReasonOption[];
   selectedReasonId: CancelRideReasonId | null;
   otherNote: string;
   showOtherNote: boolean;
@@ -325,9 +326,15 @@ export const useCancelUpcomingRide = (
         uiReasonId: selectedReasonId,
       });
 
-      await listMyBookings().catch((error) => {
-        console.log('[Cancel Ride] GET /bookings/my refresh failed', error);
-      });
+      await Promise.all([
+        listMyBookings().catch((error) => {
+          console.log('[Cancel Ride] GET /bookings/my refresh failed', error);
+        }),
+        refreshWalletAfterAssuredMutation(),
+        hydrateAuthenticatedUserFromServer().catch((error) => {
+          console.log('[Cancel Ride] GET /users/me refresh failed', error);
+        }),
+      ]);
 
       upcomingRideCancelledStore.setCancelled(false);
       assuredPassengerCancelStore.clear();
@@ -349,7 +356,10 @@ export const useCancelUpcomingRide = (
         typeof details === 'object' &&
         isCancelAlreadyApplied(details as { alreadyApplied?: boolean; status?: string })
       ) {
-        await listMyBookings().catch(() => undefined);
+        await Promise.all([
+          listMyBookings().catch(() => undefined),
+          refreshWalletAfterAssuredMutation(),
+        ]);
         upcomingRideCancelledStore.setCancelled(false);
         navigateToCancelledConfirmed();
         return;
@@ -691,7 +701,7 @@ export const useCancelUpcomingRide = (
     policyText,
     showAssuredDriverWarning,
     confirmLabel,
-    reasons: CANCEL_RIDE_REASONS,
+    reasons: getCancelRideReasons(isDriving),
     selectedReasonId,
     otherNote,
     showOtherNote: selectedReasonId === 'other',

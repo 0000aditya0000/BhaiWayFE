@@ -13,6 +13,13 @@ export type PushNotificationType =
   | 'SUPPORT_TICKET_IN_PROGRESS'
   | 'SUPPORT_TICKET_RESOLVED'
   | 'SUPPORT_TICKET_COMMENT'
+  | 'SOS_TRIGGERED'
+  | 'SOS_DRIVER_ALERT'
+  | 'SOS_PASSENGER_ALERT'
+  | 'SOS_RESOLVED'
+  | 'SOS_FALSE_ALARM'
+  | 'SOS_ACKNOWLEDGED'
+  | 'SOS_RESPONDING'
   | string;
 
 export type PushDevicePlatform = 'ANDROID' | 'IOS';
@@ -39,6 +46,7 @@ export interface PushNotificationData {
   ticketReference?: string;
   commentId?: string;
   event?: string;
+  sosId?: string;
   [key: string]: string | undefined;
 }
 

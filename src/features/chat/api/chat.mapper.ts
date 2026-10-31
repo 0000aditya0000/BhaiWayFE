@@ -1,3 +1,5 @@
+import { resolvePersonPhotoUrl } from '@/features/ride-search/api/bookingPersonPhoto';
+
 import type {
   ChatConversationDto,
   ChatMessageDto,
@@ -129,7 +131,7 @@ const mapPeer = (
   return {
     id: readText(peer?.id),
     name,
-    avatarUri: readText(peer?.profilePhoto) || undefined,
+    avatarUri: resolvePersonPhotoUrl(peer) || undefined,
     roleLabel: roleRaw === 'DRIVER' ? 'Driver' : roleRaw === 'PASSENGER' ? 'Passenger' : undefined,
     phone: resolveParticipantPhone(peer) || undefined,
   };

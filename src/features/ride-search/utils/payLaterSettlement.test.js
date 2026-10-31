@@ -31,7 +31,10 @@ const isAssuredBooking = (booking) => {
   return normalizeKey(booking.paymentMethod) === 'ASSURED_DEPOSIT';
 };
 
-const isRegularPayLater = (booking) => normalizeKey(booking.paymentMethod) === 'PAY_LATER';
+const isRegularPayLater = (booking) => {
+  const method = normalizeKey(booking.paymentMethod);
+  return method === 'PAY_LATER' || method === 'PAY_AFTER_RIDE';
+};
 
 const isAssuredPayLater = (booking) => {
   if (!isAssuredBooking(booking)) {
@@ -166,6 +169,26 @@ assert.equal(
   }),
   false,
   'regular pay now ineligible',
+);
+
+assert.equal(
+  isPayLaterSettlementEligible({
+    ...baseCompletedRide,
+    paymentMethod: 'WALLET',
+    paymentStatus: 'PAID',
+  }),
+  false,
+  'regular WALLET prepaid ineligible',
+);
+
+assert.equal(
+  isPayLaterSettlementEligible({
+    ...baseCompletedRide,
+    paymentMethod: 'PAY_AFTER_RIDE',
+    paymentStatus: 'UNPAID',
+  }),
+  true,
+  'regular PAY_AFTER_RIDE alias eligible',
 );
 
 assert.equal(

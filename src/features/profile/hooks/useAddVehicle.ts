@@ -5,6 +5,7 @@ import { ROUTES } from '@/config';
 import { authSession } from '@/store';
 import { saveVehicleRcUrl } from '@/features/media';
 import { createVehicle, getVehicleById, updateVehicle } from '@/features/profile/api';
+import { mergeVehicleIntoListCache } from '@/network/resourceCache';
 import { uploadFile } from '@/services/cloudinary';
 import type { UploadedDocument } from '@/shared/components';
 import { compressImage } from '@/utils/imageCompression';
@@ -312,6 +313,7 @@ export const useAddVehicle = (): UseAddVehicleResult => {
       if (isEditMode && vehicleId) {
         const payload = mapAddVehicleFormToUpdateDto(form);
         const updated = await updateVehicle(vehicleId, payload);
+        mergeVehicleIntoListCache(updated);
         logger.info('Vehicle updated via PATCH /vehicles/:id', {
           vehicleId: updated.id,
           registrationNumber: updated.registrationNumber,
@@ -319,6 +321,7 @@ export const useAddVehicle = (): UseAddVehicleResult => {
       } else {
         const payload = mapAddVehicleFormToCreateDto(form);
         const created = await createVehicle(payload);
+        mergeVehicleIntoListCache(created);
         logger.info('Vehicle created via POST /vehicles', {
           vehicleId: created.id,
           isActive: created.isActive,

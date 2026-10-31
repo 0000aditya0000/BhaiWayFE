@@ -22,6 +22,7 @@ import {
 } from '@/features/offer-ride/components';
 import { RIDE_PREFERENCES_SCREEN } from '@/features/offer-ride/constants';
 import { useRidePreferences } from '@/features/offer-ride/hooks';
+import { ReviewBookingPromoSection } from '@/features/ride-search/components';
 import { styles } from './RidePreferencesScreen.styles';
 
 export const RidePreferencesScreen = () => {
@@ -43,6 +44,9 @@ export const RidePreferencesScreen = () => {
     selectVehicle,
     setPromoCode,
     applyPromo,
+    clearPromo,
+    promoError,
+    openAvailableCoupons,
     addVehicle,
     publish,
     goBack,
@@ -158,11 +162,19 @@ export const RidePreferencesScreen = () => {
           )}
         </ScreenSection>
 
+        <ReviewBookingPromoSection
+          value={draft.promoCode}
+          applied={false}
+          discount={0}
+          error={promoError}
+          onChange={setPromoCode}
+          onApply={applyPromo}
+          onClear={clearPromo}
+          onViewAvailableCoupons={openAvailableCoupons}
+        />
+
         {isAssured ? (
           <AssuredPaymentBlock
-            promoCode={draft.promoCode}
-            onPromoChange={setPromoCode}
-            onApplyPromo={applyPromo}
             refundableAmountLabel={refundableAmountLabel}
             totalToPayLabel={totalToPayLabel}
           />

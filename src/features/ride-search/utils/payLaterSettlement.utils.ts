@@ -73,8 +73,10 @@ const isAssuredBooking = (booking: PayLaterBookingSnapshot): boolean => {
   return normalizeKey(booking.paymentMethod) === 'ASSURED_DEPOSIT';
 };
 
-const isRegularPayLater = (booking: PayLaterBookingSnapshot): boolean =>
-  normalizeKey(booking.paymentMethod) === 'PAY_LATER';
+const isRegularPayLater = (booking: PayLaterBookingSnapshot): boolean => {
+  const method = normalizeKey(booking.paymentMethod);
+  return method === 'PAY_LATER' || method === 'PAY_AFTER_RIDE';
+};
 
 const isAssuredPayLater = (booking: PayLaterBookingSnapshot): boolean => {
   if (!isAssuredBooking(booking)) {

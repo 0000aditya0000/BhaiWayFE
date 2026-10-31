@@ -21,6 +21,8 @@ export {
   regionFromBoundary,
   regionForPrecisePlace,
 } from './boundary';
+export { resolveCurrentPlace } from './resolveCurrentPlace';
+export type { ResolveCurrentPlaceResult } from './resolveCurrentPlace';
 export {
   ZOOM_PRECISE_MAX_DELTA,
   ZOOM_AREA_MAX_DELTA,
@@ -83,3 +85,10 @@ export {
   resolvePassengerContactPhone,
   resolveRidePeerContactPhone,
 } from './bookingContactPhone';
+export {
+  buildRegularCreateBookingPayload,
+  formatPassengerPaymentStatusLabel,
+  formatRegularRidePaymentMethodLabel,
+  isPayAfterRideMethod,
+  isWalletPrepaidMethod,
+} from './regularRidePayment.utils';

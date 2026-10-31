@@ -1,5 +1,6 @@
 export {
   API_VEHICLE_TYPES,
+  formatVehicleDisplayName,
   inferCategoryFromVehicle,
   isDuplicateRegistrationError,
   mapAddVehicleFormToCreateDto,
@@ -11,12 +12,15 @@ export {
   mapVehicleResponseToAddVehicleForm,
   mapVehicleResponseToGarageVehicle,
   mapVerificationStatusToRcStatus,
+  mergeGarageVehiclesWithServer,
   normalizeRegistrationNumber,
   splitVehicleModelInput,
 } from './vehicle.mapper';
 
 export {
   applyRcVerificationToGarageVehicle,
+  buildRcFieldMatches,
+  collectVehicleRcFailureMessages,
   formatRcVerifiedAt,
   isVehicleRcVerifiedStatus,
   mapVehicleRcVerificationError,

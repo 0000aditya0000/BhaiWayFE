@@ -1,5 +1,6 @@
 import {
   applyRcVerificationToGarageVehicle,
+  collectVehicleRcFailureMessages,
   mapVehicleRcVerificationError,
   ownerMatchLabel,
   resolveVehicleRcUiStatus,
@@ -95,9 +96,31 @@ assertEqual(
   'RC status renders VERIFIED correctly',
 );
 assertEqual(
-  resolveVehicleRcUiStatus({ response: null, aggregateVehicleStatus: 'PENDING' }),
+  resolveVehicleRcUiStatus({ response: null }),
   'required',
   'RC status renders unverified correctly',
+);
+assertEqual(
+  resolveVehicleRcUiStatus({
+    verification: { vehicleId: 'veh-1', status: 'PENDING', vehicleNumber: 'DL01AB1234' },
+  }),
+  'pending',
+  'PENDING verification maps to pending',
+);
+assertEqual(
+  resolveVehicleRcUiStatus({
+    response: {
+      id: 'veh-b',
+      vehicleType: 'CAR',
+      make: 'Honda',
+      model: 'City',
+      registrationNumber: 'DL01AB1234',
+      seatingCapacity: 5,
+      isActive: true,
+    },
+  }),
+  'required',
+  'missing per-vehicle RC status is not verified',
 );
 
 // Owner match
@@ -122,9 +145,54 @@ assertEqual(verified.ownerMatchStatus, 'MATCHED', 'apply keeps owner match');
 const notVerifiedHttpOk = applyRcVerificationToGarageVehicle(baseVehicle, {
   vehicleId: 'veh-1',
   status: 'FAILED',
-  vehicleNumber: 'DL01AB1234',
+  vehicleNumber: 'MH12CD9999',
+  failedChecks: [
+    { code: 'VEHICLE_NAME_MISMATCH', entered: 'Hyundai i20', rcValue: 'Hyundai Grand i10' },
+    { code: 'INSURANCE_EXPIRED', message: 'Insurance has expired.' },
+  ],
+  rcRecord: { vehicleName: 'Hyundai Grand i10', color: 'WHITE' },
 });
 assertEqual(notVerifiedHttpOk.rcStatus, 'failed', 'non-VERIFIED does not mark verified');
+assertEqual(notVerifiedHttpOk.plateNumber, 'DL01AB1234', 'failed RC does not replace plate');
+assertEqual(notVerifiedHttpOk.name, 'Honda City', 'failed RC does not replace user name');
+assertTrue(
+  (notVerifiedHttpOk.rcErrorMessages ?? []).includes(VEHICLE_RC_ERROR_MESSAGES.VEHICLE_NAME_MISMATCH),
+  'name mismatch error collected',
+);
+assertTrue(
+  (notVerifiedHttpOk.rcErrorMessages ?? []).includes(VEHICLE_RC_ERROR_MESSAGES.INSURANCE_EXPIRED),
+  'insurance expired error collected',
+);
+
+const onlyA = applyRcVerificationToGarageVehicle(
+  { ...baseVehicle, id: 'veh-a' },
+  { vehicleId: 'veh-a', status: 'VERIFIED', vehicleNumber: 'UP16AB1234' },
+);
+const unchangedB = { ...baseVehicle, id: 'veh-b', rcStatus: 'required' as const };
+assertEqual(onlyA.rcStatus, 'verified', 'vehicle A verified');
+assertEqual(unchangedB.rcStatus, 'required', 'vehicle B stays unchanged');
+
+assertTrue(
+  collectVehicleRcFailureMessages({
+    status: 'FAILED',
+    failedChecks: [
+      { code: 'VEHICLE_NAME_MISMATCH' },
+      { code: 'INSURANCE_EXPIRED' },
+      { code: 'REGISTRATION_STATUS_INVALID' },
+    ],
+  }).length >= 3,
+  'multiple failed checks all surface',
+);
+assertEqual(
+  mapVehicleRcVerificationError({ status: 422, code: 'VEHICLE_COLOR_MISMATCH', message: 'colour' }),
+  VEHICLE_RC_ERROR_MESSAGES.VEHICLE_COLOR_MISMATCH,
+  'colour mismatch maps',
+);
+assertEqual(
+  mapVehicleRcVerificationError({ status: 503, code: 'RC_PROVIDER_UNAVAILABLE', message: 'down' }),
+  VEHICLE_RC_ERROR_MESSAGES.PROVIDER_UNAVAILABLE,
+  'provider unavailable maps',
+);
 
 // Publishing readiness — DL optional
 const ready = evaluatePublishVerificationReadiness({

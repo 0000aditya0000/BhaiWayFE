@@ -7,37 +7,31 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { CouponDto } from '@/features/coupons';
-import { formatCouponBenefitHeadline } from '@/features/coupons/constants/available-coupons.constants';
-import {
-  PROMOTIONS_COUPONS_SCREEN,
-  formatCouponChargeScopeLabel,
-  formatCouponRideTypeLabel,
-} from '@/features/coupons/constants/promotions-coupons.constants';
+import { CouponTicketCard } from '@/features/coupons/components';
+import { PROMOTIONS_COUPONS_SCREEN } from '@/features/coupons/constants/promotions-coupons.constants';
 import { usePromotionsCoupons } from '@/features/coupons/hooks';
+import {
+  couponActorContextFromAppMode,
+  parseCouponActorContext,
+} from '@/features/coupons/utils/couponAudience';
+import { buildPromotionsCouponChips } from '@/features/coupons/utils/couponChips';
 import { IconButton, AppText as Text } from '@/shared/components';
-import { triggerLightHaptic } from '@/shared/utils';
+import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
+import { appModeStore } from '@/store';
 
 import { promoTokens, styles } from './PromotionsCouponsScreen.styles';
 
-const formatDate = (value: string | null): string | null => {
-  if (!value) {
-    return null;
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return date.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-};
-
 export const PromotionsCouponsScreen = () => {
+  const params = useLocalSearchParams<{ couponContext?: string }>();
+  const paramContext = getSearchParam(params.couponContext);
+  const actorContext = paramContext
+    ? parseCouponActorContext(paramContext)
+    : couponActorContextFromAppMode(appModeStore.get());
+
   const {
     items,
     loading,
@@ -48,7 +42,7 @@ export const PromotionsCouponsScreen = () => {
     retry,
     copyCode,
     goBack,
-  } = usePromotionsCoupons();
+  } = usePromotionsCoupons({ actorContext });
 
   const handleBack = useCallback(() => {
     triggerLightHaptic();
@@ -58,121 +52,30 @@ export const PromotionsCouponsScreen = () => {
   const renderItem = useCallback(
     ({ item }: { item: CouponDto }) => {
       const isCopied = copiedCode === item.code.trim().toUpperCase();
-      const expires = formatDate(item.expiresAt);
-      const starts = formatDate(item.startsAt);
-      const headline = formatCouponBenefitHeadline(item);
-      const benefit = String(item.benefitType ?? '').toUpperCase();
 
       return (
-        <View style={[styles.ticket, !item.isActive && styles.ticketInactive]}>
-          <View style={styles.ticketInner}>
-            <View
-              style={[styles.accentRail, !item.isActive && styles.accentRailInactive]}
-            />
-            <View style={styles.ticketBody}>
-              <View style={styles.ticketTop}>
-                <Text style={styles.headline}>{headline}</Text>
-                {!item.isActive ? (
-                  <View style={styles.inactiveBadge}>
-                    <Text style={styles.inactiveBadgeLabel}>
-                      {PROMOTIONS_COUPONS_SCREEN.inactiveLabel}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-              <Text style={styles.title}>{item.title}</Text>
-              {item.description ? (
-                <Text style={styles.description} numberOfLines={3}>
-                  {item.description}
-                </Text>
-              ) : null}
-              <View style={styles.metaRow}>
-                <View style={styles.metaChip}>
-                  <Ionicons name="car-outline" size={12} color={promoTokens.OUTLINE} />
-                  <Text style={styles.metaChipLabel}>
-                    {formatCouponRideTypeLabel(item.rideTypeScope)}
-                  </Text>
-                </View>
-                <View style={styles.metaChip}>
-                  <Ionicons name="card-outline" size={12} color={promoTokens.OUTLINE} />
-                  <Text style={styles.metaChipLabel}>
-                    {formatCouponChargeScopeLabel(item.chargeScope)}
-                  </Text>
-                </View>
-                {item.minEligibleAmount ? (
-                  <View style={styles.metaChip}>
-                    <Ionicons name="wallet-outline" size={12} color={promoTokens.OUTLINE} />
-                    <Text style={styles.metaChipLabel}>
-                      {PROMOTIONS_COUPONS_SCREEN.minAmountPrefix} {item.minEligibleAmount}
-                    </Text>
-                  </View>
-                ) : null}
-                {item.maxDiscountAmount && benefit === 'PERCENTAGE_DISCOUNT' ? (
-                  <View style={styles.metaChip}>
-                    <Ionicons name="pricetag-outline" size={12} color={promoTokens.OUTLINE} />
-                    <Text style={styles.metaChipLabel}>
-                      {PROMOTIONS_COUPONS_SCREEN.maxDiscountPrefix}{' '}
-                      {item.maxDiscountAmount}
-                    </Text>
-                  </View>
-                ) : null}
-                {starts ? (
-                  <View style={styles.metaChip}>
-                    <Ionicons name="play-outline" size={12} color={promoTokens.OUTLINE} />
-                    <Text style={styles.metaChipLabel}>
-                      {PROMOTIONS_COUPONS_SCREEN.startsPrefix} {starts}
-                    </Text>
-                  </View>
-                ) : null}
-                {expires ? (
-                  <View style={styles.metaChip}>
-                    <Ionicons name="calendar-outline" size={12} color={promoTokens.OUTLINE} />
-                    <Text style={styles.metaChipLabel}>
-                      {PROMOTIONS_COUPONS_SCREEN.expiresPrefix} {expires}
-                    </Text>
-                  </View>
-                ) : null}
-                {benefit === 'POINTS_CREDIT' ? (
-                  <View style={styles.metaChip}>
-                    <Ionicons name="gift-outline" size={12} color={promoTokens.OUTLINE} />
-                    <Text style={styles.metaChipLabel}>
-                      {PROMOTIONS_COUPONS_SCREEN.pointsCreditHint}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.perforated}>
-            <View style={styles.notchLeft} />
-            <View style={styles.dashLine} />
-            <View style={styles.notchRight} />
-          </View>
-
-          <View style={styles.ticketFooter}>
-            <View style={styles.codeBox}>
-              <Text style={styles.codeBoxLabel}>{item.code}</Text>
-            </View>
-            <Pressable
-              style={[styles.copyButton, isCopied && styles.copyButtonCopied]}
-              onPress={() => copyCode(item.code)}
-              accessibilityRole="button"
-              accessibilityLabel={`Copy coupon code ${item.code}`}
-            >
-              <Ionicons
-                name={isCopied ? 'checkmark' : 'copy-outline'}
-                size={16}
-                color={isCopied ? promoTokens.PRIMARY : '#FFFFFF'}
-              />
-              <Text style={[styles.copyLabel, isCopied && styles.copyLabelCopied]}>
-                {isCopied
-                  ? PROMOTIONS_COUPONS_SCREEN.copiedLabel
-                  : PROMOTIONS_COUPONS_SCREEN.copyLabel}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
+        <CouponTicketCard
+          coupon={item}
+          chips={buildPromotionsCouponChips(item)}
+          badge={
+            item.isActive
+              ? undefined
+              : {
+                  label: PROMOTIONS_COUPONS_SCREEN.inactiveLabel,
+                  tone: 'inactive',
+                }
+          }
+          ctaLabel={
+            isCopied
+              ? PROMOTIONS_COUPONS_SCREEN.copiedLabel
+              : PROMOTIONS_COUPONS_SCREEN.copyLabel
+          }
+          ctaVariant="copy"
+          ctaIcon={isCopied ? 'checkmark' : 'copy-outline'}
+          descriptionLines={3}
+          onPressCta={() => copyCode(item.code)}
+          accessibilityLabel={`Copy coupon code ${item.code}`}
+        />
       );
     },
     [copiedCode, copyCode],
@@ -190,6 +93,8 @@ export const PromotionsCouponsScreen = () => {
     [items.length],
   );
 
+  const isDriver = actorContext === 'DRIVER';
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
@@ -203,7 +108,11 @@ export const PromotionsCouponsScreen = () => {
           <Text style={styles.headerTitle} accessibilityRole="header">
             {PROMOTIONS_COUPONS_SCREEN.title}
           </Text>
-          <Text style={styles.headerSubtitle}>{PROMOTIONS_COUPONS_SCREEN.subtitle}</Text>
+          <Text style={styles.headerSubtitle}>
+            {isDriver
+              ? PROMOTIONS_COUPONS_SCREEN.driverSubtitle
+              : PROMOTIONS_COUPONS_SCREEN.subtitle}
+          </Text>
         </View>
       </View>
 
@@ -247,7 +156,9 @@ export const PromotionsCouponsScreen = () => {
               </View>
               <Text style={styles.emptyTitle}>{PROMOTIONS_COUPONS_SCREEN.emptyTitle}</Text>
               <Text style={styles.emptyMessage}>
-                {PROMOTIONS_COUPONS_SCREEN.emptyMessage}
+                {isDriver
+                  ? PROMOTIONS_COUPONS_SCREEN.driverEmptyMessage
+                  : PROMOTIONS_COUPONS_SCREEN.emptyMessage}
               </Text>
             </View>
           }

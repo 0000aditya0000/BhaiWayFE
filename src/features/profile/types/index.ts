@@ -25,7 +25,7 @@ export type {
   ReferralPerk,
   ReferralHistoryItem,
 } from './refer-earn.types';
-export type { VehicleRcStatus, GarageVehicle } from './my-garage.types';
+export type { VehicleRcStatus, GarageVehicle, GarageRcFieldMatch } from './my-garage.types';
 export type {
   VehicleCategoryId,
   VehicleCategoryOption,

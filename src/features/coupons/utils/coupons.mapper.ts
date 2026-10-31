@@ -7,6 +7,7 @@ import type {
   PreviewCouponDto,
   ValidateCouponDto,
 } from '../api/coupons.types';
+import { parseCouponApplicableTo } from './couponAudience';
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -57,32 +58,65 @@ const asCoinString = (value: unknown): string | null => {
   return String(Math.max(0, Math.round(parsed)));
 };
 
+const firstRecord = (...values: unknown[]): Record<string, unknown> | null => {
+  for (const value of values) {
+    const record = asRecord(value);
+    if (record) {
+      return record;
+    }
+  }
+  return null;
+};
+
+const readApplicableToRaw = (record: Record<string, unknown>): unknown => {
+  const nestedCoupon = asRecord(record.coupon);
+  const nestedMeta = asRecord(record.metadata);
+  return (
+    record.applicableTo ??
+    record.applicable_to ??
+    record.applicableFor ??
+    record.applicable_for ??
+    record.targetAudience ??
+    record.target_audience ??
+    nestedCoupon?.applicableTo ??
+    nestedCoupon?.applicable_to ??
+    nestedMeta?.applicableTo ??
+    nestedMeta?.applicable_to
+  );
+};
+
 export const normalizeCoupon = (raw: unknown): CouponDto | null => {
-  const record = asRecord(raw);
-  if (!record) {
+  const outer = asRecord(raw);
+  if (!outer) {
     return null;
   }
-  const id = asString(record.id) ?? asString(record.couponId);
-  const code = asString(record.code)?.toUpperCase();
-  const title = asString(record.title) ?? asString(record.name);
+  const record = firstRecord(asRecord(outer.coupon), outer) ?? outer;
+  const id = asString(record.id) ?? asString(record.couponId) ?? asString(outer.id);
+  const code = (asString(record.code) ?? asString(outer.code))?.toUpperCase();
+  const title = asString(record.title) ?? asString(record.name) ?? asString(outer.title);
   if (!id || !code || !title) {
     return null;
   }
+  const audience = asString(record.audience) ?? asString(outer.audience);
   return {
     id,
     code,
     title,
-    description: asString(record.description),
-    benefitType: asString(record.benefitType) ?? 'FIXED_DISCOUNT',
-    benefitValue: asCoinString(record.benefitValue) ?? '0',
-    maxDiscountAmount: asCoinString(record.maxDiscountAmount),
-    minEligibleAmount: asCoinString(record.minEligibleAmount),
-    rideTypeScope: asString(record.rideTypeScope) ?? 'ALL',
-    chargeScope: asString(record.chargeScope) ?? 'RIDE_FARE',
-    audience: asString(record.audience),
-    startsAt: asString(record.startsAt),
-    expiresAt: asString(record.expiresAt),
-    isActive: asBool(record.isActive, true),
+    description: asString(record.description) ?? asString(outer.description),
+    benefitType: asString(record.benefitType) ?? asString(outer.benefitType) ?? 'FIXED_DISCOUNT',
+    benefitValue: asCoinString(record.benefitValue) ?? asCoinString(outer.benefitValue) ?? '0',
+    maxDiscountAmount:
+      asCoinString(record.maxDiscountAmount) ?? asCoinString(outer.maxDiscountAmount),
+    minEligibleAmount:
+      asCoinString(record.minEligibleAmount) ?? asCoinString(outer.minEligibleAmount),
+    rideTypeScope:
+      asString(record.rideTypeScope) ?? asString(outer.rideTypeScope) ?? 'ALL',
+    chargeScope: asString(record.chargeScope) ?? asString(outer.chargeScope) ?? 'RIDE_FARE',
+    audience,
+    applicableTo: parseCouponApplicableTo(readApplicableToRaw(record) ?? readApplicableToRaw(outer), audience),
+    startsAt: asString(record.startsAt) ?? asString(outer.startsAt),
+    expiresAt: asString(record.expiresAt) ?? asString(outer.expiresAt),
+    isActive: asBool(record.isActive ?? outer.isActive, true),
   };
 };
 

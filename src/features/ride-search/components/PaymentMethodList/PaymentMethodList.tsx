@@ -12,7 +12,7 @@ import type { PaymentMethodId } from '../../types';
 import { styles } from './PaymentMethodList.styles';
 
 export interface PaymentMethodListProps {
-  selectedId: PaymentMethodId;
+  selectedId: PaymentMethodId | null;
   onSelect: (id: PaymentMethodId) => void;
   onAddCoins: () => void;
   /**
@@ -24,6 +24,10 @@ export interface PaymentMethodListProps {
   payAfterSubtitle?: string;
   /** Overrides DemoData wallet balance — Assured uses Wallet V1 availableCoins. */
   walletAvailableCoins?: string | null;
+  /** Regular ride fare payable preview (integer coin string). Display only. */
+  farePayableCoins?: string | null;
+  /** True when wallet balance is below the Regular fare preview. */
+  insufficientWallet?: boolean;
 }
 
 const Radio = ({ selected }: { selected: boolean }) => (
@@ -44,6 +48,8 @@ export const PaymentMethodList = React.memo(
     showPayAfterRide = true,
     payAfterSubtitle,
     walletAvailableCoins,
+    farePayableCoins,
+    insufficientWallet = false,
   }: PaymentMethodListProps) => {
     const demoWalletBalance = useSyncExternalStore(subscribeBhaiWayWallet, getBhaiWayWalletBalance);
     const walletBalanceDisplay =
@@ -81,6 +87,28 @@ export const PaymentMethodList = React.memo(
                       : walletBalanceDisplay}
                   </Text>
                 </View>
+                {farePayableCoins ? (
+                  <View style={styles.balanceRow}>
+                    <Text style={styles.subtitle}>Fare payable: </Text>
+                    <BhaiWayCoinIcon size={14} />
+                    <Text style={styles.balanceValue}>
+                      {formatBhaiWayCoins(Number(farePayableCoins), {
+                        minimumFractionDigits: 0,
+                      })}
+                    </Text>
+                  </View>
+                ) : null}
+                {farePayableCoins ? (
+                  <Text
+                    style={
+                      insufficientWallet ? styles.insufficientHint : styles.sufficientHint
+                    }
+                  >
+                    {insufficientWallet
+                      ? PAYMENT_SCREEN.walletInsufficientHint
+                      : PAYMENT_SCREEN.walletSufficientHint}
+                  </Text>
+                ) : null}
               </View>
               <Radio selected={selectedId === wallet.id} />
             </Pressable>

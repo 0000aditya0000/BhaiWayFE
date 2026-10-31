@@ -100,6 +100,10 @@ export const ENDPOINTS = {
     historyById: (id: string) => `/rides/history/${id}`,
     /** Passenger reports driver no-show (Bearer JWT; booking owner). */
     driverNoShow: (id: string) => `/rides/${id}/no-show/driver`,
+    /** Trigger SOS for an IN_PROGRESS ride (Bearer JWT; ride participant). */
+    sos: (id: string) => `/rides/${id}/sos`,
+    /** Publish the authenticated participant's location during active SOS. */
+    sosLocation: (id: string) => `/rides/${id}/sos/location`,
   },
   ratings: {
     /** Pending rating obligations for the authenticated user (Bearer JWT). */

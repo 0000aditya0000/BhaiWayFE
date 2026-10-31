@@ -130,16 +130,37 @@ assertEqual(
   'Sorry, these seats are no longer available. Please search again.',
   '409 seats message',
 );
+assertEqual(
+  mapCreateBookingError({ status: 403, message: 'Wallet is suspended' }),
+  'Wallet is suspended',
+  '403 wallet lock uses backend text',
+);
+assertEqual(
+  mapCreateBookingError({ status: 422, message: '' }),
+  'Insufficient BhaiWay Coins for this booking. Add coins and try again.',
+  '422 insufficient wallet fallback',
+);
+assertEqual(
+  mapCreateBookingError({ status: 404, message: '' }),
+  'This ride is no longer available. Please search again.',
+  '404 ride unavailable',
+);
+assertEqual(
+  mapCreateBookingError({ status: 400, message: 'Invalid payment method' }),
+  'Invalid payment method',
+  '400 invalid payment method',
+);
 
 const createBody = {
   rideId: 'ride-1',
   seats: 2,
-  paymentMethod: 'PAY_LATER' as const,
+  paymentMethod: 'WALLET' as const,
 };
 assertTrue(!('passengerId' in createBody), 'does not send passengerId');
 assertTrue(!('totalAmount' in createBody), 'does not send totalAmount');
 assertTrue(!('pricePerSeat' in createBody), 'does not send pricePerSeat');
 assertTrue(!('status' in createBody), 'does not send status');
+assertTrue(!('farePayment' in createBody), 'Regular does not send farePayment');
 
 if (failed.length > 0) {
   throw new Error(`bookings.mapper tests failed:\n${failed.join('\n')}`);

@@ -64,15 +64,15 @@ export const useCommuteBookingRequests = (): UseCommuteBookingRequestsResult => 
     }
     setErrorMessage(null);
     try {
-      const [pendingBookings, rides] = await Promise.all([
-        listDriverBookings({ status: 'PENDING', page: 1, limit: 100 }),
+      const [driverBookings, rides] = await Promise.all([
+        listDriverBookings({ page: 1, limit: 100 }),
         listMyRides(),
       ]);
       const commuteRides = rides.filter(
         (ride) => String(ride.rideType ?? '').trim().toUpperCase() === 'COMMUTE',
       );
       setGroups(
-        groupPendingCommuteBookingsByRide(pendingBookings, buildRideMeta(commuteRides)),
+        groupPendingCommuteBookingsByRide(driverBookings, buildRideMeta(commuteRides)),
       );
     } catch (error) {
       setErrorMessage(

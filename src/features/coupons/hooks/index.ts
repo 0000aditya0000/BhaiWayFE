@@ -4,4 +4,7 @@ export type {
   UseAvailableCouponsResult,
 } from './useAvailableCoupons';
 export { usePromotionsCoupons } from './usePromotionsCoupons';
-export type { UsePromotionsCouponsResult } from './usePromotionsCoupons';
+export type {
+  UsePromotionsCouponsParams,
+  UsePromotionsCouponsResult,
+} from './usePromotionsCoupons';

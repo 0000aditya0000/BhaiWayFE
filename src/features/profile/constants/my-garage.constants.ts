@@ -12,10 +12,20 @@ export const MY_GARAGE_SCREEN = {
   editVehicleLabel: 'Edit',
   verifyVehicleLabel: 'Verify RC',
   verifyingVehicleLabel: 'Verifying RC...',
-  tryAgainLabel: 'Try Again',
+  tryAgainLabel: 'Retry Verification',
+  viewDetailsLabel: 'View Details',
+  pendingVerifyLabel: 'Verification pending',
   verifySuccessTitle: 'RC verified successfully',
   verifySuccessMessage: 'Your vehicle RC is verified. You can publish rides with this vehicle.',
   verifyFailedTitle: 'RC verification failed',
+  verifyPendingTitle: 'Verification pending',
+  verifyPendingMessage:
+    'RC verification for this vehicle is still in progress. Please wait and try again shortly.',
+  rcDetailsTitle: 'RC details',
+  enteredLabel: 'Entered',
+  rcRecordLabel: 'RC record',
+  matchedLabel: 'Matched',
+  mismatchLabel: 'Mismatch',
   verifyConfirmTitle: 'Confirm vehicle number',
   verifyConfirmSubtitle:
     'We will verify this registration number with the transport records. Only a successful backend result marks the vehicle as verified.',
@@ -44,8 +54,9 @@ export const GARAGE_VEHICLES: readonly GarageVehicle[] = [];
 
 export const VEHICLE_RC_STATUS_LABEL = {
   verified: 'Verified',
-  required: 'RC Verification Required',
-  failed: 'RC Verification Failed',
+  required: 'Not Verified',
+  pending: 'Pending',
+  failed: 'Failed',
 } as const;
 
 export const VEHICLE_ACTIVE_LABEL = 'Active Vehicle';

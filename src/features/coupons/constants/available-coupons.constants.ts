@@ -1,8 +1,10 @@
 export const AVAILABLE_COUPONS_SCREEN = {
   title: 'Available Coupons',
   subtitle: 'Offers you can use on this ride.',
+  driverSubtitle: 'Offers for drivers on this trip.',
   emptyTitle: 'No coupons available',
   emptyMessage: 'There are no eligible offers for this booking right now.',
+  driverEmptyMessage: 'There are no eligible driver offers for this trip right now.',
   retryLabel: 'Retry',
   applyLabel: 'Apply',
   applyingLabel: 'Checking…',

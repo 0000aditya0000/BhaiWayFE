@@ -16,6 +16,42 @@ export const invalidateVehiclesCache = (): void => {
   resourceCache.invalidate(['vehicles']);
 };
 
+/** Merge a created/updated vehicle into GET /vehicles cache without dropping other rows. */
+export const mergeVehicleIntoListCache = <T extends { id: string }>(vehicle: T): void => {
+  const id = vehicle?.id?.trim();
+  if (!id) {
+    return;
+  }
+  const current = resourceCache.peek<T[]>(cacheKeys.vehicles.list());
+  if (!current) {
+    return;
+  }
+  const index = current.findIndex((row) => row.id === id);
+  const next =
+    index >= 0
+      ? current.map((row, rowIndex) => (rowIndex === index ? { ...row, ...vehicle } : row))
+      : [...current, vehicle];
+  resourceCache.setData(cacheKeys.vehicles.list(), next);
+};
+
+export const patchVehicleInListCache = <T extends { id: string }>(
+  vehicleId: string,
+  patch: Partial<T>,
+): void => {
+  const id = vehicleId.trim();
+  if (!id) {
+    return;
+  }
+  const current = resourceCache.peek<T[]>(cacheKeys.vehicles.list());
+  if (!current) {
+    return;
+  }
+  resourceCache.setData(
+    cacheKeys.vehicles.list(),
+    current.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+  );
+};
+
 export const invalidateVerificationCache = (): void => {
   resourceCache.invalidate(cacheKeys.verification.me());
 };

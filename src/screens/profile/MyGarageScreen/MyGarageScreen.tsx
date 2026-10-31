@@ -40,6 +40,14 @@ const rcStatusUi = (status: VehicleRcStatus) => {
       color: garageTokens.FAILED_TEXT,
     };
   }
+  if (status === 'pending') {
+    return {
+      badge: styles.statusPending,
+      label: styles.statusLabelPending,
+      icon: 'time-outline' as const,
+      color: garageTokens.PENDING_TEXT,
+    };
+  }
   return {
     badge: styles.statusPending,
     label: styles.statusLabelPending,
@@ -63,6 +71,7 @@ export const MyGarageScreen = () => {
     editVehicle,
     toggleVehicleActive,
     openVerifyVehicle,
+    viewVehicleRcDetails,
     closeVerifySheet,
     confirmVerifyRc,
     ownerMatchHint,
@@ -127,13 +136,18 @@ export const MyGarageScreen = () => {
                   const isTogglingActive = togglingVehicleId === vehicle.id;
                   const isVerifyingThis =
                     verifyUploading && verifyingVehicleId === vehicle.id;
+                  const isVerified = vehicle.rcStatus === 'verified';
                   const verifyDisabled =
-                    verifyUploading || vehicle.rcStatus === 'verified';
+                    isVerifyingThis || vehicle.rcStatus === 'pending';
                   const verifyLabel = isVerifyingThis
                     ? MY_GARAGE_SCREEN.verifyingVehicleLabel
-                    : vehicle.rcStatus === 'failed'
-                      ? MY_GARAGE_SCREEN.tryAgainLabel
-                      : MY_GARAGE_SCREEN.verifyVehicleLabel;
+                    : isVerified
+                      ? MY_GARAGE_SCREEN.viewDetailsLabel
+                      : vehicle.rcStatus === 'pending'
+                        ? MY_GARAGE_SCREEN.pendingVerifyLabel
+                        : vehicle.rcStatus === 'failed'
+                          ? MY_GARAGE_SCREEN.tryAgainLabel
+                          : MY_GARAGE_SCREEN.verifyVehicleLabel;
                   const matchHint = ownerMatchHint(vehicle);
                   const verifiedDate = verifiedAtLabel(vehicle);
 
@@ -182,6 +196,37 @@ export const MyGarageScreen = () => {
                             matchHint ? (
                               <Text style={styles.vehicleDetail}>{matchHint}</Text>
                             ) : null}
+                            {vehicle.rcStatus === 'failed'
+                              ? (vehicle.rcErrorMessages ?? []).map((message) => (
+                                  <Text key={message} style={styles.errorText}>
+                                    {message}
+                                  </Text>
+                                ))
+                              : null}
+                            {vehicle.rcFieldMatches?.map((item) => (
+                              <View
+                                key={`${vehicle.id}-${item.fieldLabel}`}
+                                style={styles.matchBlock}
+                              >
+                                <Text style={styles.matchField}>{item.fieldLabel}</Text>
+                                <Text style={styles.vehicleDetail}>
+                                  {MY_GARAGE_SCREEN.enteredLabel}: {item.entered || '—'}
+                                </Text>
+                                <Text style={styles.vehicleDetail}>
+                                  {MY_GARAGE_SCREEN.rcRecordLabel}: {item.rcRecord || '—'}
+                                </Text>
+                                <Text
+                                  style={[
+                                    styles.matchStatus,
+                                    item.matched ? styles.matchStatusOk : styles.matchStatusBad,
+                                  ]}
+                                >
+                                  Status: {item.matched
+                                    ? MY_GARAGE_SCREEN.matchedLabel
+                                    : MY_GARAGE_SCREEN.mismatchLabel}
+                                </Text>
+                              </View>
+                            ))}
                             <View style={styles.activeToggleRow}>
                               <Text style={styles.activeToggleLabel}>
                                 {MY_GARAGE_SCREEN.activeVehicleToggleLabel}
@@ -251,7 +296,11 @@ export const MyGarageScreen = () => {
                             verifyDisabled && styles.actionButtonDisabled,
                             pressed && !verifyDisabled && styles.actionButtonPressed,
                           ]}
-                          onPress={() => openVerifyVehicle(vehicle)}
+                          onPress={() =>
+                            isVerified
+                              ? viewVehicleRcDetails(vehicle)
+                              : openVerifyVehicle(vehicle)
+                          }
                           disabled={verifyDisabled}
                           accessibilityRole="button"
                           accessibilityState={{ disabled: verifyDisabled, busy: isVerifyingThis }}

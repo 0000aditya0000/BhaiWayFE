@@ -34,6 +34,11 @@ export {
 } from './bookingsHistory.api';
 
 export {
+  resolveDriverPhotoUrl,
+  resolvePersonPhotoUrl,
+} from './bookingPersonPhoto';
+
+export {
   buildRegularFareEstimate,
   isCancelAlreadyApplied,
   mapBookingToBookedRideDetails,

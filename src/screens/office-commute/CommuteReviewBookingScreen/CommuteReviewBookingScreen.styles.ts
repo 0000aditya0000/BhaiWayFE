@@ -44,6 +44,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   driverMeta: {
     flex: 1,

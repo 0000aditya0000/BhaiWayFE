@@ -19,6 +19,7 @@ import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
 import { spacing } from '@/shared/theme';
 import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { ONGOING_TRIP_SCREEN } from '@/features/ride-search/constants';
+import { SosRideBanner } from '@/features/sos';
 import { useOngoingTrip } from '@/features/ride-search/hooks';
 import type { MapCoordinate, RideType } from '@/features/ride-search/types';
 import { ongoingTripTokens, styles } from './OngoingTripScreen.styles';
@@ -265,6 +266,9 @@ export const OngoingTripScreen = () => {
         </View>
       </View>
 
+      <View style={{ position: 'absolute', top: 88, left: 16, right: 16, zIndex: 4 }}>
+        <SosRideBanner rideId={getSearchParam(params.rideId)} />
+      </View>
       <View style={styles.sideControls}>
         <View style={styles.sosWrap}>
           <Animated.View style={[styles.sosPulseRing, sosRingStyle]} />

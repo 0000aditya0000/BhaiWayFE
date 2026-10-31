@@ -42,6 +42,31 @@ export const splitVehicleModelInput = (
   };
 };
 
+/** Display name from backend make/model without duplicating the same token. */
+export const formatVehicleDisplayName = (
+  make?: string | null,
+  model?: string | null,
+): string => {
+  const makeValue = (make ?? '').trim();
+  const modelValue = (model ?? '').trim();
+  if (!makeValue) {
+    return modelValue;
+  }
+  if (!modelValue) {
+    return makeValue;
+  }
+  if (makeValue.toLowerCase() === modelValue.toLowerCase()) {
+    return modelValue;
+  }
+  if (modelValue.toLowerCase().startsWith(`${makeValue.toLowerCase()} `)) {
+    return modelValue;
+  }
+  if (makeValue.toLowerCase().startsWith(`${modelValue.toLowerCase()} `)) {
+    return makeValue;
+  }
+  return `${makeValue} ${modelValue}`;
+};
+
 export const mapAddVehicleFormToCreateDto = (form: AddVehicleForm): CreateVehicleDto => {
   const { make, model } = splitVehicleModelInput(form.model);
   const dto: CreateVehicleDto = {
@@ -90,10 +115,7 @@ export const inferCategoryFromVehicle = (row: VehicleResponse): VehicleCategoryI
 export const mapVehicleResponseToAddVehicleForm = (row: VehicleResponse): AddVehicleForm => {
   const make = (row.make ?? '').trim();
   const modelName = (row.model ?? '').trim();
-  const model =
-    make && modelName && make.toLowerCase() !== modelName.toLowerCase()
-      ? `${make} ${modelName}`
-      : modelName || make;
+  const model = formatVehicleDisplayName(make, modelName);
 
   return {
     category: inferCategoryFromVehicle(row),
@@ -135,21 +157,19 @@ export const mapAddVehicleFormToUpdateDto = (form: AddVehicleForm): UpdateVehicl
 
 export const mapVehicleResponseToGarageVehicle = (
   row: VehicleResponse,
-  vehicleVerificationStatus?: VerificationStatus | null,
 ): GarageVehicle => {
   const plate = normalizeRegistrationNumber(row.registrationNumber ?? '');
   const make = (row.make ?? '').trim();
   const modelName = (row.model ?? '').trim();
   const variant = typeof row.variant === 'string' ? row.variant.trim() : '';
   const color = typeof row.color === 'string' ? row.color.trim() : '';
-  const modelLabel = [make, modelName].filter(Boolean).join(' ');
-  const name = modelLabel || modelName || make || plate || `Vehicle ${row.id}`;
+  const name = formatVehicleDisplayName(make, modelName) || plate || `Vehicle ${row.id}`;
 
   return {
     id: row.id,
     name,
     make,
-    model: modelLabel || modelName || '—',
+    model: formatVehicleDisplayName(make, modelName) || modelName || '—',
     variant: variant || null,
     color,
     plateNumber: plate || '—',
@@ -157,12 +177,45 @@ export const mapVehicleResponseToGarageVehicle = (
     isActive: row.isActive,
     rcStatus: resolveVehicleRcUiStatus({
       response: row,
-      aggregateVehicleStatus: vehicleVerificationStatus,
     }),
     ownerMatchStatus: row.ownerMatchStatus ?? null,
     rcVerifiedAt: row.rcVerifiedAt ?? row.verifiedAt ?? null,
     lastRcVerificationStatus: row.rcVerificationStatus ?? null,
   };
+};
+
+export const mergeGarageVehiclesWithServer = (
+  serverRows: readonly VehicleResponse[],
+  previous: readonly GarageVehicle[],
+): GarageVehicle[] => {
+  const previousById = new Map(previous.map((item) => [item.id, item]));
+  return serverRows.map((row) => {
+    const mapped = mapVehicleResponseToGarageVehicle(row);
+    const prev = previousById.get(row.id);
+    if (!prev) {
+      return mapped;
+    }
+    const serverHasRc =
+      row.rcVerificationStatus != null ||
+      row.isRcVerified != null ||
+      row.isVerified != null;
+    if (serverHasRc) {
+      return {
+        ...mapped,
+        rcErrorMessages: mapped.rcStatus === 'failed' ? prev.rcErrorMessages : mapped.rcErrorMessages,
+        rcFieldMatches: mapped.rcFieldMatches ?? prev.rcFieldMatches,
+      };
+    }
+    return {
+      ...mapped,
+      rcStatus: prev.rcStatus,
+      ownerMatchStatus: prev.ownerMatchStatus,
+      rcVerifiedAt: prev.rcVerifiedAt,
+      lastRcVerificationStatus: prev.lastRcVerificationStatus,
+      rcErrorMessages: prev.rcErrorMessages,
+      rcFieldMatches: prev.rcFieldMatches,
+    };
+  });
 };
 
 const getErrorStatus = (error: unknown): number | undefined => {

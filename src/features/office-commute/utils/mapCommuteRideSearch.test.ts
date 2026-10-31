@@ -45,6 +45,22 @@ const mapped = mapRideSearchItemToCommuteResult({
 } as RideSearchItemDto);
 
 assert.equal(mapped.matchPercent, 100, 'mapper maps routeMatchPercentage to matchPercent');
+assert.equal(mapped.driver.avatarUri, undefined, 'no dummy photo when driver photo omitted');
+
+const photoMapped = mapRideSearchItemToCommuteResult({
+  ...baseItem,
+  driver: {
+    ...baseItem.driver,
+    profilePhoto: {
+      url: 'https://res.cloudinary.com/bhaiway/driver.jpg',
+    } as unknown as string,
+  },
+} as RideSearchItemDto);
+assert.equal(
+  photoMapped.driver.avatarUri,
+  'https://res.cloudinary.com/bhaiway/driver.jpg',
+  'commute mapper reads Cloudinary driver photo',
+);
 
 const endpoints = resolveCommuteRideEndpoints(
   {

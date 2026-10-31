@@ -54,15 +54,19 @@ export const PublishCommuteScreen = () => {
     timePickerOpen,
     returnTimePickerOpen,
     selectedDate,
+    selectedDates,
+    dateFieldValue,
     selectedTime,
     selectedReturnTime,
     minimumDate,
+    maximumDate,
     updateDraft,
     toggleDay,
     toggleReturningBack,
     openDatePicker,
     closeDatePicker,
     selectDate,
+    selectDates,
     openTimePicker,
     closeTimePicker,
     selectTime,
@@ -215,7 +219,7 @@ export const PublishCommuteScreen = () => {
                 onPress={openDatePicker}
                 style={[styles.pressableField, datePickerOpen && styles.pressableFieldActive]}
                 accessibilityRole="button"
-                accessibilityLabel="Select departure date"
+                accessibilityLabel="Select departure dates"
               >
                 <Text style={[styles.fieldLabel, datePickerOpen && styles.fieldLabelActive]}>
                   {PUBLISH_COMMUTE_SCREEN.departureDateLabel}
@@ -225,10 +229,12 @@ export const PublishCommuteScreen = () => {
                   <Text
                     style={[
                       styles.fieldValue,
-                      !draft.departureDate && styles.fieldPlaceholder,
+                      styles.dateFieldValue,
+                      !dateFieldValue && styles.fieldPlaceholder,
                     ]}
+                    numberOfLines={1}
                   >
-                    {draft.departureDate || 'dd/mm/yyyy'}
+                    {dateFieldValue || 'dd/mm/yyyy'}
                   </Text>
                   <Ionicons name="chevron-down" size={16} color={colors.primary} />
                 </View>
@@ -373,10 +379,15 @@ export const PublishCommuteScreen = () => {
       <NativeDatePicker
         visible={datePickerOpen}
         value={selectedDate}
+        selectedDates={selectedDates}
         minimumDate={minimumDate}
+        maximumDate={maximumDate}
+        selectionMode="multiple"
         mode="date"
-        title={PUBLISH_COMMUTE_SCREEN.departureDateLabel}
+        title={PUBLISH_COMMUTE_SCREEN.datePickerTitle}
+        subtitle={PUBLISH_COMMUTE_SCREEN.datePickerSubtitle}
         onChange={selectDate}
+        onChangeDates={selectDates}
         onClose={closeDatePicker}
       />
 

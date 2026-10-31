@@ -21,6 +21,9 @@ export const LIVE_TRACKING_SCREEN = {
   shareTripHint: 'Live location',
   supportLabel: 'Support',
   supportHint: 'Help center',
+  sosLabel: 'SOS',
+  sosHint: 'Open emergency assistance',
+  sosHeaderLabel: 'SOS',
   supportTitle: 'Support',
   supportMessage: 'Help center will be available soon.',
   shareTripMessage: (driverName: string, etaLabel: string, otp?: string) =>

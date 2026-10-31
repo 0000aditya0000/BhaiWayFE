@@ -13,6 +13,7 @@ import {
 import {
   getErrorMessage,
   getSearchParam,
+  openPhoneCall,
   showAppAlert,
   triggerLightHaptic,
 } from '@/shared/utils';
@@ -118,7 +119,7 @@ export const useRiderBookedRide = (): UseRiderBookedRideResult => {
         }
 
         const summary = mapBookingToRiderBookedRideSummary(booking, publicRide);
-        setDriver(mapBookingToRiderBookedDriverCard(booking));
+        setDriver(mapBookingToRiderBookedDriverCard(booking, publicRide));
         setCoPassengers(mapCoPassengersFromBookingAndRide(booking, publicRide));
         await applyCoords(summary);
       } catch (error) {
@@ -162,14 +163,22 @@ export const useRiderBookedRide = (): UseRiderBookedRideResult => {
 
   const callDriver = useCallback(() => {
     triggerLightHaptic();
-    if (!driver?.callAvailable || !driver.phone) {
+    const phone = driver?.phone?.trim();
+    if (!phone) {
       showAppAlert(
         DRIVER_TRACK_RIDE_SCREEN.callAlertTitle,
-        DRIVER_TRACK_RIDE_SCREEN.contactUnavailableMessage,
+        DRIVER_TRACK_RIDE_SCREEN.contactUnavailableDriverMessage,
       );
       return;
     }
-    void Linking.openURL(`tel:${driver.phone}`);
+    void openPhoneCall(phone).then((started) => {
+      if (!started) {
+        showAppAlert(
+          DRIVER_TRACK_RIDE_SCREEN.callAlertTitle,
+          DRIVER_TRACK_RIDE_SCREEN.callFailedMessage,
+        );
+      }
+    });
   }, [driver]);
 
   const chatDriver = useCallback(() => {

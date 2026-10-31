@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 
 import { buildAppliedCouponParams, withCouponOnCreateBooking } from './bookingCouponParams';
 import { applyCouponDiscountToFare, resolveApplyChargeScope } from './couponFare.utils';
-import { normalizeCouponPreviewResult } from './coupons.mapper';
+import {
+  buildPreviewCouponBody,
+  buildValidateCouponBody,
+  normalizeCoupon,
+  normalizeCouponPreviewResult,
+} from './coupons.mapper';
 
 // --- Preview normalize (backend validate/preview shape) ---
 {
@@ -98,6 +103,103 @@ assert.equal(
     null,
   );
   assert.equal('couponCode' in empty, false);
+}
+
+{
+  const missing = normalizeCoupon({
+    id: 'c1',
+    code: 'ALL50',
+    title: 'Everyone',
+    benefitType: 'FIXED_DISCOUNT',
+    benefitValue: '50',
+  });
+  assert.ok(missing);
+  assert.equal(missing.applicableTo, 'ALL');
+  assert.equal(missing.audience, null);
+}
+
+{
+  const fromApplicable = normalizeCoupon({
+    id: 'c2',
+    code: 'DRV10',
+    title: 'Drivers',
+    applicableTo: 'DRIVERS_ONLY',
+    audience: 'RIDERS_ONLY',
+  });
+  assert.ok(fromApplicable);
+  assert.equal(fromApplicable.applicableTo, 'DRIVERS_ONLY');
+  assert.equal(fromApplicable.audience, 'RIDERS_ONLY');
+}
+
+{
+  const fromAudience = normalizeCoupon({
+    id: 'c3',
+    code: 'RID10',
+    title: 'Riders',
+    audience: 'RIDERS_ONLY',
+  });
+  assert.ok(fromAudience);
+  assert.equal(fromAudience.applicableTo, 'RIDERS_ONLY');
+}
+
+{
+  const unknownAudience = normalizeCoupon({
+    id: 'c4',
+    code: 'PUB10',
+    title: 'Public',
+    audience: 'PUBLIC',
+  });
+  assert.ok(unknownAudience);
+  assert.equal(unknownAudience.applicableTo, 'ALL');
+}
+
+{
+  const driverAlias = normalizeCoupon({
+    id: 'c5',
+    code: 'DRV20',
+    title: 'Driver alias',
+    audience: 'PUBLIC',
+    applicableTo: 'DRIVER',
+  });
+  assert.ok(driverAlias);
+  assert.equal(driverAlias.applicableTo, 'DRIVERS_ONLY');
+}
+
+{
+  const nestedDriver = normalizeCoupon({
+    id: 'c6',
+    code: 'DRV30',
+    title: 'Nested driver',
+    coupon: { applicableTo: 'DRIVERS_ONLY' },
+    audience: 'PUBLIC',
+  });
+  assert.ok(nestedDriver);
+  assert.equal(nestedDriver.applicableTo, 'DRIVERS_ONLY');
+}
+
+{
+  const previewBody = buildPreviewCouponBody({
+    code: 'SAVE50',
+    rideType: 'REGULAR',
+    chargeScope: 'RIDE_FARE',
+    amount: 200,
+  });
+  assert.deepEqual(Object.keys(previewBody).sort(), [
+    'amount',
+    'chargeScope',
+    'code',
+    'rideType',
+  ]);
+  assert.equal('actorContext' in previewBody, false);
+  assert.equal('applicableTo' in previewBody, false);
+
+  const validateBody = buildValidateCouponBody({
+    code: 'SAVE50',
+    rideType: 'REGULAR',
+    chargeScope: 'RIDE_FARE',
+  });
+  assert.equal('actorContext' in validateBody, false);
+  assert.equal('applicableTo' in validateBody, false);
 }
 
 console.log('coupons.mapper.test.ts: ok');

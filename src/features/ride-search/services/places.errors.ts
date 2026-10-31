@@ -2,6 +2,7 @@ export type PlacesErrorCode =
   | 'NO_KEY'
   | 'NETWORK'
   | 'TIMEOUT'
+  | 'CANCELLED'
   | 'RATE_LIMIT'
   | 'DENIED'
   | 'INVALID_KEY'
@@ -50,12 +51,22 @@ export const mapHttpStatusToPlacesError = (status: number, body = ''): PlacesErr
   return new PlacesError('UNKNOWN', `Place search failed (${status}). Please try again.`);
 };
 
+export const cancelledPlacesError = (): PlacesError =>
+  new PlacesError('CANCELLED', 'Search was cancelled.');
+
+export const isPlacesCancelled = (error: unknown): boolean => {
+  if (error instanceof PlacesError) {
+    return error.code === 'CANCELLED';
+  }
+  return error instanceof Error && error.name === 'AbortError';
+};
+
 export const mapFetchFailureToPlacesError = (error: unknown): PlacesError => {
   if (error instanceof PlacesError) {
     return error;
   }
   if (error instanceof Error && error.name === 'AbortError') {
-    return new PlacesError('TIMEOUT', 'Search was cancelled.');
+    return cancelledPlacesError();
   }
   const message = error instanceof Error ? error.message.toLowerCase() : '';
   if (message.includes('network') || message.includes('failed to fetch')) {

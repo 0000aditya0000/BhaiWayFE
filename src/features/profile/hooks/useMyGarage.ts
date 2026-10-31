@@ -14,25 +14,25 @@ import {
 import {
   CACHE_STALE_TIMES,
   cacheKeys,
-  invalidateAfterVehicleRc,
-  invalidateVehiclesCache,
+  patchVehicleInListCache,
   resourceCache,
 } from '@/network/resourceCache';
 import {
-  getMyVerifications,
   listVehicles,
   deleteVehicleById,
   activateVehicle,
 } from '../api';
-import type { MyVerificationsResponse, VehicleResponse } from '../api';
+import type { VehicleResponse } from '../api';
 import { MY_GARAGE_SCREEN } from '../constants';
 import type { GarageVehicle } from '../types';
 import {
   applyRcVerificationToGarageVehicle,
+  collectVehicleRcFailureMessages,
   formatRcVerifiedAt,
   mapUpdateVehicleError,
   mapVehicleRcVerificationError,
   mapVehicleResponseToGarageVehicle,
+  mergeGarageVehiclesWithServer,
   ownerMatchLabel,
 } from '../utils';
 
@@ -51,6 +51,7 @@ export interface UseMyGarageResult {
   editVehicle: (vehicle: GarageVehicle) => void;
   toggleVehicleActive: (vehicle: GarageVehicle, nextActive: boolean) => void;
   openVerifyVehicle: (vehicle: GarageVehicle) => void;
+  viewVehicleRcDetails: (vehicle: GarageVehicle) => void;
   closeVerifySheet: () => void;
   confirmVerifyRc: () => void;
   ownerMatchHint: (vehicle: GarageVehicle) => string | null;
@@ -62,6 +63,11 @@ const isApiError = (error: unknown): error is { status: number; message?: string
   error !== null &&
   'status' in error &&
   typeof (error as { status?: unknown }).status === 'number';
+
+const mapRows = (
+  rows: readonly VehicleResponse[],
+  previous: readonly GarageVehicle[],
+): GarageVehicle[] => mergeGarageVehiclesWithServer(rows, previous);
 
 export const useMyGarage = (): UseMyGarageResult => {
   const router = useRouter();
@@ -87,40 +93,30 @@ export const useMyGarage = (): UseMyGarageResult => {
     }
 
     const force = mode === 'refresh';
+    const cached = resourceCache.peek<VehicleResponse[]>(cacheKeys.vehicles.list());
     if (force) {
       setRefreshing(true);
-    } else if (!resourceCache.peek(cacheKeys.vehicles.list())) {
+    } else if (!cached) {
       setLoading(true);
+    } else {
+      setVehicles((prev) => mapRows(cached, prev));
+      setLoading(false);
     }
 
     try {
-      const [vehiclesResult, verificationsResult] = await Promise.all([
-        resourceCache.query<VehicleResponse[]>({
-          key: cacheKeys.vehicles.list(),
-          staleTime: CACHE_STALE_TIMES.VEHICLES,
-          force,
-          fetcher: listVehicles,
-        }),
-        resourceCache
-          .query<MyVerificationsResponse>({
-            key: cacheKeys.verification.me(),
-            staleTime: CACHE_STALE_TIMES.VERIFICATION,
-            force,
-            fetcher: getMyVerifications,
-          })
-          .catch(() => null),
-      ]);
+      const vehiclesResult = await resourceCache.query<VehicleResponse[]>({
+        key: cacheKeys.vehicles.list(),
+        staleTime: CACHE_STALE_TIMES.VEHICLES,
+        force,
+        fetcher: listVehicles,
+      });
       const rows = vehiclesResult.data;
-      const verifications = verificationsResult?.data ?? null;
-      const verificationStatus = verifications?.vehicle?.status ?? null;
-      setVehicles(
-        rows.map((row) => mapVehicleResponseToGarageVehicle(row, verificationStatus)),
-      );
+      setVehicles((prev) => mapRows(rows, prev));
     } catch (error) {
       console.log('[My Garage] GET /vehicles failed', getErrorMessage(error));
       const kept = resourceCache.peek<VehicleResponse[]>(cacheKeys.vehicles.list());
       if (kept) {
-        setVehicles(kept.map((row) => mapVehicleResponseToGarageVehicle(row, null)));
+        setVehicles((prev) => mapRows(kept, prev));
         return;
       }
       const status = isApiError(error) ? error.status : undefined;
@@ -166,7 +162,14 @@ export const useMyGarage = (): UseMyGarageResult => {
             void (async () => {
               try {
                 await deleteVehicleById(vehicle.id);
-                invalidateVehiclesCache();
+                const cached = resourceCache.peek<VehicleResponse[]>(cacheKeys.vehicles.list());
+                if (cached) {
+                  resourceCache.setData(
+                    cacheKeys.vehicles.list(),
+                    cached.filter((row) => row.id !== vehicle.id),
+                  );
+                }
+                setVehicles((prev) => prev.filter((row) => row.id !== vehicle.id));
                 triggerSuccessHaptic();
                 await loadVehicles('refresh');
               } catch (error) {
@@ -234,8 +237,17 @@ export const useMyGarage = (): UseMyGarageResult => {
 
       void (async () => {
         try {
-          await activateVehicle(vehicle.id);
-          invalidateVehiclesCache();
+          const updated = await activateVehicle(vehicle.id);
+          patchVehicleInListCache(updated.id, updated);
+          const cached = resourceCache.peek<VehicleResponse[]>(cacheKeys.vehicles.list());
+          if (cached) {
+            resourceCache.setData(
+              cacheKeys.vehicles.list(),
+              cached.map((row) =>
+                row.id === updated.id ? updated : { ...row, isActive: false },
+              ),
+            );
+          }
           triggerSuccessHaptic();
           await loadVehicles('refresh');
         } catch (error) {
@@ -257,12 +269,34 @@ export const useMyGarage = (): UseMyGarageResult => {
     [loadVehicles, router, togglingVehicleId],
   );
 
+  const viewVehicleRcDetails = useCallback((vehicle: GarageVehicle) => {
+    triggerLightHaptic();
+    const verifiedDate = formatRcVerifiedAt(vehicle.rcVerifiedAt);
+    const matchHint = ownerMatchLabel(vehicle.ownerMatchStatus);
+    const lines = [
+      vehicle.name,
+      vehicle.plateNumber !== '—' ? vehicle.plateNumber : null,
+      vehicle.color ? `${MY_GARAGE_SCREEN.colorLabel}: ${vehicle.color}` : null,
+      verifiedDate ? `Verified on ${verifiedDate}` : null,
+      matchHint,
+      ...(vehicle.rcFieldMatches ?? []).map((item) => {
+        const status = item.matched ? 'Matched' : 'Mismatch';
+        return `${item.fieldLabel}\nEntered: ${item.entered || '—'}\nRC record: ${item.rcRecord || '—'}\nStatus: ${status}`;
+      }),
+    ].filter((line): line is string => Boolean(line));
+    showAppAlert(MY_GARAGE_SCREEN.rcDetailsTitle, lines.join('\n\n') || vehicle.name);
+  }, []);
+
   const openVerifyVehicle = useCallback(
     (vehicle: GarageVehicle) => {
       if (vehicle.rcStatus === 'verified') {
+        viewVehicleRcDetails(vehicle);
+        return;
+      }
+      if (vehicle.rcStatus === 'pending') {
         showAppAlert(
-          MY_GARAGE_SCREEN.verifySuccessTitle,
-          'This vehicle RC is already verified.',
+          MY_GARAGE_SCREEN.verifyPendingTitle,
+          MY_GARAGE_SCREEN.verifyPendingMessage,
         );
         return;
       }
@@ -274,7 +308,7 @@ export const useMyGarage = (): UseMyGarageResult => {
       setVerifyTarget(vehicle);
       setVerifySheetVisible(true);
     },
-    [isVerifying, resetVerify],
+    [isVerifying, resetVerify, viewVehicleRcDetails],
   );
 
   const closeVerifySheet = useCallback(() => {
@@ -309,51 +343,48 @@ export const useMyGarage = (): UseMyGarageResult => {
       try {
         const verification = await verify(vehicle.id, plate);
 
-        if (verification?.status === 'VERIFIED') {
-          setVehicles((prev) =>
-            prev.map((row) =>
-              row.id === vehicle.id
-                ? applyRcVerificationToGarageVehicle(row, verification)
-                : row,
-            ),
-          );
+        if (!verification) {
+          return;
+        }
+
+        const updated = applyRcVerificationToGarageVehicle(vehicle, verification);
+        setVehicles((prev) =>
+          prev.map((row) => (row.id === vehicle.id ? updated : row)),
+        );
+        patchVehicleInListCache<VehicleResponse>(vehicle.id, {
+          rcVerificationStatus: verification.status,
+          ownerMatchStatus: verification.ownerMatchStatus,
+          rcVerifiedAt: verification.verifiedAt,
+          isRcVerified: verification.status === 'VERIFIED',
+        });
+
+        if (verification.status === 'VERIFIED') {
           triggerSuccessHaptic();
           showAppAlert(
             MY_GARAGE_SCREEN.verifySuccessTitle,
             MY_GARAGE_SCREEN.verifySuccessMessage,
           );
           setVerifyTarget(null);
-          invalidateAfterVehicleRc();
           await loadVehicles('refresh');
           return;
         }
 
-        const message =
-          verification?.status === 'INVALID'
-            ? mapVehicleRcVerificationError({
-                status: 422,
-                code: 'VEHICLE_RC_INVALID',
-                message: 'VEHICLE_RC_INVALID',
-              })
-            : mapVehicleRcVerificationError({
-                status: 422,
-                code: 'UNKNOWN',
-                message: 'RC verification failed',
-              });
+        if (verification.status === 'PENDING') {
+          showAppAlert(
+            MY_GARAGE_SCREEN.verifyPendingTitle,
+            MY_GARAGE_SCREEN.verifyPendingMessage,
+          );
+          setVerifyTarget(null);
+          return;
+        }
 
-        showAppAlert(MY_GARAGE_SCREEN.verifyFailedTitle, message);
-        setVehicles((prev) =>
-          prev.map((row) => {
-            if (row.id !== vehicle.id) {
-              return row;
-            }
-            if (!verification) {
-              return {
-                ...row,
-                rcStatus: row.rcStatus === 'verified' ? 'verified' : 'failed',
-              };
-            }
-            return applyRcVerificationToGarageVehicle(row, verification);
+        const messages = collectVehicleRcFailureMessages(verification);
+        showAppAlert(
+          MY_GARAGE_SCREEN.verifyFailedTitle,
+          messages.join('\n') || mapVehicleRcVerificationError({
+            status: 422,
+            code: 'VEHICLE_RC_INVALID',
+            message: 'VEHICLE_RC_INVALID',
           }),
         );
         setVerifyTarget(null);
@@ -365,7 +396,11 @@ export const useMyGarage = (): UseMyGarageResult => {
         setVehicles((prev) =>
           prev.map((row) =>
             row.id === vehicle.id && row.rcStatus !== 'verified'
-              ? { ...row, rcStatus: 'failed' }
+              ? {
+                  ...row,
+                  rcStatus: 'failed' as const,
+                  rcErrorMessages: collectVehicleRcFailureMessages(error),
+                }
               : row,
           ),
         );
@@ -399,6 +434,7 @@ export const useMyGarage = (): UseMyGarageResult => {
     editVehicle,
     toggleVehicleActive,
     openVerifyVehicle,
+    viewVehicleRcDetails,
     closeVerifySheet,
     confirmVerifyRc,
     ownerMatchHint,

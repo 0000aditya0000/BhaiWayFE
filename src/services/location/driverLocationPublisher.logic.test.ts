@@ -1,19 +1,25 @@
 import {
   canTrackWithoutAlwaysPermission,
+  foregroundWatchDistanceInterval,
   haversineMeters,
   isEligibleTrackingStatus,
   isNewerLocationTimestamp,
   isValidPublishCoordinate,
   mapDriverPermissionMessage,
+  normalizeLocationTimestampMs,
   pickEligibleDriverRideId,
+  resolvePublishTimestampMs,
   returningToLiveRideShouldCreateWatcher,
   screenUnmountShouldStopTracking,
+  shouldEmitDriverDiagnostic,
+  shouldFlushPendingSocketSample,
   shouldKeepTrackingOnBackground,
   shouldPublishSample,
   shouldReconcileOnAppState,
   shouldRetryBufferedSample,
   shouldStartNativeLocationUpdates,
   shouldStopForRideStatus,
+  shouldUpdateLastSocketPublish,
   type LocationSample,
 } from './driverLocationPublisher.logic';
 
@@ -78,6 +84,26 @@ assertEqual(
   pickEligibleDriverRideId([{ id: 'stale', status: 'COMPLETED' }]),
   null,
   'does not restart from completed local/backend state',
+);
+assertEqual(
+  pickEligibleDriverRideId([{ id: 'regular', status: 'IN_PROGRESS' }]),
+  'regular',
+  'Regular Ride IN_PROGRESS starts tracking',
+);
+assertEqual(
+  pickEligibleDriverRideId([{ id: 'assured', status: 'IN_PROGRESS' }]),
+  'assured',
+  'Assured Ride IN_PROGRESS starts tracking',
+);
+assertEqual(
+  pickEligibleDriverRideId([{ id: 'commute', status: 'IN_PROGRESS' }]),
+  'commute',
+  'Office Commute IN_PROGRESS starts tracking',
+);
+assertEqual(
+  pickEligibleDriverRideId([{ id: 'published', status: 'PUBLISHED' }]),
+  null,
+  'published ride waits for start before GPS publishing',
 );
 
 assertTrue(isValidPublishCoordinate({ latitude: 12.9, longitude: 77.6 }), 'plausible coord');
@@ -169,9 +195,52 @@ assertTrue(
   'in-app tracking continues with when-in-use only',
 );
 
+assertEqual(foregroundWatchDistanceInterval('ios'), 0, 'iOS watcher is not distance-gated');
+assertTrue(foregroundWatchDistanceInterval('android') > 0, 'Android still uses a distance filter');
+
+assertEqual(
+  normalizeLocationTimestampMs(1_700_000_000, 1_700_000_000_000),
+  1_700_000_000_000,
+  'seconds timestamps are converted to milliseconds',
+);
+assertEqual(
+  resolvePublishTimestampMs(1_700_000_000_000 - 60_000, 1_700_000_000_000),
+  1_700_000_000_000,
+  'cached iOS GPS older than buffer is published as current',
+);
+assertEqual(
+  resolvePublishTimestampMs(1_700_000_000_000 - 2_000, 1_700_000_000_000),
+  1_700_000_000_000 - 2_000,
+  'fresh GPS timestamp is preserved',
+);
+
+assertFalse(shouldUpdateLastSocketPublish(false), 'failed socket emit does not consume throttle');
+assertTrue(shouldUpdateLastSocketPublish(true), 'successful socket emit advances throttle');
+assertTrue(
+  shouldFlushPendingSocketSample({ connected: true, hasPendingOrLastSample: true }),
+  'socket reconnect flushes the last GPS sample',
+);
+assertFalse(
+  shouldFlushPendingSocketSample({ connected: false, hasPendingOrLastSample: true }),
+  'offline reconnect does not pretend to publish',
+);
+
+assertTrue(
+  shouldEmitDriverDiagnostic({ event: 'first_gps', lastAtMs: 1, nowMs: 2 }),
+  'first GPS diagnostic is not throttled',
+);
+assertFalse(
+  shouldEmitDriverDiagnostic({ event: 'publish_succeeded', lastAtMs: 1_000, nowMs: 1_500 }),
+  'successful publish diagnostics are throttled',
+);
+assertFalse(
+  shouldEmitDriverDiagnostic({ event: 'publish_failed', lastAtMs: 1_000, nowMs: 1_500 }),
+  'failed publish diagnostics are throttled',
+);
+
 assertTrue(
   Boolean(mapDriverPermissionMessage('denied')),
-  'permission denial has driver-facing copy',
+  'missing permission produces an explicit recoverable state',
 );
 assertTrue(
   Boolean(mapDriverPermissionMessage('services_off')),

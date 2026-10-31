@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
+import { applyDriverCouponRedemption } from '@/features/coupons/utils/couponErrors';
 import { driverRidesRefreshStore } from '@/features/my-rides/store/driverRidesRefreshStore';
 import { getMyVerifications, listVehicles } from '@/features/profile/api';
 import { formatBhaiWayCoins, getErrorMessage, showAppAlert, triggerLightHaptic, triggerSuccessHaptic } from '@/shared/utils';
@@ -51,6 +52,9 @@ export interface UseRidePreferencesResult {
   selectVehicle: (vehicleId: string) => void;
   setPromoCode: (code: string) => void;
   applyPromo: () => void;
+  clearPromo: () => void;
+  promoError: string | null;
+  openAvailableCoupons: () => void;
   addVehicle: () => void;
   publish: () => void;
   goBack: () => void;
@@ -70,6 +74,7 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
   const [draft, setDraft] = useState<PublishRideDraft>(() => publishRideDraft.get());
   const [vehicles, setVehicles] = useState<PublishRideVehicleOption[]>([]);
   const [publishing, setPublishing] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
   const publishingRef = useRef(false);
 
   useEffect(() => publishRideDraft.subscribe(setDraft), []);
@@ -163,8 +168,17 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
   }, []);
 
   const setPromoCode = useCallback((code: string) => {
+    setPromoError(null);
     publishRideDraft.update({
       promoCode: code,
+      promoApplied: false,
+    });
+  }, []);
+
+  const clearPromo = useCallback(() => {
+    setPromoError(null);
+    publishRideDraft.update({
+      promoCode: '',
       promoApplied: false,
     });
   }, []);
@@ -174,12 +188,34 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
     const current = publishRideDraft.get();
     const code = current.promoCode.trim();
     if (!code) {
+      setPromoError(RIDE_PREFERENCES_SCREEN.promoInvalidMessage);
       showAppAlert('Promo code', RIDE_PREFERENCES_SCREEN.promoInvalidMessage);
       return;
     }
-    publishRideDraft.update({ promoApplied: true });
-    showAppAlert('Promo code', RIDE_PREFERENCES_SCREEN.promoAppliedMessage);
+    // Do not fake a driver discount. Rider validate/preview/redeem APIs are passenger-only.
+    publishRideDraft.update({ promoApplied: false });
+    const result = applyDriverCouponRedemption();
+    setPromoError(result.message);
+    showAppAlert('Unable to apply', result.message);
   }, []);
+
+  const openAvailableCoupons = useCallback(() => {
+    triggerLightHaptic();
+    const current = publishRideDraft.get();
+    const deposit = computeAssuredDriverDepositCoins(current);
+    router.push({
+      pathname: ROUTES.availableCoupons,
+      params: {
+        rideId: `driver-publish-${current.rideType}`,
+        rideType: current.rideType,
+        rideFare: '0',
+        assuredFee: deposit ?? '0',
+        seats: '1',
+        appliedCode: '',
+        couponContext: 'driver',
+      },
+    });
+  }, [router]);
 
   const addVehicle = useCallback(() => {
     triggerLightHaptic();
@@ -365,6 +401,9 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
     selectVehicle,
     setPromoCode,
     applyPromo,
+    clearPromo,
+    promoError,
+    openAvailableCoupons,
     addVehicle,
     publish,
     goBack,

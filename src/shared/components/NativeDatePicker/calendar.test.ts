@@ -2,9 +2,12 @@ import {
   addMinutesTo12HourParts,
   apply12HourParts,
   buildMonthCells,
+  isDateInSelection,
   isDayDisabled,
   isSameCalendarDay,
   to12HourParts,
+  toggleSelectedDay,
+  uniqueSortedDays,
 } from './calendar';
 
 const failed: string[] = [];
@@ -54,6 +57,38 @@ assertEqual(
   addMinutesTo12HourParts(12, 7, 'PM', -15),
   { hour: 11, minute: 52, period: 'AM' },
   'minute arrow -15 borrows from the previous hour',
+);
+
+const thu = new Date(2026, 9, 29);
+const fri = new Date(2026, 9, 30);
+const sat = new Date(2026, 9, 31);
+const windowMin = thu;
+const windowMax = new Date(2026, 10, 4);
+assertEqual(
+  uniqueSortedDays([sat, thu, fri, thu]).map((d) => d.getDate()),
+  [29, 30, 31],
+  'uniqueSortedDays de-dupes and sorts',
+);
+assertTrue(isDateInSelection([thu, sat], fri) === false, 'unselected day is not in selection');
+assertEqual(
+  toggleSelectedDay([thu], fri, windowMin, windowMax).map((d) => d.getDate()),
+  [29, 30],
+  'multi-select adds another day in the window',
+);
+assertEqual(
+  toggleSelectedDay([thu, fri], fri, windowMin, windowMax).map((d) => d.getDate()),
+  [29],
+  'multi-select removes a tapped selected day',
+);
+assertEqual(
+  toggleSelectedDay([thu], thu, windowMin, windowMax).map((d) => d.getDate()),
+  [29],
+  'last remaining date cannot be cleared',
+);
+assertEqual(
+  toggleSelectedDay([thu], new Date(2026, 10, 5), windowMin, windowMax).map((d) => d.getDate()),
+  [29],
+  'days past the 7-day window stay disabled',
 );
 
 if (failed.length > 0) {

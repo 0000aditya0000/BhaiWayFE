@@ -6,6 +6,10 @@ import { AppText as Text } from '@/shared/components';
 import { formatBhaiWayCoins } from '@/shared/utils';
 import { BOOKED_SCREEN } from '../../constants';
 import type { BookedRideDetails } from '../../types';
+import {
+  formatPassengerPaymentStatusLabel,
+  formatRegularRidePaymentMethodLabel,
+} from '../../utils/regularRidePayment.utils';
 import { styles } from './BookedRideDetailsCard.styles';
 
 export interface BookedRideDetailsCardProps {
@@ -16,18 +20,15 @@ const paymentMethodLabel = (value?: string): string => {
   if (!value) {
     return BOOKED_SCREEN.payAfterRideLabel;
   }
-  if (value.toUpperCase() === 'PAY_LATER') {
-    return BOOKED_SCREEN.payAfterRideLabel;
-  }
-  return value.replace(/_/g, ' ');
+  return formatRegularRidePaymentMethodLabel(value) || BOOKED_SCREEN.payAfterRideLabel;
 };
 
-const paymentStatusLabel = (value?: string): string => {
-  if (!value) {
-    return BOOKED_SCREEN.unpaidLabel;
-  }
-  return value.toUpperCase();
-};
+const paymentStatusLabel = (details: BookedRideDetails): string =>
+  formatPassengerPaymentStatusLabel({
+    paymentMethod: details.paymentMethod,
+    paymentStatus: details.paymentStatus,
+    bookingStatus: details.bookingStatus,
+  }) || BOOKED_SCREEN.unpaidLabel;
 
 const depositStatusLabel = (value?: string): string => {
   const normalized = String(value ?? '').toUpperCase();
@@ -184,7 +185,7 @@ export const BookedRideDetailsCard = React.memo(({ details }: BookedRideDetailsC
               <View style={styles.infoMeta}>
                 <Text style={styles.infoLabel}>{BOOKED_SCREEN.paymentStatusLabel}</Text>
                 <Text style={styles.infoValue}>
-                  {paymentStatusLabel(details.paymentStatus)}
+                  {paymentStatusLabel(details)}
                 </Text>
               </View>
             </View>

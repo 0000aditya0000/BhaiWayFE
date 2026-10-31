@@ -50,6 +50,9 @@ export const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textPrimary,
   },
+  dateFieldValue: {
+    flex: 1,
+  },
   fieldPlaceholder: {
     color: colors.textPlaceholder,
   },

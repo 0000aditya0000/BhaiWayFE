@@ -55,6 +55,33 @@ const empty = {
 assertEqual(resolveDriverContactPhone(empty), '', 'no invented driver phone');
 assertEqual(resolvePassengerContactPhone(empty), '', 'no invented passenger phone');
 
+assertEqual(
+  resolvePassengerContactPhone({
+    ...empty,
+    passenger: { id: 'p1', phone: 9876543210 },
+  } as unknown as BookingResponseDto),
+  '9876543210',
+  'numeric passenger.phone is still callable',
+);
+
+assertEqual(
+  resolveDriverContactPhone({
+    ...empty,
+    driver: { id: 'd1', user: { phoneNumber: '+919000000001' } },
+  } as unknown as BookingResponseDto),
+  '+919000000001',
+  'nested driver.user.phoneNumber',
+);
+
+assertEqual(
+  resolvePassengerContactPhone({
+    ...empty,
+    passengerPhone: '9888888888',
+  } as unknown as BookingResponseDto),
+  '9888888888',
+  'booking.passengerPhone alias',
+);
+
 if (failed.length > 0) {
   console.error(failed.join('\n'));
   process.exit(1);

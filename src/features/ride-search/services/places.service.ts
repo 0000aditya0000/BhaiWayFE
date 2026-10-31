@@ -4,7 +4,7 @@ import { env } from '@/config';
 import type { MapCoordinate, PlacesAutocompletePrediction, SelectedDestination } from '../types';
 import { nominatimBoundingBoxToBoundary, viewportToBoundary } from '../utils';
 import {
-  mapFetchFailureToPlacesError,
+  isPlacesCancelled,
   PlacesError,
 } from './places.errors';
 import {
@@ -653,13 +653,16 @@ export const searchPlaces = async (
   if (hasPlacesKey()) {
     try {
       const googleResults = await searchGooglePlaces(trimmed, location, options);
+      if (options?.signal?.aborted) {
+        return [];
+      }
       if (googleResults.length > 0) {
         return googleResults;
       }
       // Google returned zero — still try device/OSM for rare gaps.
     } catch (error) {
-      if (options?.signal?.aborted) {
-        throw mapFetchFailureToPlacesError(error);
+      if (options?.signal?.aborted || isPlacesCancelled(error)) {
+        return [];
       }
       if (env.enableLogging) {
         console.warn('[places] Google search failed, falling back to OSM', error);

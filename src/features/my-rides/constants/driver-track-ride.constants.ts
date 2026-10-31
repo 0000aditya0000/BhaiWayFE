@@ -51,7 +51,12 @@ export const DRIVER_TRACK_RIDE_SCREEN = {
   chatAlertTitle: 'Chat',
   callAlertMessage: (name: string) => `Calling ${name} will be available soon.`,
   chatAlertMessage: (name: string) => `Chat with ${name} will be available soon.`,
-  contactUnavailableMessage: 'Contact options are not available for this passenger yet.',
+  contactUnavailableMessage: 'Phone number is not available on this booking yet.',
+  contactUnavailablePassengerMessage:
+    'Passenger phone number is not on this booking yet. Backend needs to send passenger.phone (or phoneNumber / mobile) on GET /bookings/driver/my-rides.',
+  contactUnavailableDriverMessage:
+    'Driver phone number is not on this booking yet. Backend needs to send driver.phone (or phoneNumber / mobile) on GET /bookings/:id and GET /bookings/my.',
+  callFailedMessage: 'Unable to start a call right now.',
   cancelRideLabel: 'Cancel Ride',
   rideTypeLabel: 'Ride type',
   assuredLabel: 'ASSURED',

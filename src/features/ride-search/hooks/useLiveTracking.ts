@@ -20,7 +20,7 @@ import {
 } from '@/shared/maps';
 import { rideVehicleCache } from '../utils/rideVehicleCache';
 import { resolveDriverContactPhone } from '../utils/bookingContactPhone';
-import { openPhoneCall } from '@/shared/utils';
+import { logger, openPhoneCall } from '@/shared/utils';
 import { showAppAlert } from '@/store';
 
 import {
@@ -29,6 +29,7 @@ import {
   mapBookingToBookedRideDetails,
   resolveBookingRideId,
   resolveDriverDisplayName,
+  resolvePersonPhotoUrl,
   type BookingResponseDto,
 } from '../api';
 import {
@@ -145,6 +146,7 @@ export interface UseLiveTrackingResult {
   callDriver: () => void;
   chatDriver: () => void;
   openSupport: () => void;
+  triggerSos: () => void;
 }
 
 export const useLiveTracking = (params: UseLiveTrackingParams): UseLiveTrackingResult => {
@@ -180,6 +182,7 @@ export const useLiveTracking = (params: UseLiveTrackingParams): UseLiveTrackingR
   const [computedHeading, setComputedHeading] = useState<number | null>(null);
   const prevDriverRef = useRef<MapCoordinate | null>(null);
   const locationUpdatedAtRef = useRef<string | null>(null);
+  const lastPassengerLocationLogAtRef = useRef(0);
   const navigatingCompletedRef = useRef(false);
   const bookingSnapshotRef = useRef<BookingResponseDto | null>(null);
   const navigateToTripCompletedRef = useRef<() => void>(() => undefined);
@@ -267,10 +270,9 @@ export const useLiveTracking = (params: UseLiveTrackingParams): UseLiveTrackingR
     if (!isValidMapCoordinate(driverCoordinate)) {
       return;
     }
-    console.log('[LiveLocation][passenger] driver pin', {
+    logger.info('[LiveLocation][passenger]', {
+      event: 'marker_updated',
       rideId: params.rideId,
-      latitude: driverCoordinate.latitude,
-      longitude: driverCoordinate.longitude,
       source: isValidMapCoordinate(socketCoordinate) ? 'socket|rest' : 'rest',
       restHit: Boolean(restCoordinate),
       socketHit: Boolean(socketCoordinate),
@@ -431,6 +433,7 @@ export const useLiveTracking = (params: UseLiveTrackingParams): UseLiveTrackingR
 
     const rideId = params.rideId;
     trackingSocket.joinRide(rideId);
+    logger.info('[LiveLocation][passenger]', { event: 'room_joined', rideId });
     const unsubStatus = trackingSocket.subscribeStatus((status) => {
       setSocketStatus(status);
       if (status === 'CONNECTED' || status === 'LIVE') {
@@ -457,12 +460,16 @@ export const useLiveTracking = (params: UseLiveTrackingParams): UseLiveTrackingR
           : null,
       );
       setLocationUpdatedAt(stamp);
-      console.log('[LiveLocation][passenger] socket', {
-        rideId,
-        latitude: next.latitude,
-        longitude: next.longitude,
-        updatedAt: stamp,
-      });
+      const now = Date.now();
+      if (now - lastPassengerLocationLogAtRef.current > 8_000) {
+        lastPassengerLocationLogAtRef.current = now;
+        logger.info('[LiveLocation][passenger]', {
+          event: 'location_event',
+          rideId,
+          eventRideId: payload.rideId,
+          hasTimestamp: Boolean(stamp),
+        });
+      }
     });
     const unsubEnded = trackingSocket.subscribeEnded((payload) => {
       if (payload.rideId && payload.rideId !== rideId) {
@@ -474,6 +481,7 @@ export const useLiveTracking = (params: UseLiveTrackingParams): UseLiveTrackingR
       setTrackingError(payload.message);
     });
 
+    logger.info('[LiveLocation][passenger]', { event: 'initial_location_fetch', rideId });
     void refetchRideTracking();
 
     return () => {
@@ -781,7 +789,7 @@ export const useLiveTracking = (params: UseLiveTrackingParams): UseLiveTrackingR
           vehicleLabel,
           plateNumber: details?.plateNumber || resolvedVehicle.plate || '',
           rating: LIVE_TRACKING_SCREEN.defaultRating,
-          avatarUri: bookingSnapshot?.driver?.profilePhoto?.trim() || undefined,
+          avatarUri: resolvePersonPhotoUrl(bookingSnapshot?.driver) || undefined,
         },
         driverPhone,
         pickupLabel: 'Pickup',
@@ -871,7 +879,7 @@ export const useLiveTracking = (params: UseLiveTrackingParams): UseLiveTrackingR
         vehicleLabel,
         plateNumber: details?.plateNumber || resolvedVehicle.plate || mock.driver.plateNumber,
         avatarUri:
-          bookingSnapshot?.driver?.profilePhoto?.trim() || mock.driver.avatarUri,
+          resolvePersonPhotoUrl(bookingSnapshot?.driver) || mock.driver.avatarUri,
       },
       driverPhone,
     };
@@ -1170,6 +1178,18 @@ export const useLiveTracking = (params: UseLiveTrackingParams): UseLiveTrackingR
     router.push(ROUTES.helpSupport);
   }, [router]);
 
+  const triggerSos = useCallback(() => {
+    const rideId = params.rideId.trim();
+    if (!rideId || rideId === 'ride-default') {
+      showAppAlert('SOS unavailable', 'SOS is only available during an active ride.');
+      return;
+    }
+    router.push({
+      pathname: ROUTES.emergencyAssistance,
+      params: { rideId },
+    });
+  }, [params.rideId, router]);
+
   return {
     tracking,
     routeCoordinates,
@@ -1192,5 +1212,6 @@ export const useLiveTracking = (params: UseLiveTrackingParams): UseLiveTrackingR
     callDriver,
     chatDriver,
     openSupport,
+    triggerSos,
   };
 };

@@ -4,7 +4,10 @@ import {
   verifyVehicleRc,
   type VehicleRcVerification,
 } from '@/features/profile/api';
-import { mapVehicleRcVerificationError } from '@/features/profile/utils/vehicleRcVerification.mapper';
+import {
+  collectVehicleRcFailureMessages,
+  mapVehicleRcVerificationError,
+} from '@/features/profile/utils/vehicleRcVerification.mapper';
 
 export interface UseVehicleRcVerificationResult {
   verify: (vehicleId: string, vehicleNumber?: string) => Promise<VehicleRcVerification | null>;
@@ -60,19 +63,14 @@ export const useVehicleRcVerification = (): UseVehicleRcVerificationResult => {
           if (verification) {
             setResult(verification);
           }
-          const message =
-            verification?.status === 'INVALID'
-              ? mapVehicleRcVerificationError({
-                  status: 422,
-                  code: 'VEHICLE_RC_INVALID',
-                  message: 'VEHICLE_RC_INVALID',
-                })
-              : mapVehicleRcVerificationError({
-                  status: 422,
-                  code: 'UNKNOWN',
-                  message: 'RC verification failed',
-                });
-          setError(message);
+          const messages = collectVehicleRcFailureMessages(
+            verification ?? { status: 422, code: 'UNKNOWN', message: 'RC verification failed' },
+          );
+          setError(messages.join('\n') || mapVehicleRcVerificationError({
+            status: 422,
+            code: 'UNKNOWN',
+            message: 'RC verification failed',
+          }));
           return verification;
         }
 

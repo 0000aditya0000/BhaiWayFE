@@ -26,6 +26,7 @@ import { LIVE_TRACKING_SCREEN } from '@/features/ride-search/constants';
 import { formatLastLocationReceivedAt } from '@/features/ride-search/utils/liveTrackingFreshness';
 import { useLiveTracking } from '@/features/ride-search/hooks';
 import { NoShowClaimPanel, useNoShowClaim } from '@/features/no-show';
+import { SosRideBanner } from '@/features/sos';
 import type { MapCoordinate, RideType } from '@/features/ride-search/types';
 import { liveTrackingTokens, styles } from './LiveTrackingScreen.styles';
 
@@ -102,6 +103,7 @@ export const LiveTrackingScreen = () => {
     callDriver,
     chatDriver,
     openSupport,
+    triggerSos,
   } = useLiveTracking({
     rideId: getSearchParam(params.rideId) || 'ride-default',
     rideType,
@@ -380,12 +382,25 @@ export const LiveTrackingScreen = () => {
         </View>
         <Text style={styles.headerTitle}>{LIVE_TRACKING_SCREEN.title}</Text>
 
-        <IconButton
-          icon="notifications-outline"
-          onPress={openNotifications}
-          color={liveTrackingTokens.ON_SURFACE_VARIANT}
-          accessibilityLabel="Open notifications"
-        />
+        <View style={styles.headerRight}>
+          <Pressable
+            style={({ pressed }) => [styles.headerSos, pressed && { opacity: 0.86 }]}
+            onPress={() => {
+              triggerLightHaptic();
+              triggerSos();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Open emergency SOS"
+          >
+            <Text style={styles.headerSosLabel}>{LIVE_TRACKING_SCREEN.sosHeaderLabel}</Text>
+          </Pressable>
+          <IconButton
+            icon="notifications-outline"
+            onPress={openNotifications}
+            color={liveTrackingTokens.ON_SURFACE_VARIANT}
+            accessibilityLabel="Open notifications"
+          />
+        </View>
       </View>
 
       <ScrollView
@@ -705,6 +720,23 @@ export const LiveTrackingScreen = () => {
             onReject={noShow.reject}
             onOpenSupport={noShow.openSupport}
           />
+
+          <SosRideBanner rideId={getSearchParam(params.rideId)} />
+          <Pressable
+            style={({ pressed }) => [styles.sosButton, pressed && { opacity: 0.92 }]}
+            onPress={() => {
+              triggerLightHaptic();
+              triggerSos();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Open emergency SOS"
+          >
+            <Ionicons name="warning" size={22} color="#FFFFFF" />
+            <View>
+              <Text style={styles.sosButtonTitle}>{LIVE_TRACKING_SCREEN.sosLabel}</Text>
+              <Text style={styles.sosButtonHint}>{LIVE_TRACKING_SCREEN.sosHint}</Text>
+            </View>
+          </Pressable>
 
           <View style={styles.quickActions}>
             <Pressable

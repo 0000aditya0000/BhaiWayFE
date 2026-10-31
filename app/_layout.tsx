@@ -17,6 +17,7 @@ import { colors } from '@/shared/theme';
 import { AadhaarRewardHost } from '@/features/profile/components/AadhaarRewardHost';
 import { PushNavigationRouterBridge } from '@/features/notifications/push/PushNavigationRouterBridge';
 import { PushNotificationsBootstrap } from '@/features/notifications/push/PushNotificationsBootstrap';
+import { DriverSosAlertOverlay, SosBootstrap } from '@/features/sos';
 import {
   isSplashAnimationCompleted,
   markSplashAnimationCompleted,
@@ -77,6 +78,7 @@ export default function RootLayout() {
                 <View style={styles.root}>
                   <PushNotificationsBootstrap />
                   <DriverLocationTrackingBootstrap />
+                  <SosBootstrap />
                   <StatusBar style="dark" />
                   <Stack
                     screenOptions={{
@@ -101,6 +103,7 @@ export default function RootLayout() {
                   <PushNavigationRouterBridge />
                   <AppAlertModal />
                   <AadhaarRewardHost />
+                  <DriverSosAlertOverlay />
                 </View>
               </DigiLockerProvider>
             </ReduxProvider>

@@ -66,6 +66,37 @@ const commuteBookedPath = (
   },
 });
 
+const readPushId = (data: PushNotificationData, ...keys: string[]): string => {
+  for (const key of keys) {
+    const value = String(data[key] ?? '').trim();
+    if (value) {
+      return value;
+    }
+  }
+  return '';
+};
+
+/** Driver commute pending-request UI — same screen as My Rides → Ride Details. */
+const driverCommuteRequestPath = (rideId: string): PushNavigationTarget => ({
+  pathname: '/my-rides/track',
+  params: {
+    rideId,
+    rideType: 'commute',
+  },
+});
+
+const commuteBookingRequestsPath = (): PushNavigationTarget => ({
+  pathname: '/my-rides/booking-requests',
+});
+
+const resolveCommuteDriverRequestTarget = (rideId: string): PushNavigationTarget =>
+  rideId ? driverCommuteRequestPath(rideId) : commuteBookingRequestsPath();
+
+const isCommuteBookingRequestType = (type: string, bookingMode: string): boolean =>
+  type === 'COMMUTE_BOOKING_REQUESTED' ||
+  type === 'COMMUTE_BOOKING_REQUEST' ||
+  (type === 'BOOKING_RECEIVED' && bookingMode === 'COMMUTE');
+
 const SUPPORT_TICKET_UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -81,11 +112,11 @@ const supportTicketDetailPath = (ticketId: string): PushNavigationTarget => ({
 export const resolvePushNavigationTarget = (
   data: PushNotificationData,
 ): PushNavigationTarget => {
-  const type = getPushType(data);
-  const bookingId = data.bookingId?.trim() || '';
-  const rideId = data.rideId?.trim() || '';
-  const conversationId = data.conversationId?.trim() || '';
-  const bookingMode = String(data.bookingMode ?? '').trim().toUpperCase();
+  const type = getPushType(data) || readPushId(data, 'event').toUpperCase();
+  const bookingId = readPushId(data, 'bookingId', 'booking_id', 'bookingID');
+  const rideId = readPushId(data, 'rideId', 'ride_id', 'rideID');
+  const conversationId = readPushId(data, 'conversationId', 'conversation_id');
+  const bookingMode = readPushId(data, 'bookingMode', 'booking_mode').toUpperCase();
   const ticketId = data.ticketId?.trim() || '';
   const claimId = data.claimId?.trim() || '';
   const noShowKind = String(data.kind ?? '').trim().toUpperCase();
@@ -111,7 +142,8 @@ export const resolvePushNavigationTarget = (
       return { pathname: '/wallet' };
 
     case 'COMMUTE_BOOKING_REQUESTED':
-      return { pathname: '/my-rides/booking-requests' };
+    case 'COMMUTE_BOOKING_REQUEST':
+      return resolveCommuteDriverRequestTarget(rideId);
 
     case 'COMMUTE_BOOKING_CONFIRMED':
     case 'COMMUTE_BOOKING_CANCELLED': {
@@ -126,10 +158,13 @@ export const resolvePushNavigationTarget = (
     }
 
     case 'BOOKING_RECEIVED': {
+      if (isCommuteBookingRequestType(type, bookingMode)) {
+        return resolveCommuteDriverRequestTarget(rideId);
+      }
       if (rideId) {
         return tripDetailsPath(rideId, bookingMode === 'ASSURED' ? 'assured' : 'regular');
       }
-      return { pathname: '/my-rides/booking-requests' };
+      return commuteBookingRequestsPath();
     }
 
     case 'ASSURED_RIDE_PUBLISHED': {
@@ -165,6 +200,31 @@ export const resolvePushNavigationTarget = (
       return { pathname: '/support-tickets' };
     }
 
+    case 'SOS_TRIGGERED':
+    case 'SOS_DRIVER_ALERT':
+    case 'SOS_PASSENGER_ALERT':
+    case 'SOS_RESOLVED':
+    case 'SOS_FALSE_ALARM':
+    case 'SOS_ACKNOWLEDGED':
+    case 'SOS_RESPONDING': {
+      if (type === 'SOS_DRIVER_ALERT' && rideId) {
+        return {
+          pathname: '/my-rides/active-trip',
+          params: { rideId, rideType: 'regular' },
+        };
+      }
+      if (bookingId && rideId) {
+        return {
+          pathname: '/ride-search/live-tracking',
+          params: { rideId, bookingId, rideType: 'regular' },
+        };
+      }
+      if (rideId) {
+        return { pathname: '/home' };
+      }
+      return { pathname: '/my-rides' };
+    }
+
     case 'NO_SHOW_CLAIM_OPENED':
     case 'NO_SHOW_CLAIM_APPROVED':
     case 'NO_SHOW_CLAIM_REJECTED':
@@ -187,6 +247,14 @@ export const resolvePushNavigationTarget = (
     }
 
     default: {
+      if (isCommuteBookingRequestType(type, bookingMode) || bookingMode === 'COMMUTE') {
+        if (type.includes('CONFIRM') || type.includes('CANCEL')) {
+          if (rideId || bookingId) {
+            return commuteBookedPath(rideId || bookingId, bookingId || undefined);
+          }
+        }
+        return resolveCommuteDriverRequestTarget(rideId);
+      }
       if (conversationId) {
         return chatPath(conversationId, bookingId || undefined);
       }

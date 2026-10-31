@@ -31,6 +31,39 @@ export const isDayDisabled = (
   return false;
 };
 
+export const startOfCalendarDay = (date: Date): Date =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+export const uniqueSortedDays = (dates: readonly Date[]): Date[] => {
+  const byKey = new Map<string, Date>();
+  for (const date of dates) {
+    const next = startOfCalendarDay(date);
+    byKey.set(`${next.getFullYear()}-${next.getMonth()}-${next.getDate()}`, next);
+  }
+  return [...byKey.values()].sort((a, b) => a.getTime() - b.getTime());
+};
+
+export const isDateInSelection = (dates: readonly Date[], date: Date): boolean =>
+  dates.some((item) => isSameCalendarDay(item, date));
+
+/** Toggle a day in a multi-select calendar. The last remaining date cannot be cleared. */
+export const toggleSelectedDay = (
+  selected: readonly Date[],
+  date: Date,
+  minimumDate?: Date,
+  maximumDate?: Date,
+): Date[] => {
+  const current = uniqueSortedDays(selected);
+  if (isDayDisabled(date, minimumDate, maximumDate)) {
+    return current;
+  }
+  if (isDateInSelection(current, date)) {
+    const remaining = current.filter((item) => !isSameCalendarDay(item, date));
+    return remaining.length > 0 ? remaining : current;
+  }
+  return uniqueSortedDays([...current, date]);
+};
+
 export interface CalendarCell {
   date: Date;
   inMonth: boolean;

@@ -29,11 +29,12 @@ export const recentPlacesStore = {
   },
 
   add: (place: SelectedDestination) => {
-    if (!place.placeName.trim()) {
+    const placeName = String(place.placeName ?? '').trim();
+    if (!placeName) {
       return;
     }
 
-    const next = toPrediction(place);
+    const next = toPrediction({ ...place, placeName });
     recentPlaces = [next, ...recentPlaces.filter((item) => item.placeId !== next.placeId)].slice(
       0,
       MAX_RECENT_PLACES,

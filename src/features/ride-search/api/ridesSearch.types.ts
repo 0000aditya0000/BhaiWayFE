@@ -20,7 +20,13 @@ export interface RideSearchDriverRecentRideDto {
 export interface RideSearchDriverDto {
   id: string;
   displayName: string;
+  /** Preferred photo field. Runtime payloads may send a Cloudinary object instead of a string. */
   profilePhoto?: string | null;
+  /** Aliases used by some public/search/booking snapshots. */
+  profilePicture?: string | null;
+  photo?: string | null;
+  avatarUrl?: string | null;
+  avatar?: string | null;
   /**
    * As-driver averages from backend.
    * Prefer nested `{ averageRating, totalRatings }`; legacy flat number still accepted.

@@ -127,12 +127,17 @@ export const SelectLocationScreen = () => {
           onPress={() => {
             void pickCurrentLocation();
           }}
+          disabled={selecting || geocoding}
           accessibilityRole="button"
           accessibilityLabel="Use current location"
           android_ripple={{ color: 'rgba(29, 78, 216, 0.08)' }}
         >
           <View style={[styles.rowIcon, styles.rowIconAccent]}>
-            <Ionicons name="navigate" size={16} color={colors.primary} />
+            {selecting || geocoding ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <Ionicons name="navigate" size={16} color={colors.primary} />
+            )}
           </View>
           <Text style={styles.currentLocationText}>Use current location</Text>
         </Pressable>

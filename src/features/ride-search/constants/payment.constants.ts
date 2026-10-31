@@ -12,6 +12,8 @@ export const PAYMENT_SCREEN = {
   payAfterTitle: 'Pay After Ride',
   secureLabel: 'PCI-DSS SECURE PAYMENT',
   continueLabel: 'Continue',
+  walletSufficientHint: 'Balance is enough for this fare.',
+  walletInsufficientHint: 'Insufficient balance. Top up to pay with BhaiWay Wallet.',
   continueAssuredFeeLabel: 'Pay Assured Fee & Book',
   continueAssuredDepositLabel: 'Confirm Assured Booking',
   assuredFeeNoticeTitle: 'Assured deposit due now',

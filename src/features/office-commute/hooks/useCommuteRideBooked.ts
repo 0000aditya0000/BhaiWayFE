@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
-import { getBookingById } from '@/features/ride-search/api';
+import { getBookingById, getPublicRideById } from '@/features/ride-search/api';
+import { resolvePersonPhotoUrl } from '@/features/ride-search/api/bookingPersonPhoto';
 import { getDriverChatPath, getLiveTrackingPath } from '@/features/ride-search/constants';
 import { resolveDriverContactPhone } from '@/features/ride-search/utils/bookingContactPhone';
 import { triggerLightHaptic, showAppAlert, openPhoneCall } from '@/shared/utils';
@@ -69,7 +70,18 @@ export const useCommuteRideBooked = (
     String(params.status ?? commuteBookedStore.get()?.booking.status ?? 'PENDING').toUpperCase(),
   );
   const [driverPhone, setDriverPhone] = useState<string | null>(null);
+  const [driverAvatarUri, setDriverAvatarUri] = useState(
+    () => resolvePersonPhotoUrl(commuteBookedStore.get()?.booking.driver),
+  );
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const applyDriverPhoto = useCallback((photo: string) => {
+    const next = photo.trim();
+    if (!next) {
+      return;
+    }
+    setDriverAvatarUri((prev) => prev || next);
+  }, []);
 
   const refreshBookingStatus = useCallback(async () => {
     const bookingId = params.bookingId?.trim();
@@ -80,14 +92,37 @@ export const useCommuteRideBooked = (
       const booking = await getBookingById(bookingId);
       setBookingStatus(String(booking.status ?? 'PENDING').toUpperCase());
       setDriverPhone(resolveDriverContactPhone(booking) || null);
+      applyDriverPhoto(resolvePersonPhotoUrl(booking.driver));
     } catch {
       // Keep last known status.
     }
-  }, [params.bookingId]);
+  }, [applyDriverPhoto, params.bookingId]);
 
   useEffect(() => {
     void refreshBookingStatus();
   }, [refreshBookingStatus]);
+
+  useEffect(() => {
+    const rideId = params.rideId?.trim();
+    if (!rideId || driverAvatarUri) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const ride = await getPublicRideById(rideId);
+        if (cancelled) {
+          return;
+        }
+        applyDriverPhoto(resolvePersonPhotoUrl(ride.driver));
+      } catch {
+        // Keep last known photo.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [applyDriverPhoto, driverAvatarUri, params.rideId]);
 
   useEffect(() => {
     if (pollRef.current) {
@@ -132,7 +167,7 @@ export const useCommuteRideBooked = (
       isCancelled: normalizedStatus === 'CANCELLED',
       driverName: params.driverName?.trim() || COMMUTE_RIDE_BOOKED_SCREEN.defaultDriverName,
       driverRating: COMMUTE_RIDE_BOOKED_SCREEN.defaultDriverRating,
-      driverAvatarUri: COMMUTE_RIDE_BOOKED_SCREEN.driverAvatarUri,
+      driverAvatarUri,
       vehicleLabel: params.carModel?.trim() || COMMUTE_RIDE_BOOKED_SCREEN.defaultVehicle,
       dateLabel: COMMUTE_RIDE_BOOKED_SCREEN.defaultDateLabel,
       timeLabel: COMMUTE_RIDE_BOOKED_SCREEN.defaultTimeLabel,
@@ -147,7 +182,7 @@ export const useCommuteRideBooked = (
       etaMinutes: COMMUTE_RIDE_BOOKED_SCREEN.driverEtaMinutes,
       mapImageUri: COMMUTE_RIDE_BOOKED_SCREEN.mapImageUri,
     };
-  }, [bookingStatus, params]);
+  }, [bookingStatus, driverAvatarUri, params]);
 
   const openNotifications = useCallback(() => {
     router.push(ROUTES.notifications);

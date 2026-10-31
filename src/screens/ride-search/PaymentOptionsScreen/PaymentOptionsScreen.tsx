@@ -83,7 +83,10 @@ export const PaymentOptionsScreen = () => {
     assuredDepositCoins,
     assuredFareCoins,
     assuredRequiredCoins,
+    regularPayableCoins,
+    regularWalletInsufficient,
     isAssured,
+    isRegular,
     couponCode: appliedCouponCode,
     couponDiscountCoins,
     couponChargeScope: appliedCouponScope,
@@ -148,7 +151,7 @@ export const PaymentOptionsScreen = () => {
               onPress={continuePayment}
               showArrow
               loading={submitting}
-              disabled={submitting}
+              disabled={submitting || (isRegular && !selectedId)}
               accessibilityLabel="Continue to booking confirmation"
             />
           </View>
@@ -169,8 +172,8 @@ export const PaymentOptionsScreen = () => {
             )}
             {rideType === 'regular' ? (
               <Text style={styles.assuredHint}>
-                Preview discount shown on review. Regular Pay After Ride bookings need backend
-                coupon support on PAY_LATER to redeem at confirmation.
+                Preview discount shown on review. The server applies the coupon when you
+                confirm this booking.
               </Text>
             ) : null}
           </View>
@@ -295,6 +298,8 @@ export const PaymentOptionsScreen = () => {
             onSelect={setSelectedId}
             onAddCoins={onAddCoins}
             walletAvailableCoins={walletAvailableCoins}
+            farePayableCoins={regularPayableCoins}
+            insufficientWallet={regularWalletInsufficient}
             showPayAfterRide
           />
         )}

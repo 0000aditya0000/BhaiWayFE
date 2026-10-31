@@ -42,7 +42,14 @@ export const styles = StyleSheet.create({
     ...typography.title,
     fontSize: 18,
     color: colors.primary,
+  },
+  headerCopy: {
     flex: 1,
+  },
+  subtitle: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: 4,
   },
   monthNav: {
     flexDirection: 'row',

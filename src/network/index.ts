@@ -21,6 +21,8 @@ export {
   invalidateTrustedContactsCache,
   invalidateUserProfileCache,
   invalidateVehiclesCache,
+  mergeVehicleIntoListCache,
+  patchVehicleInListCache,
   invalidateVerificationCache,
   invalidateWalletCache,
   invalidateWithdrawalsCache,

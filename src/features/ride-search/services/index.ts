@@ -6,7 +6,7 @@ export {
   getPlacesConfigStatus,
 } from './places.service';
 export type { SearchPlacesOptions, PlacesConfigStatus } from './places.options';
-export { PlacesError, placesErrorMessage } from './places.errors';
+export { PlacesError, isPlacesCancelled, placesErrorMessage } from './places.errors';
 export type { PlacesErrorCode } from './places.errors';
 export { createPlacesSessionToken } from './places.session';
 export { fetchDrivingRoute } from './routing.service';

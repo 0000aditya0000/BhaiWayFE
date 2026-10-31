@@ -4,6 +4,7 @@ import { Keyboard } from 'react-native';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import { CURRENT_LOCATION_ALERTS } from '@/shared/maps';
 import { getSearchParam, showAppAlert } from '@/shared/utils';
 import {
   CURRENT_LOCATION_MAP_DELTA,
@@ -16,6 +17,7 @@ import {
   searchPlaces,
   fetchNearbyPlaces,
   placesErrorMessage,
+  isPlacesCancelled,
   createPlacesSessionToken,
 } from '@/features/ride-search/services';
 import { getRecentPlaceDetails, recentPlacesStore } from '@/features/ride-search/store';
@@ -24,7 +26,11 @@ import type {
   PlacesAutocompletePrediction,
   SelectedDestination,
 } from '@/features/ride-search/types';
-import { getRouteTooCloseMessage, regionForPrecisePlace } from '@/features/ride-search/utils';
+import {
+  getRouteTooCloseMessage,
+  regionForPrecisePlace,
+  resolveCurrentPlace,
+} from '@/features/ride-search/utils';
 import {
   panKeepZoom,
   useSearchIdleZoom,
@@ -142,6 +148,7 @@ export const useSelectLocation = () => {
         }
         const position = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
+          mayShowUserSettingsDialog: false,
         });
         if (cancelled) {
           return;
@@ -256,7 +263,11 @@ export const useSelectLocation = () => {
             setPredictions(results);
           }
         } catch (error) {
-          if (controller.signal.aborted || requestIdRef.current !== requestId) {
+          if (
+            controller.signal.aborted ||
+            isPlacesCancelled(error) ||
+            requestIdRef.current !== requestId
+          ) {
             return;
           }
           setPredictions([]);
@@ -321,7 +332,11 @@ export const useSelectLocation = () => {
    * Pickup and destination are selected in separate visits — not chained here.
    */
   const commitFieldSelection = useCallback(
-    (destination: SelectedDestination, forField: LocationFieldType) => {
+    (
+      destination: SelectedDestination,
+      forField: LocationFieldType,
+      options?: { revealMap?: boolean },
+    ) => {
       const currentDraft = publishRideDraft.get();
       const other = forField === 'origin'
         ? currentDraft.destinationLocation
@@ -357,11 +372,15 @@ export const useSelectLocation = () => {
       setQuery('');
       setPredictions([]);
       setSelected(destination);
-      setSearchMode(false);
-      skipNextRegionGeocode.current = true;
-      setRegion(panKeepZoom(destination.latitude, destination.longitude, regionRef.current));
-      scheduleIdleZoom(regionForPrecisePlace(destination));
-      router.back();
+      if (options?.revealMap !== false) {
+        setSearchMode(false);
+        skipNextRegionGeocode.current = true;
+        setRegion(panKeepZoom(destination.latitude, destination.longitude, regionRef.current));
+        scheduleIdleZoom(regionForPrecisePlace(destination));
+      }
+      if (router.canGoBack()) {
+        router.back();
+      }
       return true;
     },
     [router, scheduleIdleZoom],
@@ -396,44 +415,31 @@ export const useSelectLocation = () => {
     [commitFieldSelection, selecting],
   );
 
-  const locateMe = useCallback(async () => {
+  const locateMe = useCallback(async (options?: { updateMap?: boolean }) => {
     try {
-      const existing = await Location.getForegroundPermissionsAsync();
-      let status = existing.status;
-
-      if (status !== Location.PermissionStatus.GRANTED) {
-        const requested = await Location.requestForegroundPermissionsAsync();
-        status = requested.status;
-      }
-
-      if (status !== Location.PermissionStatus.GRANTED) {
-        showAppAlert(
-          'Location permission needed',
-          'Please allow location access to center the map on your position.',
-        );
+      setGeocoding(true);
+      const result = await resolveCurrentPlace();
+      if (!result.ok) {
+        showAppAlert(result.title, result.message);
         return null;
       }
-
-      setGeocoding(true);
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Highest,
-        mayShowUserSettingsDialog: true,
+      const precise = result.place;
+      setUserLocation({
+        latitude: precise.latitude,
+        longitude: precise.longitude,
       });
-      const next = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      };
-      setUserLocation(next);
       skipNextRegionGeocode.current = true;
-      clearIdleZoom();
-      flushZoomNow(toRegion(next.latitude, next.longitude, CURRENT_LOCATION_MAP_DELTA));
-
-      const destination = await reverseGeocodeCoordinate(next);
-      const precise = { ...destination, boundary: undefined };
+      if (options?.updateMap !== false) {
+        clearIdleZoom();
+        flushZoomNow(toRegion(precise.latitude, precise.longitude, CURRENT_LOCATION_MAP_DELTA));
+      }
       setSelected(precise);
       return precise;
     } catch {
-      showAppAlert('Location unavailable', 'Unable to fetch your current location.');
+      showAppAlert(
+        CURRENT_LOCATION_ALERTS.unavailable.title,
+        CURRENT_LOCATION_ALERTS.unavailable.message,
+      );
       return null;
     } finally {
       setGeocoding(false);
@@ -477,12 +483,26 @@ export const useSelectLocation = () => {
   }, [clearIdleZoom]);
 
   const pickCurrentLocation = useCallback(async () => {
-    const destination = await locateMe();
-    if (!destination) {
+    if (selecting) {
       return;
     }
-    commitFieldSelection(destination, fieldRef.current);
-  }, [commitFieldSelection, locateMe]);
+    Keyboard.dismiss();
+    setSelecting(true);
+    try {
+      const destination = await locateMe({ updateMap: false });
+      if (!destination) {
+        return;
+      }
+      commitFieldSelection(destination, fieldRef.current, { revealMap: false });
+    } catch {
+      showAppAlert(
+        CURRENT_LOCATION_ALERTS.unavailable.title,
+        CURRENT_LOCATION_ALERTS.unavailable.message,
+      );
+    } finally {
+      setSelecting(false);
+    }
+  }, [commitFieldSelection, locateMe, selecting]);
 
   const openField = useCallback(
     (nextField: LocationFieldType) => {

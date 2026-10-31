@@ -4,7 +4,9 @@ import {
   candidateChargeScopes,
   couponChargeCompatibleWithRide,
   couponMatchesRideType,
+  isChargeScopeMismatch,
 } from './previewCouponApply.helpers';
+import { couponVisibleForContext } from './couponAudience';
 import { applyCouponDiscountToFare } from './couponFare.utils';
 import type { CouponDto } from '../api/coupons.types';
 
@@ -20,6 +22,7 @@ const baseCoupon = (patch: Partial<CouponDto>): CouponDto => ({
   rideTypeScope: 'ALL',
   chargeScope: 'RIDE_FARE',
   audience: null,
+  applicableTo: 'ALL',
   startsAt: null,
   expiresAt: null,
   isActive: true,
@@ -85,5 +88,15 @@ assert.equal(
   assert.equal(restored.total, 300);
   assert.equal(restored.promoDiscount, 0);
 }
+
+assert.equal(isChargeScopeMismatch('not valid for this charge type'), true);
+assert.equal(isChargeScopeMismatch('This coupon is for drivers only.'), false);
+
+assert.equal(couponVisibleForContext(baseCoupon({ applicableTo: 'ALL' }), 'RIDER'), true);
+assert.equal(couponVisibleForContext(baseCoupon({ applicableTo: 'RIDERS_ONLY' }), 'RIDER'), true);
+assert.equal(couponVisibleForContext(baseCoupon({ applicableTo: 'DRIVERS_ONLY' }), 'RIDER'), false);
+assert.equal(couponVisibleForContext(baseCoupon({ applicableTo: 'ALL' }), 'DRIVER'), true);
+assert.equal(couponVisibleForContext(baseCoupon({ applicableTo: 'DRIVERS_ONLY' }), 'DRIVER'), true);
+assert.equal(couponVisibleForContext(baseCoupon({ applicableTo: 'RIDERS_ONLY' }), 'DRIVER'), false);
 
 console.log('previewCouponApply.test.ts: ok');

@@ -4,11 +4,15 @@ import type {
 } from '@/features/ride-search/api';
 import type { RideSearchItemDto } from '@/features/ride-search/api/ridesSearch.types';
 import { resolvePersonDisplayName } from '@/features/ride-search/api/bookingPersonName';
+import { resolveDriverPhotoUrl, resolvePersonPhotoUrl } from '@/features/ride-search/api/bookingPersonPhoto';
 import {
   formatApiDepartureTime,
   parsePricePerSeat,
 } from '@/features/ride-search/utils';
-import { resolveDriverContactPhone } from '@/features/ride-search/utils/bookingContactPhone';
+import {
+  contactSnapshotKeys,
+  resolveDriverContactPhone,
+} from '@/features/ride-search/utils/bookingContactPhone';
 import {
   resolveBookingVehicleLabel,
   resolveBookingVehiclePlate,
@@ -19,10 +23,8 @@ import type { DriverTrackConfirmedPassenger } from '../types';
 import type { RiderCoPassenger } from '../types/rider-co-passenger.types';
 import type { RiderBookedRideSummary } from '../types/rider-booked-ride.types';
 import { formatBookingSecurityDepositLabel } from './assuredDepositLabel';
-import {
-  formatPaymentMethodLabel,
-  formatPaymentStatusLabel,
-} from './mapDriverBooking';
+import { formatPaymentMethodLabel } from './mapDriverBooking';
+import { formatPassengerPaymentStatusLabel } from '@/features/ride-search/utils/regularRidePayment.utils';
 import { mapRideSourceToPreferenceRules } from '@/features/ride-search/utils/mapRidePreferences';
 import { resolveWomenOnly } from '@/shared/utils/womenOnlyRide';
 
@@ -83,7 +85,9 @@ const readPersonFromSnapshot = (
     verified:
       nestedPassenger?.isVerified === true || nestedPassenger?.verified === true,
     avatarUri:
-      asTrimmed(nestedPassenger?.profilePhoto) || DEFAULT_PROFILE_AVATAR,
+      resolvePersonPhotoUrl(nestedPassenger) ||
+      resolvePersonPhotoUrl(snapshot) ||
+      DEFAULT_PROFILE_AVATAR,
     seatsBooked: Math.max(1, Math.floor(Number(seatsRaw) || 1)),
   };
 };
@@ -396,7 +400,12 @@ export const mapBookingToRiderBookedRideSummary = (
     vehicleLabel: vehicleWithPlate,
     seatsBooked: Math.max(0, Math.floor(Number(booking.seats) || 0)),
     fareTotal: parsePricePerSeat(String(booking.totalAmount ?? '0')),
-    paymentStatus: formatPaymentStatusLabel(booking.paymentStatus),
+    paymentStatus: formatPassengerPaymentStatusLabel({
+      paymentMethod: booking.paymentMethod,
+      paymentStatus: booking.paymentStatus,
+      bookingStatus: booking.status,
+      rideStatus: booking.ride?.status,
+    }),
     paymentMethodLabel: formatPaymentMethodLabel(String(booking.paymentMethod ?? '')),
     bookingStatus: String(booking.status ?? '').trim().toUpperCase(),
     pickupStatus: String(booking.pickupStatus ?? '').trim().toUpperCase() || undefined,
@@ -417,12 +426,21 @@ export const mapBookingToRiderBookedRideSummary = (
 /** Map booking driver snapshot → card row (reuses driver track passenger card UI). */
 export const mapBookingToRiderBookedDriverCard = (
   booking: BookingResponseDto,
+  publicRide?: RideSearchItemDto | null,
 ): DriverTrackConfirmedPassenger => {
   const name = resolvePersonDisplayName(booking.driver) || 'Driver';
   const vehicleLabel = resolveBookingVehicleLabel(booking.vehicle);
   const plate = resolveBookingVehiclePlate(booking.vehicle);
   const subtitle = [vehicleLabel, plate].filter(Boolean).join(' · ');
   const phone = resolveDriverPhone(booking);
+
+  if (!phone) {
+    console.log('[Ride Details] driver phone missing on booking', {
+      bookingId: booking.id,
+      rideId: booking.rideId,
+      driverKeys: contactSnapshotKeys(booking.driver),
+    });
+  }
 
   if (!resolvePersonDisplayName(booking.driver)) {
     console.log('[Rider booked ride] driver name missing on booking', {
@@ -449,10 +467,16 @@ export const mapBookingToRiderBookedDriverCard = (
     name,
     subtitle,
     verified: booking.driver?.verified === true,
-    avatarUri: booking.driver?.profilePhoto?.trim() || DEFAULT_PROFILE_AVATAR,
+    avatarUri:
+      resolveDriverPhotoUrl(booking.driver, publicRide?.driver) || DEFAULT_PROFILE_AVATAR,
     seatsBooked: Math.max(0, Math.floor(Number(booking.seats) || 0)),
     bookingStatus: String(booking.status ?? '').trim().toUpperCase(),
-    paymentStatus: formatPaymentStatusLabel(booking.paymentStatus),
+    paymentStatus: formatPassengerPaymentStatusLabel({
+      paymentMethod: booking.paymentMethod,
+      paymentStatus: booking.paymentStatus,
+      bookingStatus: booking.status,
+      rideStatus: booking.ride?.status,
+    }),
     paymentMethodLabel: formatPaymentMethodLabel(String(booking.paymentMethod ?? '')),
     fareTotal: parsePricePerSeat(String(booking.totalAmount ?? '0')) || undefined,
     phone,

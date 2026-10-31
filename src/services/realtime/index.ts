@@ -2,7 +2,8 @@ export { REALTIME_EVENTS } from './realtimeEvents';
 export type { RealtimeEnvelope, RealtimeEventName, RealtimeHandler } from './realtimeEvents';
 export { realtimeService } from './realtimeService';
 export { trackingSocket, resolveTrackingSocketUrl } from './trackingSocket';
-export { TRACKING_SOCKET_EVENTS } from './trackingSocket.types';
+export { resolveTrackingEventRideId, shouldIgnoreLocationEvent } from './trackingSocket.logic';
+export { TRACKING_SOCKET_EVENTS, SOS_SOCKET_EVENTS } from './trackingSocket.types';
 export type {
   DriverLocationPayload,
   RideLocationUpdatedPayload,

@@ -4,6 +4,7 @@ import { Keyboard } from 'react-native';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
+import { CURRENT_LOCATION_ALERTS } from '@/shared/maps';
 import { getSearchParam, showAppAlert } from '@/shared/utils';
 import {
   CURRENT_LOCATION_MAP_DELTA,
@@ -17,6 +18,7 @@ import {
   searchPlaces,
   fetchNearbyPlaces,
   placesErrorMessage,
+  isPlacesCancelled,
   createPlacesSessionToken,
 } from '../services';
 import { getRecentPlaceDetails, locationPickerBridge, recentPlacesStore } from '../store';
@@ -26,7 +28,7 @@ import type {
   PlacesAutocompletePrediction,
   SelectedDestination,
 } from '../types';
-import { regionForPrecisePlace, getNearbyAreaSearchLabel } from '../utils';
+import { regionForPrecisePlace, getNearbyAreaSearchLabel, resolveCurrentPlace } from '../utils';
 
 const toRegion = (
   latitude: number,
@@ -121,6 +123,7 @@ export const useSelectDestination = () => {
 
         const position = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
+          mayShowUserSettingsDialog: false,
         });
 
         if (cancelled) {
@@ -196,7 +199,11 @@ export const useSelectDestination = () => {
             setPredictions(results);
           }
         } catch (error) {
-          if (controller.signal.aborted || requestIdRef.current !== requestId) {
+          if (
+            controller.signal.aborted ||
+            isPlacesCancelled(error) ||
+            requestIdRef.current !== requestId
+          ) {
             return;
           }
           setPredictions([]);
@@ -318,43 +325,31 @@ export const useSelectDestination = () => {
     [applySelectedPlace, selecting],
   );
 
-  const locateMe = useCallback(async (options?: { showInSearchBox?: boolean }) => {
+  const locateMe = useCallback(async (options?: { showInSearchBox?: boolean; updateMap?: boolean }) => {
     try {
-      const existing = await Location.getForegroundPermissionsAsync();
-      let status = existing.status;
-
-      if (status !== Location.PermissionStatus.GRANTED) {
-        const requested = await Location.requestForegroundPermissionsAsync();
-        status = requested.status;
-      }
-
-      if (status !== Location.PermissionStatus.GRANTED) {
-        showAppAlert(
-          'Location permission needed',
-          'Please allow location access to center the map on your position.',
-        );
+      setGeocoding(true);
+      const result = await resolveCurrentPlace();
+      if (!result.ok) {
+        showAppAlert(result.title, result.message);
         return null;
       }
 
-      setGeocoding(true);
-
-      // Prefer a fresh high-accuracy fix for the locate button.
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Highest,
-        mayShowUserSettingsDialog: true,
+      const preciseLocation = result.place;
+      setUserLocation({
+        latitude: preciseLocation.latitude,
+        longitude: preciseLocation.longitude,
       });
-      const next = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      };
-      setUserLocation(next);
       preserveListSelectionRef.current = false;
       skipNextRegionGeocode.current = true;
-      setRegion(toRegion(next.latitude, next.longitude, CURRENT_LOCATION_MAP_DELTA));
-
-      const destination = await reverseGeocodeCoordinate(next);
-      // Point location — clear any previous area boundary outline.
-      const preciseLocation = { ...destination, boundary: undefined };
+      if (options?.updateMap !== false) {
+        setRegion(
+          toRegion(
+            preciseLocation.latitude,
+            preciseLocation.longitude,
+            CURRENT_LOCATION_MAP_DELTA,
+          ),
+        );
+      }
       setSelected(preciseLocation);
 
       if (options?.showInSearchBox) {
@@ -363,7 +358,10 @@ export const useSelectDestination = () => {
 
       return preciseLocation;
     } catch {
-      showAppAlert('Location unavailable', 'Unable to fetch your current location.');
+      showAppAlert(
+        CURRENT_LOCATION_ALERTS.unavailable.title,
+        CURRENT_LOCATION_ALERTS.unavailable.message,
+      );
       return null;
     } finally {
       setGeocoding(false);
@@ -390,26 +388,35 @@ export const useSelectDestination = () => {
   }, []);
 
   const pickCurrentLocation = useCallback(async () => {
-    const location = await locateMe({ showInSearchBox: true });
-    if (!location) {
+    if (selecting) {
       return;
     }
+    Keyboard.dismiss();
+    setSelecting(true);
+    try {
+      // Do not remount the map underneath search — that crashes on Android
+      // when we immediately router.back() after GPS.
+      const location = await locateMe({ showInSearchBox: true, updateMap: false });
+      if (!location) {
+        return;
+      }
 
-    // Apply GPS as this field's start/destination and return to the form.
-    geocodeIdRef.current += 1;
-    setGeocoding(false);
-    preserveListSelectionRef.current = true;
-    setSelected(location);
-    setSearchedPlaceName(getNearbyAreaSearchLabel(location));
-    setQuery('');
-    setPredictions([]);
-    setSearchMode(false);
-    skipNextRegionGeocode.current = true;
-    setRegion(regionForPrecisePlace(location));
-    recentPlacesStore.add(location);
-    locationPickerBridge.publish(field, location);
-    router.back();
-  }, [field, locateMe, router]);
+      geocodeIdRef.current += 1;
+      preserveListSelectionRef.current = true;
+      recentPlacesStore.add(location);
+      locationPickerBridge.publish(field, location);
+      if (router.canGoBack()) {
+        router.back();
+      }
+    } catch {
+      showAppAlert(
+        CURRENT_LOCATION_ALERTS.unavailable.title,
+        CURRENT_LOCATION_ALERTS.unavailable.message,
+      );
+    } finally {
+      setSelecting(false);
+    }
+  }, [field, locateMe, router, selecting]);
 
   const confirm = useCallback(() => {
     if (!selected.placeName.trim()) {

@@ -10,6 +10,11 @@ export type CouponBenefitType =
   | 'PERCENTAGE_DISCOUNT'
   | string;
 
+export type CouponApplicableTo = 'ALL' | 'DRIVERS_ONLY' | 'RIDERS_ONLY';
+
+/** Screen / transaction context — not a permanent global user role. */
+export type CouponActorContext = 'RIDER' | 'DRIVER';
+
 export interface ValidateCouponDto {
   code: string;
   rideType: CouponRideTypeScope;
@@ -41,7 +46,13 @@ export interface CouponDto {
   minEligibleAmount: string | null;
   rideTypeScope: CouponRideTypeScope | string;
   chargeScope: CouponChargeScope | string;
+  /** Raw backend audience string, preserved for compatibility. */
   audience: string | null;
+  /**
+   * Eligibility audience. Missing/unknown values default to ALL.
+   * Parsed from `applicableTo`, then a matching `audience` enum, else ALL.
+   */
+  applicableTo: CouponApplicableTo;
   startsAt: string | null;
   expiresAt: string | null;
   isActive: boolean;

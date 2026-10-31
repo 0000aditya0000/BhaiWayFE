@@ -1,3 +1,4 @@
+import { resolvePersonPhotoUrl } from '@/features/ride-search/api/bookingPersonPhoto';
 import type {
   RideSearchDriverDto,
   RideSearchItemDto,
@@ -131,7 +132,7 @@ export const mapRideSearchItemToCommuteResult = (
       rating: driverRating.averageRating,
       totalRatings: driverRating.totalRatings,
       verified,
-      avatarUri: item.driver.profilePhoto?.trim() || undefined,
+      avatarUri: resolvePersonPhotoUrl(item.driver) || undefined,
       recentRides: [],
     },
     vehicle: {

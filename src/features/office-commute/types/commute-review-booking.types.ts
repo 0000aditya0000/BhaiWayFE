@@ -17,6 +17,7 @@ export interface CommuteBookingFare {
 export interface CommuteReviewBookingData {
   rideId: string;
   driverName: string;
+  driverAvatarUri?: string;
   carModel: string;
   distanceLabel: string;
   durationLabel: string;

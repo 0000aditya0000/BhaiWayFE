@@ -1,4 +1,5 @@
 import { ENDPOINTS } from '../../../network/endpoints';
+import { unwrapVerifyVehicleRcResponse } from './vehicle.unwrap';
 
 const failed: string[] = [];
 
@@ -110,6 +111,26 @@ const run = async () => {
   };
   await createVehiclesApi(emptyBodyClient).verifyVehicleRc('veh-1');
   assertEqual(JSON.stringify(capturedBody), '{}', 'omits vehicleNumber when empty');
+
+  const unwrapped = unwrapVerifyVehicleRcResponse({
+    success: true,
+    verification: {
+      vehicleId: 'veh-1',
+      status: 'FAILED',
+      vehicleNumber: 'DL01AB1234',
+      failedChecks: [{ code: 'VEHICLE_NAME_MISMATCH' }],
+    },
+  });
+  assertEqual(unwrapped.verification?.status, 'FAILED', 'HTTP 200 FAILED is not VERIFIED');
+  assertEqual(
+    unwrapVerifyVehicleRcResponse({
+      data: {
+        verification: { vehicleId: 'veh-2', status: 'verified', vehicleNumber: 'UP16AB1234' },
+      },
+    }).verification?.status,
+    'VERIFIED',
+    'normalizes lowercase verified status',
+  );
 
   if (failed.length > 0) {
     throw new Error(`vehicles.api RC tests failed:\n${failed.join('\n')}`);

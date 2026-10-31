@@ -9,6 +9,7 @@ import {
   applyCouponDiscountToFare,
   buildCouponContextKey,
   couponApplyBridgeStore,
+  filterCouponsForContext,
   listMyCoupons,
   listPublicCoupons,
   previewCouponForBooking,
@@ -19,6 +20,7 @@ import { assuredDepositPenaltyStore } from '@/features/profile/store/assuredDepo
 import {
   buildRegularFareEstimate,
   getPublicRideById,
+  resolvePersonPhotoUrl,
   type RideSearchItemDto,
 } from '../api';
 import {
@@ -291,6 +293,7 @@ export const useReviewBooking = (params: UseReviewBookingParams): UseReviewBooki
 
         // Regular soft enrich — unchanged.
         const mapped = mapRideSearchItemToResult(ride);
+        setPublicRide(ride);
         setPricePerSeat(parsePricePerSeat(String(ride.pricePerSeat)));
         setMaxSeats(Math.max(1, ride.availableSeats));
         setSelectedSeatsState((prev) =>
@@ -369,7 +372,7 @@ export const useReviewBooking = (params: UseReviewBookingParams): UseReviewBooki
           subtitle: liveCarModel || params.carModel || '',
           rating: 0,
           totalRides: 0,
-          avatarUri: publicRide?.driver.profilePhoto?.trim() || undefined,
+          avatarUri: resolvePersonPhotoUrl(publicRide?.driver) || undefined,
         },
         fare: {
           rideFare,
@@ -409,6 +412,7 @@ export const useReviewBooking = (params: UseReviewBookingParams): UseReviewBooki
         ...data.driver,
         name: driverName,
         subtitle: driverSubtitle,
+        avatarUri: resolvePersonPhotoUrl(publicRide?.driver) || undefined,
       },
       fare,
     };
@@ -429,8 +433,7 @@ export const useReviewBooking = (params: UseReviewBookingParams): UseReviewBooki
     params.rideType,
     pickupCoord,
     pricePerSeat,
-    publicRide?.driver.id,
-    publicRide?.driver.profilePhoto,
+    publicRide?.driver,
     selectedSeats,
   ]);
 
@@ -455,7 +458,10 @@ export const useReviewBooking = (params: UseReviewBookingParams): UseReviewBooki
           return;
         }
         const byCode = new Map<string, CouponDto>();
-        for (const item of [...minePage.items, ...publicPage.items]) {
+        for (const item of filterCouponsForContext(
+          [...minePage.items, ...publicPage.items],
+          'RIDER',
+        )) {
           if (!byCode.has(item.code)) {
             byCode.set(item.code, item);
           }
@@ -702,6 +708,7 @@ export const useReviewBooking = (params: UseReviewBookingParams): UseReviewBooki
         assuredFee: String(bookingBase.fare.assuredFee),
         seats: String(selectedSeats),
         appliedCode: appliedPromo?.code ?? '',
+        couponContext: 'rider',
       },
     });
   }, [
@@ -718,6 +725,7 @@ export const useReviewBooking = (params: UseReviewBookingParams): UseReviewBooki
   useFocusEffect(
     useCallback(() => {
       const contextKey = buildCouponContextKey({
+        actorContext: 'RIDER',
         rideId: booking.rideId || params.rideId,
         rideType: params.rideType,
         seats: selectedSeats,

@@ -81,14 +81,15 @@ const buildDriverBookingsPath = (query: ListDriverBookingsQuery = {}): string =>
 };
 
 export interface CreateBookingOptions {
-  /** Required for PAY_NOW and ASSURED_DEPOSIT — reuse the same key when retrying one attempt. */
+  /** Required for WALLET, PAY_NOW, and ASSURED_DEPOSIT — reuse the same key when retrying one attempt. */
   idempotencyKey?: string;
 }
 
 /**
  * Creates a passenger booking.
  * Docs: POST /bookings — Authorization: Bearer <BHAIWAY_JWT>
- * Regular: { rideId, seats, paymentMethod: "PAY_LATER" } — never send farePayment.
+ * Regular: { rideId, seats, paymentMethod: "WALLET"|"PAY_AFTER_RIDE" } — never send farePayment or amounts.
+ *   WALLET requires Idempotency-Key; reuse it on timeout retries of the same attempt.
  * Assured: { rideId, seats, paymentMethod: "ASSURED_DEPOSIT", farePayment?: "PAY_NOW"|"PAY_LATER" }
  *   + Idempotency-Key header. Missing farePayment → backend treats as PAY_LATER.
  */
@@ -127,12 +128,34 @@ export const formatListDriverBookingsPath = (
   query: ListDriverBookingsQuery = {},
 ): string => buildDriverBookingsPath(query);
 
+const unwrapBookingRecord = (payload: unknown): BookingResponseDto => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return payload as BookingResponseDto;
+  }
+  const record = payload as Record<string, unknown>;
+  if (typeof record.id === 'string' && record.id.trim()) {
+    return payload as BookingResponseDto;
+  }
+  for (const key of ['data', 'booking', 'item', 'result'] as const) {
+    const nested = record[key];
+    if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+      const inner = nested as Record<string, unknown>;
+      if (typeof inner.id === 'string' && inner.id.trim()) {
+        return nested as BookingResponseDto;
+      }
+    }
+  }
+  return payload as BookingResponseDto;
+};
+
 /**
  * Returns an owned booking.
  * Docs: GET /bookings/:id
  */
-export const getBookingById = (id: string): Promise<BookingResponseDto> =>
-  httpClient.get<BookingResponseDto>(ENDPOINTS.bookings.byId(id));
+export const getBookingById = async (id: string): Promise<BookingResponseDto> => {
+  const payload = await httpClient.get<unknown>(ENDPOINTS.bookings.byId(id));
+  return unwrapBookingRecord(payload);
+};
 
 /**
  * Cancels an eligible passenger booking.

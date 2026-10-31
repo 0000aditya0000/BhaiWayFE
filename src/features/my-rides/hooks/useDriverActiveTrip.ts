@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
+import { sosSession } from '@/features/sos';
 import { completeRideById, getRideById } from '@/features/offer-ride/api';
 import { listDriverBookings } from '@/features/ride-search/api';
 import { fetchDrivingRoute } from '@/features/ride-search/services';
@@ -366,8 +367,12 @@ export const useDriverActiveTrip = (): UseDriverActiveTripResult => {
     rideId,
   ]);
   const triggerSos = useCallback(() => {
-    router.push(ROUTES.myRidesEmergencyEnd);
-  }, [router]);
+    if (!rideId) {
+      router.push(ROUTES.myRidesEmergencyEnd);
+      return;
+    }
+    sosSession.confirmTrigger(rideId);
+  }, [rideId, router]);
 
   const openGoogleMaps = useCallback(() => {
     if (!isValidMapCoordinate(destinationCoordinate)) {

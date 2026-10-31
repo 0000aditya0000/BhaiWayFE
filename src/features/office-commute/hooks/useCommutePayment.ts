@@ -15,6 +15,8 @@ import {
   mapCreateBookingError,
 } from '@/features/ride-search/api';
 import { parseMapCoordinate, rideCoordsCache } from '@/shared/maps';
+import { couponApplyBridgeStore } from '@/features/coupons';
+import { isCouponAudienceMismatchError } from '@/features/coupons/utils/couponErrors';
 import { showAppAlert, triggerLightHaptic } from '@/shared/utils';
 import { authSession } from '@/store';
 
@@ -66,6 +68,7 @@ export const useCommutePayment = (
   const router = useRouter();
   const { summary: walletSummary, refresh: refreshWallet } = useWalletBalance();
   const [submitting, setSubmitting] = useState(false);
+  const [couponRejected, setCouponRejected] = useState(false);
   const idempotencyRef = useRef<{
     key: string;
     rideId: string;
@@ -74,13 +77,13 @@ export const useCommutePayment = (
 
   const seats = Math.max(1, Math.floor(params.seats));
   const baseFareCoins = computeCommuteTotalFareCoins(params.riderPricePerSeat, seats);
-  const previewDiscount = Math.max(
-    0,
-    Math.round(Number(params.couponDiscount ?? 0) || 0),
-  );
+  const previewDiscount = couponRejected
+    ? 0
+    : Math.max(0, Math.round(Number(params.couponDiscount ?? 0) || 0));
+  const activeCouponCode = couponRejected ? '' : params.couponCode?.trim() ?? '';
   // Preview-only display adjustment; server applies the authoritative discount on create.
   const totalFareCoins =
-    params.couponCode?.trim() && previewDiscount > 0
+    activeCouponCode && previewDiscount > 0
       ? String(Math.max(0, Number(baseFareCoins) - previewDiscount))
       : baseFareCoins;
   const totalFareLabel = formatCoinsLabel(totalFareCoins);
@@ -167,8 +170,8 @@ export const useCommutePayment = (
           buildCommuteCreateBookingPayload({
             rideId,
             seats,
-            couponCode: params.couponCode,
-            couponChargeScope: params.couponChargeScope,
+            couponCode: couponRejected ? null : params.couponCode,
+            couponChargeScope: couponRejected ? null : params.couponChargeScope,
           }),
           { idempotencyKey },
         );
@@ -222,6 +225,10 @@ export const useCommutePayment = (
           clearIdempotencyKey();
         }
         const message = mapCreateBookingError(error);
+        if (isCouponAudienceMismatchError(error)) {
+          setCouponRejected(true);
+          couponApplyBridgeStore.clear();
+        }
         if (isApiError(error) && error.status === 422) {
           showAppAlert('Insufficient BhaiWay Coins', message, [
             { text: 'Cancel', style: 'cancel' },
@@ -236,6 +243,7 @@ export const useCommutePayment = (
     })();
   }, [
     clearIdempotencyKey,
+    couponRejected,
     onAddCoins,
     params,
     refreshWallet,

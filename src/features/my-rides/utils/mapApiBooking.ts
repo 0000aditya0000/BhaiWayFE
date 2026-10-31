@@ -1,5 +1,6 @@
 import type { BookingResponseDto } from '@/features/ride-search/api';
 import { resolvePersonDisplayName } from '@/features/ride-search/api/bookingPersonName';
+import { resolvePersonPhotoUrl } from '@/features/ride-search/api/bookingPersonPhoto';
 import {
   resolveVehicleLabelForRide,
   resolveVehiclePlateForRide,
@@ -129,7 +130,7 @@ export const mapApiBookingToUpcoming = (
     vehicleLabel: label,
     plateNumber: plate,
     verified: true,
-    avatarUri: booking.driver?.profilePhoto?.trim() || DEFAULT_PROFILE_AVATAR,
+    avatarUri: resolvePersonPhotoUrl(booking.driver) || DEFAULT_PROFILE_AVATAR,
   };
 
   const isCommute = isCommuteApiBooking(booking);

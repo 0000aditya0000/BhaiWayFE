@@ -15,6 +15,7 @@ import {
 import {
   getErrorMessage,
   getSearchParam,
+  openPhoneCall,
   showAppAlert,
   triggerLightHaptic,
   triggerSuccessHaptic,
@@ -348,14 +349,22 @@ export const useDriverTrackRide = (): UseDriverTrackRideResult => {
 
   const callPassenger = useCallback((passenger: DriverTrackConfirmedPassenger) => {
     triggerLightHaptic();
-    if (!passenger.callAvailable || !passenger.phone) {
+    const phone = passenger.phone?.trim();
+    if (!phone) {
       showAppAlert(
         DRIVER_TRACK_RIDE_SCREEN.callAlertTitle,
-        DRIVER_TRACK_RIDE_SCREEN.contactUnavailableMessage,
+        DRIVER_TRACK_RIDE_SCREEN.contactUnavailablePassengerMessage,
       );
       return;
     }
-    void Linking.openURL(`tel:${passenger.phone}`);
+    void openPhoneCall(phone).then((started) => {
+      if (!started) {
+        showAppAlert(
+          DRIVER_TRACK_RIDE_SCREEN.callAlertTitle,
+          DRIVER_TRACK_RIDE_SCREEN.callFailedMessage,
+        );
+      }
+    });
   }, []);
 
   const chatPassenger = useCallback(

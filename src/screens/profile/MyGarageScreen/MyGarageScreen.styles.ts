@@ -162,6 +162,32 @@ export const styles = StyleSheet.create({
     lineHeight: 20,
     color: garageTokens.ON_SURFACE_VARIANT,
   },
+  errorText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: garageTokens.FAILED_TEXT,
+  },
+  matchBlock: {
+    marginTop: spacing.xs,
+    gap: 2,
+  },
+  matchField: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    color: garageTokens.ON_SURFACE,
+  },
+  matchStatus: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
+  matchStatusOk: {
+    color: garageTokens.APPROVED_TEXT,
+  },
+  matchStatusBad: {
+    color: garageTokens.FAILED_TEXT,
+  },
   activeToggleRow: {
     flexDirection: 'row',
     alignItems: 'center',

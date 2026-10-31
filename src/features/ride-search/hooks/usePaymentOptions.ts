@@ -11,8 +11,10 @@ import {
 } from '@/features/profile/utils/walletCoin';
 import {
   buildAppliedCouponParams,
+  couponApplyBridgeStore,
   withCouponOnCreateBooking,
 } from '@/features/coupons';
+import { isCouponAudienceMismatchError } from '@/features/coupons/utils/couponErrors';
 import {
   createBooking,
   mapBookingToBookedRideDetails,
@@ -37,6 +39,18 @@ import {
   resolveAssuredRequiredCoins,
   type AssuredFarePaymentChoice,
 } from '../utils/assuredDeposit.utils';
+import {
+  buildRegularCreateBookingPayload,
+  isInsufficientWalletForRegularFare,
+  isWalletAccessForbiddenMessage,
+  REGULAR_RIDE_PAYMENT_LABELS,
+  resolveRegularFareCoins,
+  resolveRegularPayableCoins,
+  reuseOrCreateIdempotencyKey,
+  toRegularRidePaymentRequestMethod,
+  type RegularBookingIdempotencyScope,
+  type RegularRidePaymentRequestMethod,
+} from '../utils/regularRidePayment.utils';
 
 export interface UsePaymentOptionsParams {
   rideId: string;
@@ -67,7 +81,7 @@ export interface UsePaymentOptionsParams {
 }
 
 export interface UsePaymentOptionsResult {
-  selectedId: PaymentMethodId;
+  selectedId: PaymentMethodId | null;
   setSelectedId: (id: PaymentMethodId) => void;
   /** Assured fare timing — PAY_LATER by default. Unused for Regular. */
   assuredFarePayment: AssuredFarePaymentChoice;
@@ -82,7 +96,13 @@ export interface UsePaymentOptionsResult {
   assuredFareCoins: string | null;
   /** Coins required now for the selected Assured option. */
   assuredRequiredCoins: string | null;
+  /** Regular fare preview in coins (pricePerSeat * seats). Display only. */
+  regularFareCoins: string | null;
+  /** Regular payable preview after coupon discount. Display only — never posted. */
+  regularPayableCoins: string | null;
+  regularWalletInsufficient: boolean;
   isAssured: boolean;
+  isRegular: boolean;
   couponCode: string | null;
   couponDiscountCoins: number;
   couponChargeScope: string | null;
@@ -108,18 +128,14 @@ export const usePaymentOptions = (
   const { summary: walletSummary, refresh: refreshWallet } = useWalletBalance();
   const isRegular = params.rideType === 'regular';
   const isAssured = params.rideType === 'assured';
-  const [selectedId, setSelectedId] = useState<PaymentMethodId>(
-    isRegular ? 'pay-after-ride' : 'wallet',
+  const [selectedId, setSelectedId] = useState<PaymentMethodId | null>(
+    isRegular ? null : 'wallet',
   );
   const [assuredFarePayment, setAssuredFarePaymentState] =
     useState<AssuredFarePaymentChoice>('PAY_LATER');
   const [submitting, setSubmitting] = useState(false);
-  const idempotencyRef = useRef<{
-    key: string;
-    rideId: string;
-    seats: number;
-    farePayment: AssuredFarePaymentChoice;
-  } | null>(null);
+  const [couponRejected, setCouponRejected] = useState(false);
+  const idempotencyRef = useRef<RegularBookingIdempotencyScope | null>(null);
 
   const assuredDepositCoins =
     params.assuredDepositCoins?.trim() ||
@@ -132,12 +148,14 @@ export const usePaymentOptions = (
 
   const appliedCoupon = useMemo(
     () =>
-      buildAppliedCouponParams({
-        code: params.couponCode,
-        chargeScope: params.couponChargeScope,
-        rideType: params.rideType,
-      }),
-    [params.couponChargeScope, params.couponCode, params.rideType],
+      couponRejected
+        ? null
+        : buildAppliedCouponParams({
+            code: params.couponCode,
+            chargeScope: params.couponChargeScope,
+            rideType: params.rideType,
+          }),
+    [couponRejected, params.couponChargeScope, params.couponCode, params.rideType],
   );
 
   const buildCreatePayload = useCallback(
@@ -157,22 +175,56 @@ export const usePaymentOptions = (
     });
   }, [assuredDepositCoins, assuredFareCoins, assuredFarePayment, isAssured]);
 
+  const couponDiscountCoins = useMemo(() => {
+    if (couponRejected) {
+      return 0;
+    }
+    const raw = params.couponDiscount?.trim();
+    if (!raw) {
+      return 0;
+    }
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0;
+  }, [couponRejected, params.couponDiscount]);
+
+  const regularFareCoins = useMemo(
+    () => (isRegular ? resolveRegularFareCoins(params.price, seats) : null),
+    [isRegular, params.price, seats],
+  );
+  const regularPayableCoins = useMemo(
+    () =>
+      isRegular ? resolveRegularPayableCoins(regularFareCoins, couponDiscountCoins) : null,
+    [couponDiscountCoins, isRegular, regularFareCoins],
+  );
+  const regularWalletInsufficient = isInsufficientWalletForRegularFare(
+    walletSummary?.availableCoins ?? null,
+    regularPayableCoins,
+  );
+
   const continueLabel = isAssured
     ? PAYMENT_SCREEN.continueAssuredDepositLabel
-    : PAYMENT_SCREEN.continueLabel;
+    : isRegular && !selectedId
+      ? REGULAR_RIDE_PAYMENT_LABELS.selectPayment
+      : PAYMENT_SCREEN.continueLabel;
 
   useEffect(() => {
     if (isRegular) {
-      setSelectedId('pay-after-ride');
-    } else {
-      setSelectedId('wallet');
-      // Assured ride-fare coupons require farePayment=PAY_NOW on the backend.
-      const scope = String(params.couponChargeScope ?? '')
-        .trim()
-        .toUpperCase();
-      setAssuredFarePaymentState(scope === 'RIDE_FARE' ? 'PAY_NOW' : 'PAY_LATER');
+      setSelectedId(null);
+      return;
     }
-  }, [isAssured, isRegular, params.couponChargeScope, params.rideId]);
+    setSelectedId('wallet');
+  }, [isRegular, params.rideId]);
+
+  useEffect(() => {
+    if (isRegular) {
+      return;
+    }
+    // Assured ride-fare coupons require farePayment=PAY_NOW on the backend.
+    const scope = String(params.couponChargeScope ?? '')
+      .trim()
+      .toUpperCase();
+    setAssuredFarePaymentState(scope === 'RIDE_FARE' ? 'PAY_NOW' : 'PAY_LATER');
+  }, [isRegular, params.couponChargeScope]);
 
   const setAssuredFarePayment = useCallback((value: AssuredFarePaymentChoice) => {
     setAssuredFarePaymentState(value);
@@ -188,23 +240,24 @@ export const usePaymentOptions = (
     void rideVehicleCache.save({ rideId, vehicleLabel: carModel });
   }, [params.carModel, params.rideId]);
 
-  const resolveAssuredIdempotencyKey = useCallback(
-    (farePayment: AssuredFarePaymentChoice): string => {
+  const resolveBookingIdempotencyKey = useCallback(
+    (paymentMethod: string, farePayment: AssuredFarePaymentChoice | null): string => {
       const rideId = params.rideId?.trim() ?? '';
-      const current = idempotencyRef.current;
-      if (
-        current &&
-        current.rideId === rideId &&
-        current.seats === seats &&
-        current.farePayment === farePayment
-      ) {
-        return current.key;
-      }
-      const key = generateAssuredBookingIdempotencyKey();
-      idempotencyRef.current = { key, rideId, seats, farePayment };
-      return key;
+      const next = reuseOrCreateIdempotencyKey(
+        idempotencyRef.current,
+        { rideId, seats, paymentMethod, farePayment },
+        generateAssuredBookingIdempotencyKey,
+      );
+      idempotencyRef.current = next;
+      return next.key;
     },
     [params.rideId, seats],
+  );
+
+  const resolveAssuredIdempotencyKey = useCallback(
+    (farePayment: AssuredFarePaymentChoice): string =>
+      resolveBookingIdempotencyKey('ASSURED_DEPOSIT', farePayment),
+    [resolveBookingIdempotencyKey],
   );
 
   const clearAssuredIdempotencyKey = useCallback(() => {
@@ -274,62 +327,6 @@ export const usePaymentOptions = (
     [params, router, seats],
   );
 
-  const continueRegularPayLater = useCallback(() => {
-    if (!authSession.getToken()) {
-      showAppAlert('Session expired', 'Please sign in again to book a ride.');
-      router.replace(ROUTES.welcome);
-      return;
-    }
-
-    if (!params.rideId || params.rideId === 'ride-default') {
-      showAppAlert('Unable to book', 'Missing ride details. Please search again.');
-      return;
-    }
-
-    setSubmitting(true);
-    void (async () => {
-      try {
-        const created = await createBooking(
-          buildCreatePayload({
-            rideId: params.rideId,
-            seats,
-            paymentMethod: 'PAY_LATER',
-          }),
-        );
-        console.log('[Book Ride] POST /bookings response', created);
-
-        const details = mapBookingToBookedRideDetails(created, {
-          origin: params.origin,
-          destination: params.destination,
-          driverName: params.driverName,
-          carModel: params.carModel,
-        });
-        bookedRideStore.set({ booking: created, details });
-        await cacheRideMapCoords();
-        if (params.carModel?.trim()) {
-          await rideVehicleCache.save({
-            rideId: params.rideId,
-            vehicleLabel: params.carModel.trim(),
-          });
-        }
-        navigateToBooked(created.id, details.fareTotal);
-      } catch (error) {
-        if (isApiError(error) && error.status === 401) {
-          authSession.clear();
-          showAppAlert('Session expired', mapCreateBookingError(error));
-          router.replace(ROUTES.welcome);
-          return;
-        }
-        showAppAlert(
-          isWomenOnlyRideError(error) ? 'Women Only Ride' : 'Unable to book',
-          mapCreateBookingError(error),
-        );
-      } finally {
-        setSubmitting(false);
-      }
-    })();
-  }, [buildCreatePayload, cacheRideMapCoords, navigateToBooked, params, router, seats]);
-
   const openAddCoins = useCallback(() => {
     const paymentPath = getPaymentPath({
       rideId: params.rideId,
@@ -358,6 +355,135 @@ export const usePaymentOptions = (
     });
     router.push(ROUTES.addMoney);
   }, [params, router]);
+
+  const continueRegularBooking = useCallback(
+    (paymentMethod: RegularRidePaymentRequestMethod) => {
+      if (!authSession.getToken()) {
+        showAppAlert('Session expired', 'Please sign in again to book a ride.');
+        router.replace(ROUTES.welcome);
+        return;
+      }
+
+      if (!params.rideId || params.rideId === 'ride-default') {
+        showAppAlert('Unable to book', 'Missing ride details. Please search again.');
+        return;
+      }
+
+      if (paymentMethod === 'WALLET' && regularWalletInsufficient) {
+        const fareLabel = formatCoinsLabel(regularPayableCoins);
+        const availableLabel = formatCoinsLabel(walletSummary?.availableCoins ?? null);
+        showAppAlert(
+          REGULAR_RIDE_PAYMENT_LABELS.insufficientWalletTitle,
+          `This fare is ${fareLabel}. Your wallet has ${availableLabel}. Add coins and try again.`,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Add Coins', onPress: openAddCoins },
+          ],
+        );
+        return;
+      }
+
+      setSubmitting(true);
+      const idempotencyKey =
+        paymentMethod === 'WALLET'
+          ? resolveBookingIdempotencyKey('WALLET', null)
+          : undefined;
+
+      void (async () => {
+        try {
+          const created = await createBooking(
+            buildCreatePayload(
+              buildRegularCreateBookingPayload({
+                rideId: params.rideId,
+                seats,
+                paymentMethod,
+              }),
+            ),
+            idempotencyKey ? { idempotencyKey } : undefined,
+          );
+          console.log('[Book Ride] POST /bookings response', created);
+
+          const details = mapBookingToBookedRideDetails(created, {
+            origin: params.origin,
+            destination: params.destination,
+            driverName: params.driverName,
+            carModel: params.carModel,
+          });
+          bookedRideStore.set({ booking: created, details });
+          await cacheRideMapCoords();
+          if (params.carModel?.trim()) {
+            await rideVehicleCache.save({
+              rideId: params.rideId,
+              vehicleLabel: params.carModel.trim(),
+            });
+          }
+          if (paymentMethod === 'WALLET') {
+            clearAssuredIdempotencyKey();
+            await Promise.all([
+              refreshWallet(),
+              hydrateAuthenticatedUserFromServer().catch(() => undefined),
+            ]);
+          }
+          navigateToBooked(created.id, details.fareTotal);
+        } catch (error) {
+          if (isApiError(error) && error.status === 401) {
+            authSession.clear();
+            showAppAlert('Session expired', mapCreateBookingError(error));
+            router.replace(ROUTES.welcome);
+            return;
+          }
+          if (isApiError(error) && error.status === 409) {
+            clearAssuredIdempotencyKey();
+          }
+          if (isCouponAudienceMismatchError(error)) {
+            setCouponRejected(true);
+            couponApplyBridgeStore.clear();
+          }
+          const message = mapCreateBookingError(error);
+          if (
+            paymentMethod === 'WALLET' &&
+            isApiError(error) &&
+            error.status === 422
+          ) {
+            showAppAlert(REGULAR_RIDE_PAYMENT_LABELS.insufficientWalletTitle, message, [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Add Coins', onPress: openAddCoins },
+            ]);
+            return;
+          }
+          if (
+            isApiError(error) &&
+            error.status === 403 &&
+            isWalletAccessForbiddenMessage(message)
+          ) {
+            showAppAlert(REGULAR_RIDE_PAYMENT_LABELS.walletLockedTitle, message);
+            return;
+          }
+          showAppAlert(
+            isWomenOnlyRideError(error) ? 'Women Only Ride' : 'Unable to book',
+            message,
+          );
+        } finally {
+          setSubmitting(false);
+        }
+      })();
+    },
+    [
+      buildCreatePayload,
+      cacheRideMapCoords,
+      clearAssuredIdempotencyKey,
+      navigateToBooked,
+      openAddCoins,
+      params,
+      refreshWallet,
+      regularPayableCoins,
+      regularWalletInsufficient,
+      resolveBookingIdempotencyKey,
+      router,
+      seats,
+      walletSummary?.availableCoins,
+    ],
+  );
 
   const continueAssuredDeposit = useCallback(() => {
     if (!authSession.getToken()) {
@@ -442,6 +568,10 @@ export const usePaymentOptions = (
           clearAssuredIdempotencyKey();
         }
         const message = mapCreateBookingError(error);
+        if (isCouponAudienceMismatchError(error)) {
+          setCouponRejected(true);
+          couponApplyBridgeStore.clear();
+        }
         if (isApiError(error) && error.status === 422) {
           showAppAlert('Insufficient BhaiWay Coins', message, [
             { text: 'Cancel', style: 'cancel' },
@@ -479,15 +609,12 @@ export const usePaymentOptions = (
     triggerLightHaptic();
 
     if (isRegular) {
-      if (selectedId !== 'pay-after-ride') {
-        showAppAlert(
-          'Pay After Ride',
-          'For Regular rides in this version, please select Pay After Ride.',
-        );
-        setSelectedId('pay-after-ride');
+      const paymentMethod = toRegularRidePaymentRequestMethod(selectedId);
+      if (!paymentMethod) {
+        showAppAlert('Payment required', REGULAR_RIDE_PAYMENT_LABELS.selectPayment);
         return;
       }
-      continueRegularPayLater();
+      continueRegularBooking(paymentMethod);
       return;
     }
 
@@ -496,7 +623,7 @@ export const usePaymentOptions = (
     }
   }, [
     continueAssuredDeposit,
-    continueRegularPayLater,
+    continueRegularBooking,
     isAssured,
     isRegular,
     selectedId,
@@ -508,16 +635,9 @@ export const usePaymentOptions = (
     openAddCoins();
   }, [openAddCoins]);
 
-  const couponDiscountCoins = useMemo(() => {
-    const raw = params.couponDiscount?.trim();
-    if (!raw) {
-      return 0;
-    }
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0;
-  }, [params.couponDiscount]);
-
-  const couponCode = params.couponCode?.trim().toUpperCase() || null;
+  const couponCode = couponRejected
+    ? null
+    : params.couponCode?.trim().toUpperCase() || null;
 
   return {
     selectedId,
@@ -532,7 +652,11 @@ export const usePaymentOptions = (
     assuredDepositCoins,
     assuredFareCoins,
     assuredRequiredCoins,
+    regularFareCoins,
+    regularPayableCoins,
+    regularWalletInsufficient,
     isAssured,
+    isRegular,
     couponCode,
     couponDiscountCoins,
     couponChargeScope: params.couponChargeScope?.trim().toUpperCase() || null,

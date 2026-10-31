@@ -10,6 +10,7 @@ import {
   previewCouponForBooking,
 } from '@/features/coupons';
 import { getPublicRideById } from '@/features/ride-search/api';
+import { resolvePersonPhotoUrl } from '@/features/ride-search/api/bookingPersonPhoto';
 import { fetchDrivingRoute, type RouteGeometry } from '@/features/ride-search/services';
 import type { MapCoordinate } from '@/features/ride-search/types';
 import { formatApiDepartureTime } from '@/features/ride-search/utils/rideSearch.mapper';
@@ -146,6 +147,7 @@ export const useCommuteReviewBooking = (
             params.driverName?.trim() ||
             ride.driver.displayName?.trim() ||
             'BhaiWay Driver',
+          driverAvatarUri: resolvePersonPhotoUrl(ride.driver) || undefined,
           carModel:
             params.carModel?.trim() ||
             mapVehicleLabel(ride.vehicle.make, ride.vehicle.model),
@@ -411,6 +413,7 @@ export const useCommuteReviewBooking = (
         assuredFee: '0',
         seats: String(selectedSeats),
         appliedCode: appliedPromo?.code ?? '',
+        couponContext: 'rider',
       },
     });
   }, [appliedPromo?.code, booking, router, selectedSeats]);
@@ -427,6 +430,7 @@ export const useCommuteReviewBooking = (
       }
       const rideFare = computeCommuteTotalFareAmount(booking.riderPricePerSeat, selectedSeats);
       const contextKey = buildCouponContextKey({
+        actorContext: 'RIDER',
         rideId: booking.rideId,
         rideType: 'commute',
         seats: selectedSeats,

@@ -4,12 +4,19 @@ import { useRouter } from 'expo-router';
 import { getErrorMessage, showAppAlert, triggerLightHaptic } from '@/shared/utils';
 
 import { listMyCoupons, listPublicCoupons } from '../api/coupons.api';
-import type { CouponDto } from '../api/coupons.types';
+import type { CouponActorContext, CouponDto } from '../api/coupons.types';
 import { AVAILABLE_COUPONS_SCREEN } from '../constants/available-coupons.constants';
+import { couponCatalogCache } from '../store/couponCatalogCache';
 import {
   buildCouponContextKey,
   couponApplyBridgeStore,
 } from '../store/couponApplyBridgeStore';
+import { filterCouponsForContext } from '../utils/couponAudience';
+import {
+  applyDriverCouponRedemption,
+  couponErrorUserMessage,
+  isCouponAudienceMismatchError,
+} from '../utils/couponErrors';
 import {
   couponChargeCompatibleWithRide,
   couponMatchesRideType,
@@ -24,6 +31,7 @@ export interface UseAvailableCouponsParams {
   assuredFee: number;
   seats: number;
   appliedCode?: string;
+  actorContext?: CouponActorContext;
 }
 
 export interface UseAvailableCouponsResult {
@@ -33,6 +41,7 @@ export interface UseAvailableCouponsResult {
   error: string | null;
   applyingCode: string | null;
   appliedCode: string | null;
+  actorContext: CouponActorContext;
   refresh: () => Promise<void>;
   retry: () => void;
   applyCoupon: (coupon: CouponDto) => Promise<void>;
@@ -43,6 +52,7 @@ export const useAvailableCoupons = (
   params: UseAvailableCouponsParams,
 ): UseAvailableCouponsResult => {
   const router = useRouter();
+  const actorContext: CouponActorContext = params.actorContext ?? 'RIDER';
   const [items, setItems] = useState<CouponDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,6 +64,7 @@ export const useAvailableCoupons = (
   const contextKey = useMemo(
     () =>
       buildCouponContextKey({
+        actorContext,
         rideId: params.rideId,
         rideType: params.rideType,
         seats: params.seats,
@@ -61,6 +72,7 @@ export const useAvailableCoupons = (
         assuredFee: params.assuredFee,
       }),
     [
+      actorContext,
       params.assuredFee,
       params.rideFare,
       params.rideId,
@@ -71,20 +83,24 @@ export const useAvailableCoupons = (
 
   const filterEligible = useCallback(
     (coupons: CouponDto[]): CouponDto[] => {
+      const scoped = filterCouponsForContext(coupons, actorContext);
       const byCode = new Map<string, CouponDto>();
-      for (const coupon of coupons) {
+      for (const coupon of scoped) {
         if (!coupon.isActive) {
-          continue;
-        }
-        if (!couponMatchesRideType(coupon, params.rideType)) {
-          continue;
-        }
-        if (!couponChargeCompatibleWithRide(coupon, params.rideType)) {
           continue;
         }
         if (coupon.expiresAt) {
           const expires = new Date(coupon.expiresAt).getTime();
           if (Number.isFinite(expires) && expires < Date.now()) {
+            continue;
+          }
+        }
+        // Booking-only eligibility. Publish lists every ALL + DRIVERS_ONLY coupon.
+        if (actorContext === 'RIDER') {
+          if (!couponMatchesRideType(coupon, params.rideType)) {
+            continue;
+          }
+          if (!couponChargeCompatibleWithRide(coupon, params.rideType)) {
             continue;
           }
         }
@@ -94,7 +110,7 @@ export const useAvailableCoupons = (
       }
       return Array.from(byCode.values());
     },
-    [params.rideType],
+    [actorContext, params.rideType],
   );
 
   const load = useCallback(
@@ -104,6 +120,8 @@ export const useAvailableCoupons = (
       } else {
         setLoading(true);
         setError(null);
+        const cached = couponCatalogCache.get(actorContext);
+        setItems(cached ? filterEligible(cached) : []);
       }
       try {
         const [publicPage, minePage] = await Promise.all([
@@ -112,7 +130,9 @@ export const useAvailableCoupons = (
             items: [] as CouponDto[],
           })),
         ]);
-        setItems(filterEligible([...minePage.items, ...publicPage.items]));
+        const merged = [...minePage.items, ...publicPage.items];
+        couponCatalogCache.set(actorContext, filterCouponsForContext(merged, actorContext));
+        setItems(filterEligible(merged));
         setError(null);
       } catch (err) {
         setError(getErrorMessage(err, 'Could not load coupons.'));
@@ -124,10 +144,11 @@ export const useAvailableCoupons = (
         setRefreshing(false);
       }
     },
-    [filterEligible],
+    [actorContext, filterEligible],
   );
 
   useEffect(() => {
+    setItems([]);
     void load('initial');
   }, [load]);
 
@@ -150,6 +171,12 @@ export const useAvailableCoupons = (
       triggerLightHaptic();
 
       try {
+        if (actorContext === 'DRIVER') {
+          const result = applyDriverCouponRedemption();
+          showAppAlert('Unable to apply', result.message);
+          return;
+        }
+
         const result = await previewCouponForBooking({
           code: coupon.code,
           rideType: params.rideType,
@@ -186,10 +213,10 @@ export const useAvailableCoupons = (
           router.back();
         }
       } catch (err) {
-        showAppAlert(
-          'Unable to apply',
-          getErrorMessage(err, AVAILABLE_COUPONS_SCREEN.emptyMessage),
-        );
+        const message = isCouponAudienceMismatchError(err)
+          ? couponErrorUserMessage(err)
+          : getErrorMessage(err, AVAILABLE_COUPONS_SCREEN.emptyMessage);
+        showAppAlert('Unable to apply', message);
       } finally {
         if (requestId === requestIdRef.current) {
           applyingRef.current = false;
@@ -197,7 +224,14 @@ export const useAvailableCoupons = (
         }
       }
     },
-    [contextKey, params.assuredFee, params.rideFare, params.rideType, router],
+    [
+      actorContext,
+      contextKey,
+      params.assuredFee,
+      params.rideFare,
+      params.rideType,
+      router,
+    ],
   );
 
   const goBack = useCallback(() => {
@@ -214,6 +248,7 @@ export const useAvailableCoupons = (
     error,
     applyingCode,
     appliedCode: params.appliedCode?.trim().toUpperCase() || null,
+    actorContext,
     refresh,
     retry,
     applyCoupon,

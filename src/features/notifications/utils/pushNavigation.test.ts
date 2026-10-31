@@ -40,7 +40,45 @@ assertEqual(
 assertEqual(
   resolvePushNavigationTarget({ type: 'COMMUTE_BOOKING_REQUESTED' }).pathname,
   '/my-rides/booking-requests',
-  'COMMUTE_BOOKING_REQUESTED → booking requests',
+  'COMMUTE_BOOKING_REQUESTED without rideId → booking requests list',
+);
+
+assertEqual(
+  resolvePushNavigationTarget({
+    type: 'COMMUTE_BOOKING_REQUESTED',
+    rideId: 'commute-ride-1',
+    bookingId: 'commute-booking-1',
+  }).pathname,
+  '/my-rides/track',
+  'COMMUTE_BOOKING_REQUESTED with rideId → driver ride details',
+);
+
+assertEqual(
+  resolvePushNavigationTarget({
+    type: 'COMMUTE_BOOKING_REQUESTED',
+    ride_id: 'commute-ride-2',
+  }).pathname,
+  '/my-rides/track',
+  'COMMUTE_BOOKING_REQUESTED ride_id alias → driver ride details',
+);
+
+assertEqual(
+  resolvePushNavigationTarget({
+    type: 'COMMUTE_BOOKING_REQUESTED',
+    rideId: 'commute-ride-1',
+  }).params?.rideId,
+  'commute-ride-1',
+  'COMMUTE_BOOKING_REQUESTED passes rideId to track screen',
+);
+
+assertEqual(
+  resolvePushNavigationTarget({
+    type: 'BOOKING_RECEIVED',
+    bookingMode: 'COMMUTE',
+    rideId: 'commute-ride-3',
+  }).pathname,
+  '/my-rides/track',
+  'BOOKING_RECEIVED commute → driver ride details',
 );
 
 assertEqual(
@@ -119,6 +157,34 @@ assertEqual(
   }).pathname,
   '/support-tickets',
   'SUPPORT_TICKET_IN_PROGRESS invalid ticketId → ticket list',
+);
+
+assertEqual(
+  resolvePushNavigationTarget({
+    type: 'SOS_DRIVER_ALERT',
+    rideId: 'ride-sos-1',
+  }).pathname,
+  '/my-rides/active-trip',
+  'SOS_DRIVER_ALERT → driver active trip',
+);
+
+assertEqual(
+  resolvePushNavigationTarget({
+    type: 'SOS_PASSENGER_ALERT',
+    rideId: 'ride-sos-1',
+    bookingId: 'book-sos-1',
+  }).pathname,
+  '/ride-search/live-tracking',
+  'SOS_PASSENGER_ALERT with booking → live tracking',
+);
+
+assertEqual(
+  resolvePushNavigationTarget({
+    type: 'SOS_TRIGGERED',
+    rideId: 'ride-sos-1',
+  }).pathname,
+  '/home',
+  'SOS_TRIGGERED without booking → home active ride',
 );
 
 assertEqual(

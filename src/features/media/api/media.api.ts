@@ -4,9 +4,7 @@ import { authService } from '@/features/auth/services';
 import { userDetailsSheetSync } from '@/DemoData';
 import {
   DRIVING_LICENSE_DOCUMENT_TYPE,
-  VEHICLE_DOCUMENT_TYPE,
   submitDrivingLicenseVerification,
-  submitVehicleVerification,
 } from '@/features/profile/api';
 import { logger } from '@/shared/utils/logger';
 import { authSession } from '@/store';
@@ -62,7 +60,24 @@ export const persistCloudinaryAsset = async (
     return payload;
   }
 
-  await httpClient.post(ENDPOINTS.media.saveAsset, payload);
+  try {
+    await httpClient.post(ENDPOINTS.media.saveAsset, payload);
+  } catch (error) {
+    const status =
+      typeof error === 'object' && error !== null && 'status' in error
+        ? Number((error as { status?: unknown }).status)
+        : undefined;
+    // Live API does not implement POST /media/assets. Cloudinary URL is already stored.
+    if (status === 404 || status === 405) {
+      logger.warn('POST /media/assets not available — keeping Cloudinary URL only', {
+        kind: payload.kind,
+        publicId: payload.publicId,
+        status,
+      });
+      return payload;
+    }
+    throw error;
+  }
   return payload;
 };
 
@@ -124,7 +139,10 @@ export const saveDrivingLicenseUrl = async (
   return saved.secureUrl;
 };
 
-/** Persist RC Cloudinary URL to backend + UserDetails sheet, then submit vehicle verification. */
+/**
+ * Persist RC Cloudinary URL to backend + UserDetails sheet.
+ * Does not start RC verification — that happens only on an explicit Verify RC tap.
+ */
 export const saveVehicleRcUrl = async (
   result: CloudinaryUploadResponse,
 ): Promise<string> => {
@@ -136,29 +154,6 @@ export const saveVehicleRcUrl = async (
     bytes: result.bytes,
   });
   await syncUserDetailsMedia({ rc: saved.secureUrl });
-
-  // Docs: POST /verification/vehicle — Bearer JWT + SubmitVerificationDto
-  try {
-    await submitVehicleVerification({
-      documentUrl: saved.secureUrl,
-      documentType: VEHICLE_DOCUMENT_TYPE,
-      documentReference: saved.publicId,
-    });
-  } catch (error) {
-    // 409 = active vehicle verification already exists — treat as success for save flow.
-    const status =
-      typeof error === 'object' && error !== null && 'status' in error
-        ? Number((error as { status?: unknown }).status)
-        : undefined;
-    if (status === 409) {
-      logger.info('Vehicle verification already submitted (409)', {
-        publicId: saved.publicId,
-      });
-      return saved.secureUrl;
-    }
-    throw error;
-  }
-
   return saved.secureUrl;
 };
 
@@ -177,15 +172,19 @@ export const saveCorporateIdUrl = async (
   return saved.secureUrl;
 };
 
+/**
+ * Support / issue screenshots are attached as Cloudinary HTTPS URLs on the
+ * ticket or report API. There is no live POST /media/assets registry.
+ */
 export const saveIssueReportUrl = async (
   result: CloudinaryUploadResponse,
 ): Promise<string> => {
-  const saved = await persistCloudinaryAsset({
-    kind: 'issueReport',
-    secureUrl: result.secureUrl,
+  const secureUrl = result.secureUrl?.trim();
+  if (!secureUrl) {
+    throw new Error('Cloudinary upload did not return a URL.');
+  }
+  logger.info('Issue report Cloudinary URL ready (no /media/assets persist)', {
     publicId: result.publicId,
-    format: result.format,
-    bytes: result.bytes,
   });
-  return saved.secureUrl;
+  return secureUrl;
 };

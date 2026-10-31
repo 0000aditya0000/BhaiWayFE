@@ -1,12 +1,21 @@
 import { ROUTES } from '@/config';
 import type { AppMode } from '@/store';
 
-export type CancelRideReasonId =
+export type RiderCancelRideReasonId =
   | 'plan-changed'
   | 'wait-time'
   | 'found-another'
   | 'driver-not-responding'
   | 'other';
+
+export type DriverCancelRideReasonId =
+  | 'plan-changed'
+  | 'vehicle-issue'
+  | 'personal-emergency'
+  | 'not-enough-riders'
+  | 'other';
+
+export type CancelRideReasonId = RiderCancelRideReasonId | DriverCancelRideReasonId;
 
 export interface CancelRideReasonOption {
   id: CancelRideReasonId;
@@ -55,13 +64,28 @@ export const CANCEL_UPCOMING_RIDE_SCREEN = {
   noteDriving: 'Riders with confirmed seats will receive a cancellation update.',
 } as const;
 
-export const CANCEL_RIDE_REASONS: readonly CancelRideReasonOption[] = [
+export const RIDER_CANCEL_RIDE_REASONS: readonly CancelRideReasonOption[] = [
   { id: 'plan-changed', label: 'Plan changed' },
   { id: 'wait-time', label: 'Wait time too long' },
   { id: 'found-another', label: 'Found another ride' },
   { id: 'driver-not-responding', label: 'Driver not responding' },
   { id: 'other', label: 'Other' },
 ] as const;
+
+export const DRIVER_CANCEL_RIDE_REASONS: readonly CancelRideReasonOption[] = [
+  { id: 'plan-changed', label: 'Change of plans' },
+  { id: 'vehicle-issue', label: 'Vehicle issue' },
+  { id: 'personal-emergency', label: 'Personal emergency' },
+  { id: 'not-enough-riders', label: 'Not enough riders' },
+  { id: 'other', label: 'Other' },
+] as const;
+
+export const CANCEL_RIDE_REASONS = RIDER_CANCEL_RIDE_REASONS;
+
+export const getCancelRideReasons = (
+  isDriving: boolean,
+): readonly CancelRideReasonOption[] =>
+  isDriving ? DRIVER_CANCEL_RIDE_REASONS : RIDER_CANCEL_RIDE_REASONS;
 
 export const CANCEL_UPCOMING_CONFIRMED_SCREEN = {
   title: 'Ride Cancelled',

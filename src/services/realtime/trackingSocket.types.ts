@@ -17,6 +17,19 @@ export const TRACKING_SOCKET_EVENTS = {
   TRACKING_ERROR: 'tracking:error',
 } as const;
 
+/** Server → participant SOS events on the shared `/tracking` namespace. */
+export const SOS_SOCKET_EVENTS = {
+  DRIVER_ALERT: 'sos:driver-alert',
+  PASSENGER_ALERT: 'sos:passenger-alert',
+  TRIGGERED: 'sos:triggered',
+  ADDITIONAL_TRIGGER: 'sos:additional-trigger',
+  ACKNOWLEDGED: 'sos:acknowledged',
+  RESPONDING: 'sos:responding',
+  RESOLVED: 'sos:resolved',
+  FALSE_ALARM: 'sos:false-alarm',
+  LOCATION_UPDATED: 'sos:location-updated',
+} as const;
+
 export type TrackingConnectionStatus =
   | 'CONNECTING'
   | 'CONNECTED'

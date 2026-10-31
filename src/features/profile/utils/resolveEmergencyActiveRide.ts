@@ -13,6 +13,7 @@ import {
   resolveDriverDisplayName,
 } from '@/features/ride-search/api/bookings.mapper';
 import { resolvePersonDisplayName } from '@/features/ride-search/api/bookingPersonName';
+import { resolvePersonPhotoUrl } from '@/features/ride-search/api/bookingPersonPhoto';
 import { DEFAULT_PROFILE_AVATAR } from '@/features/my-rides/constants';
 
 import { EMPTY_EMERGENCY_RIDE } from '../constants/emergency-assistance.constants';
@@ -62,6 +63,7 @@ const mapPassengerBooking = (booking: BookingResponseDto): EmergencyRideSummary 
   const rideInProgress = isInProgressRide(booking.ride?.status);
   return {
     hasActiveRide: true,
+    rideId: booking.ride?.id?.trim() || null,
     role: 'rider',
     driverName: resolveDriverDisplayName(booking) || details.driverName || 'Driver',
     vehicleLabel: details.vehicle || details.driverSubtitle || 'Vehicle',
@@ -71,7 +73,7 @@ const mapPassengerBooking = (booking: BookingResponseDto): EmergencyRideSummary 
       shortPlace(booking.ride?.destination) ||
       shortPlace(booking.ride?.source) ||
       'Location unavailable',
-    avatarUri: booking.driver?.profilePhoto?.trim() || DEFAULT_PROFILE_AVATAR,
+    avatarUri: resolvePersonPhotoUrl(booking.driver) || DEFAULT_PROFILE_AVATAR,
     statusLabel: mapRideStatusLabel(booking.ride?.status, booking.ride?.rideType),
   };
 };
@@ -83,6 +85,7 @@ const mapDriverRide = (
   passengerAvatar: string | null,
 ): EmergencyRideSummary => ({
   hasActiveRide: true,
+  rideId: ride.id?.trim() || null,
   role: 'driver',
   driverName: passengerName?.trim() || 'Your trip',
   vehicleLabel: vehicleLabelFromGarage(vehicle),
@@ -125,7 +128,7 @@ export const resolveEmergencyActiveRide = async (): Promise<EmergencyRideSummary
       driverLive,
       vehicle,
       confirmedPassenger ? resolvePersonDisplayName(confirmedPassenger.passenger) : null,
-      confirmedPassenger?.passenger?.profilePhoto?.trim() || null,
+      resolvePersonPhotoUrl(confirmedPassenger?.passenger) || null,
     );
   }
 

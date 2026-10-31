@@ -16,7 +16,8 @@ import { useUpload } from '@/hooks/useUpload';
 import type { UploadedDocument } from '@/shared/components';
 import { useSessionUser } from '@/shared/hooks';
 import { formatPhoneNumber, triggerLightHaptic, triggerSuccessHaptic } from '@/shared/utils';
-import { authSession, showAppAlert } from '@/store';
+import { appModeStore, authSession, showAppAlert } from '@/store';
+import { couponActorContextFromAppMode } from '@/features/coupons/utils/couponAudience';
 import {
   DEFAULT_MASTER_PROFILE,
   DEFAULT_PROFILE_AVATAR,
@@ -369,7 +370,14 @@ export const useMasterProfile = (): UseMasterProfileResult => {
       }
 
       if (id === 'promotions') {
-        router.push(ROUTES.promotionsCoupons);
+        const couponContext =
+          couponActorContextFromAppMode(appModeStore.get()) === 'DRIVER'
+            ? 'driver'
+            : 'rider';
+        router.push({
+          pathname: ROUTES.promotionsCoupons,
+          params: { couponContext },
+        });
         return;
       }
 

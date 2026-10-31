@@ -2,6 +2,8 @@ import { env } from '@/config';
 import type { MapCoordinate, PlacesAutocompletePrediction, SelectedDestination } from '../types';
 import { viewportToBoundary } from '../utils';
 import {
+  cancelledPlacesError,
+  isPlacesCancelled,
   mapFetchFailureToPlacesError,
   mapHttpStatusToPlacesError,
   PlacesError,
@@ -113,7 +115,7 @@ const fetchWithTimeout = async (
   if (signal) {
     if (signal.aborted) {
       clearTimeout(timer);
-      throw new PlacesError('TIMEOUT', 'Search was cancelled.');
+      throw cancelledPlacesError();
     }
     signal.addEventListener('abort', onAbort, { once: true });
   }
@@ -124,6 +126,15 @@ const fetchWithTimeout = async (
       signal: controller.signal,
     });
   } catch (error) {
+    if (error instanceof PlacesError) {
+      throw error;
+    }
+    if (signal?.aborted) {
+      throw cancelledPlacesError();
+    }
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new PlacesError('TIMEOUT', 'Search timed out. Please try again.');
+    }
     throw mapFetchFailureToPlacesError(error);
   } finally {
     clearTimeout(timer);
@@ -369,7 +380,7 @@ export const searchGooglePlaces = async (
         )
       : Promise.resolve([] as PlacesAutocompletePrediction[]);
 
-  const legacyFindPlacePromise = (async (): Promise<PlacesAutocompletePrediction[]> => {
+  const runLegacyFindPlace = async (): Promise<PlacesAutocompletePrediction[]> => {
     const params = new URLSearchParams({
       input: query,
       inputtype: 'textquery',
@@ -422,9 +433,9 @@ export const searchGooglePlaces = async (
         return { placeId, placeName, address } satisfies PlacesAutocompletePrediction;
       })
       .filter((item): item is PlacesAutocompletePrediction => item !== null);
-  })();
+  };
 
-  const legacyTextSearchPromise = (async (): Promise<PlacesAutocompletePrediction[]> => {
+  const runLegacyTextSearch = async (): Promise<PlacesAutocompletePrediction[]> => {
     const params = new URLSearchParams({
       query,
       key,
@@ -475,9 +486,9 @@ export const searchGooglePlaces = async (
         address,
       };
     });
-  })();
+  };
 
-  const legacyAutocompletePromise = (async (): Promise<PlacesAutocompletePrediction[]> => {
+  const runLegacyAutocomplete = async (): Promise<PlacesAutocompletePrediction[]> => {
     const params = new URLSearchParams({
       input: query,
       key,
@@ -518,13 +529,17 @@ export const searchGooglePlaces = async (
       placeName: prediction.structured_formatting?.main_text ?? prediction.description,
       address: prediction.description,
     }));
-  })();
+  };
 
   const [autocompleteResult, textIndiaResult, textBiasedResult] = await Promise.allSettled([
     autocompletePromise,
     textSearchIndiaPromise,
     textSearchBiasedPromise,
   ]);
+
+  if (options?.signal?.aborted) {
+    return [];
+  }
 
   const settledList = (
     result: PromiseSettledResult<PlacesAutocompletePrediction[]>,
@@ -543,10 +558,13 @@ export const searchGooglePlaces = async (
   );
 
   if (merged.length === 0) {
+    if (options?.signal?.aborted) {
+      return [];
+    }
     const [findPlace, legacyText, legacyAuto] = await Promise.allSettled([
-      legacyFindPlacePromise,
-      legacyTextSearchPromise,
-      legacyAutocompletePromise,
+      runLegacyFindPlace(),
+      runLegacyTextSearch(),
+      runLegacyAutocomplete(),
     ]);
 
     merged = dedupePredictions(
@@ -558,13 +576,16 @@ export const searchGooglePlaces = async (
       const primaryRejected =
         autocompleteResult.status === 'rejected' && textIndiaResult.status === 'rejected';
       if (primaryRejected) {
-        throw mapFetchFailureToPlacesError(
+        const reason =
           autocompleteResult.status === 'rejected'
             ? autocompleteResult.reason
             : textIndiaResult.status === 'rejected'
               ? textIndiaResult.reason
-              : new Error('Place search failed'),
-        );
+              : new Error('Place search failed');
+        if (isPlacesCancelled(reason) || options?.signal?.aborted) {
+          return [];
+        }
+        throw mapFetchFailureToPlacesError(reason);
       }
     }
   }

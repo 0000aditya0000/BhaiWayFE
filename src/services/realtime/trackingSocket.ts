@@ -3,7 +3,14 @@ import { io, type Socket } from 'socket.io-client';
 import { env } from '@/config';
 import { authSession } from '@/store';
 
+import { logger } from '@/shared/utils';
+
 import {
+  resolveTrackingEventRideId,
+  shouldIgnoreLocationEvent,
+} from './trackingSocket.logic';
+import {
+  SOS_SOCKET_EVENTS,
   TRACKING_SOCKET_EVENTS,
   type DriverLocationPayload,
   type RideLocationUpdatedPayload,
@@ -16,6 +23,8 @@ type StatusListener = (status: TrackingConnectionStatus) => void;
 type LocationListener = (payload: RideLocationUpdatedPayload) => void;
 type EndedListener = (payload: RideTrackingEndedPayload) => void;
 type ErrorListener = (payload: TrackingErrorPayload) => void;
+type SosListener = (eventName: string, payload: unknown) => void;
+type ReconnectListener = () => void;
 
 const TRACKING_NAMESPACE = '/tracking';
 
@@ -76,13 +85,41 @@ const sanitizeTrackingError = (raw: unknown): TrackingErrorPayload => {
 
 let socket: Socket | null = null;
 let activeRideId: string | null = null;
+const extraJoinedRideIds = new Set<string>();
 let connectionStatus: TrackingConnectionStatus = 'OFFLINE';
 let lastTrackingError: TrackingErrorPayload | null = null;
+let lastJoinLogAt = 0;
+let lastJoinLogRideId: string | null = null;
 
 const statusListeners = new Set<StatusListener>();
 const locationListeners = new Set<LocationListener>();
 const endedListeners = new Set<EndedListener>();
 const errorListeners = new Set<ErrorListener>();
+const sosListeners = new Set<SosListener>();
+const reconnectListeners = new Set<ReconnectListener>();
+
+const SOS_EVENT_NAMES = Object.values(SOS_SOCKET_EVENTS);
+
+const emitJoinAll = (instance: Socket): void => {
+  if (activeRideId) {
+    emitJoin(instance, activeRideId);
+  }
+  extraJoinedRideIds.forEach((rideId) => {
+    if (rideId !== activeRideId) {
+      emitJoin(instance, rideId);
+    }
+  });
+};
+
+const notifyReconnect = (): void => {
+  reconnectListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch {
+      // ignore
+    }
+  });
+};
 
 const setStatus = (next: TrackingConnectionStatus): void => {
   if (connectionStatus === next) {
@@ -118,7 +155,10 @@ const parseLocationPayload = (raw: unknown): RideLocationUpdatedPayload | null =
       : data);
   const latitude = Number(nested.latitude ?? nested.lat);
   const longitude = Number(nested.longitude ?? nested.lng ?? nested.lon);
-  const rideId = String(data.rideId ?? nested.rideId ?? '');
+  const rideId = resolveTrackingEventRideId(
+    String(data.rideId ?? nested.rideId ?? ''),
+    activeRideId,
+  );
   if (!rideId || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
     return null;
   }
@@ -162,12 +202,19 @@ const attachCoreListeners = (instance: Socket): void => {
   instance.on('connect', () => {
     lastTrackingError = null;
     setStatus('CONNECTED');
-    if (activeRideId) {
-      emitJoin(instance, activeRideId);
-    }
+    logger.info('[LiveLocation][socket]', {
+      event: 'connected',
+      rideId: activeRideId,
+    });
+    emitJoinAll(instance);
+    notifyReconnect();
   });
 
   instance.on('disconnect', () => {
+    logger.info('[LiveLocation][socket]', {
+      event: 'disconnected',
+      rideId: activeRideId,
+    });
     if (connectionStatus !== 'COMPLETED') {
       setStatus('RECONNECTING');
     }
@@ -185,9 +232,8 @@ const attachCoreListeners = (instance: Socket): void => {
   instance.io.on('reconnect', () => {
     lastTrackingError = null;
     setStatus('CONNECTED');
-    if (activeRideId) {
-      emitJoin(instance, activeRideId);
-    }
+    emitJoinAll(instance);
+    notifyReconnect();
   });
 
   instance.on(TRACKING_SOCKET_EVENTS.RIDE_LOCATION_UPDATED, (raw: unknown) => {
@@ -195,7 +241,12 @@ const attachCoreListeners = (instance: Socket): void => {
     if (!payload) {
       return;
     }
-    if (activeRideId && payload.rideId !== activeRideId) {
+    if (
+      shouldIgnoreLocationEvent({
+        payloadRideId: payload.rideId,
+        joinedRideId: activeRideId,
+      })
+    ) {
       return;
     }
     setStatus('LIVE');
@@ -245,6 +296,26 @@ const attachCoreListeners = (instance: Socket): void => {
       }
     });
   });
+
+  SOS_EVENT_NAMES.forEach((eventName) => {
+    instance.on(eventName, (raw: unknown) => {
+      sosListeners.forEach((listener) => {
+        try {
+          listener(eventName, raw);
+        } catch {
+          // ignore
+        }
+      });
+    });
+  });
+};
+
+const applyAuthToken = (instance: Socket): void => {
+  const token = authSession.getToken();
+  if (!token) {
+    return;
+  }
+  instance.auth = { token };
 };
 
 const ensureSocket = (): Socket | null => {
@@ -254,18 +325,16 @@ const ensureSocket = (): Socket | null => {
     return null;
   }
 
-  if (socket?.connected) {
-    return socket;
-  }
-
   if (socket) {
+    applyAuthToken(socket);
     return socket;
   }
 
-  setStatus('CONNECTING');
-  const url = resolveTrackingSocketUrl();
+    setStatus('CONNECTING');
+    const url = resolveTrackingSocketUrl();
+    logger.info('[LiveLocation][socket]', { event: 'connecting', namespace: TRACKING_NAMESPACE });
 
-  socket = io(url, {
+    socket = io(url, {
     path: '/socket.io',
     transports: ['websocket', 'polling'],
     autoConnect: true,
@@ -333,7 +402,19 @@ export const trackingSocket = {
     const instance = ensureSocket();
     if (!instance) {
       setStatus('OFFLINE');
+      logger.info('[LiveLocation][socket]', { event: 'join_offline', rideId: id });
       return;
+    }
+    applyAuthToken(instance);
+    const now = Date.now();
+    if (id !== lastJoinLogRideId || now - lastJoinLogAt > 8_000) {
+      lastJoinLogAt = now;
+      lastJoinLogRideId = id;
+      logger.info('[LiveLocation][socket]', {
+        event: 'join',
+        rideId: id,
+        connected: instance.connected,
+      });
     }
     if (instance.connected) {
       emitJoin(instance, id);
@@ -348,17 +429,79 @@ export const trackingSocket = {
 
   leaveRide: (rideId?: string): void => {
     const id = (rideId ?? activeRideId)?.trim();
-    if (socket && id) {
-      socket.emit(TRACKING_SOCKET_EVENTS.RIDE_LEAVE, { rideId: id });
-    }
     if (!rideId || rideId === activeRideId) {
       activeRideId = null;
     }
+    if (id && extraJoinedRideIds.has(id)) {
+      return;
+    }
+    if (socket && id) {
+      socket.emit(TRACKING_SOCKET_EVENTS.RIDE_LEAVE, { rideId: id });
+    }
+  },
+
+  /**
+   * Keep the shared `/tracking` socket connected for SOS without replacing
+   * the location-tracking ride filter.
+   */
+  ensureConnected: (): void => {
+    const instance = ensureSocket();
+    if (!instance) {
+      setStatus('OFFLINE');
+      return;
+    }
+    if (!instance.connected) {
+      setStatus('CONNECTING');
+      instance.connect();
+    }
+  },
+
+  joinRideRoom: (rideId: string): void => {
+    const id = rideId.trim();
+    if (!id) {
+      return;
+    }
+    extraJoinedRideIds.add(id);
+    const instance = ensureSocket();
+    if (instance?.connected) {
+      emitJoin(instance, id);
+    }
+  },
+
+  leaveRideRoom: (rideId: string): void => {
+    const id = rideId.trim();
+    if (!id) {
+      return;
+    }
+    extraJoinedRideIds.delete(id);
+    if (id === activeRideId) {
+      return;
+    }
+    if (socket && id) {
+      socket.emit(TRACKING_SOCKET_EVENTS.RIDE_LEAVE, { rideId: id });
+    }
+  },
+
+  subscribeSos: (listener: SosListener): (() => void) => {
+    sosListeners.add(listener);
+    return () => {
+      sosListeners.delete(listener);
+    };
+  },
+
+  subscribeReconnect: (listener: ReconnectListener): (() => void) => {
+    reconnectListeners.add(listener);
+    return () => {
+      reconnectListeners.delete(listener);
+    };
   },
 
   /** Driver GPS publish — Regular IN_PROGRESS only (caller must gate). */
   emitDriverLocation: (payload: DriverLocationPayload): boolean => {
     const instance = ensureSocket();
+    if (instance) {
+      applyAuthToken(instance);
+    }
     if (!instance?.connected) {
       return false;
     }
@@ -379,6 +522,7 @@ export const trackingSocket = {
 
   disconnect: (): void => {
     activeRideId = null;
+    extraJoinedRideIds.clear();
     lastTrackingError = null;
     if (socket) {
       socket.removeAllListeners();

@@ -148,7 +148,10 @@ export const mapVehicleResponseToPublishOption = (
   const make = (row.make ?? '').trim();
   const model = (row.model ?? '').trim();
   const color = typeof row.color === 'string' ? row.color.trim() : '';
-  const modelLabel = [make, model].filter(Boolean).join(' ');
+  const modelLabel =
+    make && model && make.toLowerCase() === model.toLowerCase()
+      ? model
+      : [make, model].filter(Boolean).join(' ');
   const name = modelLabel || model || plate || `Vehicle ${row.id}`;
   const isRcVerified =
     row.isRcVerified === true ||

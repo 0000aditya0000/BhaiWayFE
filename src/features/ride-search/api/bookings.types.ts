@@ -1,6 +1,11 @@
 /** Swagger-aligned booking types for passenger Regular + Assured flows. */
 
-export type ApiBookingPaymentMethod = 'PAY_LATER' | 'PAY_NOW' | 'ASSURED_DEPOSIT';
+export type ApiBookingPaymentMethod =
+  | 'PAY_LATER'
+  | 'PAY_NOW'
+  | 'ASSURED_DEPOSIT'
+  | 'WALLET'
+  | 'PAY_AFTER_RIDE';
 
 /** Assured fare timing — separate from the mandatory ASSURED_DEPOSIT hold. */
 export type ApiAssuredFarePayment = 'PAY_NOW' | 'PAY_LATER';
@@ -27,7 +32,8 @@ export type ApiPickupStatus =
 /**
  * Client create body — never send passengerId, price, status, or totals.
  * Assured: paymentMethod must be ASSURED_DEPOSIT; optional farePayment selects fare timing.
- * Regular: PAY_LATER / PAY_NOW only — do not send farePayment.
+ * Regular: WALLET (prepaid) or PAY_AFTER_RIDE. Backend canonicalizes to PAY_NOW / PAY_LATER.
+ * Never send farePayment, fare, payable amount, wallet balance, or client discounts.
  */
 export interface CreateBookingDto {
   rideId: string;
@@ -82,7 +88,11 @@ export interface BookingDriverSnapshotDto {
   lastName?: string | null;
   name?: string | null;
   fullName?: string | null;
+  /** Preferred photo field. Runtime payloads may send a Cloudinary object instead of a string. */
   profilePhoto?: string | null;
+  profilePicture?: string | null;
+  photo?: string | null;
+  avatarUrl?: string | null;
   verified?: boolean | null;
   /** Contact — wire Call only when backend sends an explicit value. */
   phone?: string | null;

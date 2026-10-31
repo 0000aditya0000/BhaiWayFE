@@ -12,8 +12,14 @@ import {
 } from '@/shared/utils';
 
 import { listMyCoupons, listPublicCoupons } from '../api/coupons.api';
-import type { CouponDto } from '../api/coupons.types';
+import type { CouponActorContext, CouponDto } from '../api/coupons.types';
 import { PROMOTIONS_COUPONS_SCREEN } from '../constants/promotions-coupons.constants';
+import { couponCatalogCache } from '../store/couponCatalogCache';
+import { filterCouponsForContext } from '../utils/couponAudience';
+
+export interface UsePromotionsCouponsParams {
+  actorContext?: CouponActorContext;
+}
 
 export interface UsePromotionsCouponsResult {
   items: CouponDto[];
@@ -21,6 +27,7 @@ export interface UsePromotionsCouponsResult {
   refreshing: boolean;
   error: string | null;
   copiedCode: string | null;
+  actorContext: CouponActorContext;
   refresh: () => Promise<void>;
   retry: () => void;
   copyCode: (code: string) => void;
@@ -47,8 +54,11 @@ const mergeCoupons = (items: CouponDto[]): CouponDto[] => {
   });
 };
 
-export const usePromotionsCoupons = (): UsePromotionsCouponsResult => {
+export const usePromotionsCoupons = (
+  params: UsePromotionsCouponsParams = {},
+): UsePromotionsCouponsResult => {
   const router = useRouter();
+  const actorContext: CouponActorContext = params.actorContext ?? 'RIDER';
   const [items, setItems] = useState<CouponDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,43 +67,54 @@ export const usePromotionsCoupons = (): UsePromotionsCouponsResult => {
   const requestIdRef = useRef(0);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const load = useCallback(async (mode: 'initial' | 'refresh') => {
-    const requestId = ++requestIdRef.current;
-    if (mode === 'refresh') {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-      setError(null);
-    }
-    try {
-      const [publicPage, minePage] = await Promise.all([
-        listPublicCoupons({ page: 1, limit: 50 }),
-        listMyCoupons({ page: 1, limit: 50 }).catch(() => ({
-          items: [] as CouponDto[],
-        })),
-      ]);
-      if (requestId !== requestIdRef.current) {
-        return;
+  const load = useCallback(
+    async (mode: 'initial' | 'refresh') => {
+      const requestId = ++requestIdRef.current;
+      if (mode === 'refresh') {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+        setError(null);
+        const cached = couponCatalogCache.get(actorContext);
+        setItems(cached ? mergeCoupons(cached) : []);
       }
-      setItems(mergeCoupons([...minePage.items, ...publicPage.items]));
-      setError(null);
-    } catch (err) {
-      if (requestId !== requestIdRef.current) {
-        return;
+      try {
+        const [publicPage, minePage] = await Promise.all([
+          listPublicCoupons({ page: 1, limit: 50 }),
+          listMyCoupons({ page: 1, limit: 50 }).catch(() => ({
+            items: [] as CouponDto[],
+          })),
+        ]);
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+        const scoped = filterCouponsForContext(
+          [...minePage.items, ...publicPage.items],
+          actorContext,
+        );
+        couponCatalogCache.set(actorContext, scoped);
+        setItems(mergeCoupons(scoped));
+        setError(null);
+      } catch (err) {
+        if (requestId !== requestIdRef.current) {
+          return;
+        }
+        setError(getErrorMessage(err, 'Could not load promotions.'));
+        if (mode === 'initial') {
+          setItems([]);
+        }
+      } finally {
+        if (requestId === requestIdRef.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
-      setError(getErrorMessage(err, 'Could not load promotions.'));
-      if (mode === 'initial') {
-        setItems([]);
-      }
-    } finally {
-      if (requestId === requestIdRef.current) {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    }
-  }, []);
+    },
+    [actorContext],
+  );
 
   useEffect(() => {
+    setItems([]);
     void load('initial');
     return () => {
       if (copiedTimerRef.current) {
@@ -110,36 +131,41 @@ export const usePromotionsCoupons = (): UsePromotionsCouponsResult => {
     void load('initial');
   }, [load]);
 
-  const copyCode = useCallback((code: string) => {
-    const value = code.trim();
-    if (!value) {
-      return;
-    }
-    triggerLightHaptic();
-    void (async () => {
-      try {
-        await copyTextToClipboard(value);
-        triggerSuccessHaptic();
-        setCopiedCode(value.toUpperCase());
-        if (copiedTimerRef.current) {
-          clearTimeout(copiedTimerRef.current);
-        }
-        copiedTimerRef.current = setTimeout(() => {
-          setCopiedCode(null);
-        }, 2000);
-        showAppAlert(
-          PROMOTIONS_COUPONS_SCREEN.copySuccessTitle,
-          PROMOTIONS_COUPONS_SCREEN.copySuccessMessage(value.toUpperCase()),
-        );
-      } catch (err) {
-        if (isClipboardCancelled(err)) {
-          return;
-        }
-        showAppAlert(PROMOTIONS_COUPONS_SCREEN.copyLabel, value.toUpperCase());
-        setCopiedCode(value.toUpperCase());
+  const copyCode = useCallback(
+    (code: string) => {
+      const value = code.trim();
+      if (!value) {
+        return;
       }
-    })();
-  }, []);
+      triggerLightHaptic();
+      void (async () => {
+        try {
+          await copyTextToClipboard(value);
+          triggerSuccessHaptic();
+          setCopiedCode(value.toUpperCase());
+          if (copiedTimerRef.current) {
+            clearTimeout(copiedTimerRef.current);
+          }
+          copiedTimerRef.current = setTimeout(() => {
+            setCopiedCode(null);
+          }, 2000);
+          showAppAlert(
+            PROMOTIONS_COUPONS_SCREEN.copySuccessTitle,
+            actorContext === 'DRIVER'
+              ? PROMOTIONS_COUPONS_SCREEN.driverCopySuccessMessage(value.toUpperCase())
+              : PROMOTIONS_COUPONS_SCREEN.copySuccessMessage(value.toUpperCase()),
+          );
+        } catch (err) {
+          if (isClipboardCancelled(err)) {
+            return;
+          }
+          showAppAlert(PROMOTIONS_COUPONS_SCREEN.copyLabel, value.toUpperCase());
+          setCopiedCode(value.toUpperCase());
+        }
+      })();
+    },
+    [actorContext],
+  );
 
   const goBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -155,6 +181,7 @@ export const usePromotionsCoupons = (): UsePromotionsCouponsResult => {
     refreshing,
     error,
     copiedCode,
+    actorContext,
     refresh,
     retry,
     copyCode,

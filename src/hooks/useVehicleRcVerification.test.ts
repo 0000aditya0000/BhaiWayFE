@@ -34,12 +34,16 @@ const createController = (api: {
 }) => {
   let inFlight = false;
   let isVerifying = false;
+  let verifyingVehicleId: string | null = null;
   let result: Verification | null = null;
   let refreshCount = 0;
 
   return {
     get isVerifying() {
       return isVerifying;
+    },
+    get verifyingVehicleId() {
+      return verifyingVehicleId;
     },
     get result() {
       return result;
@@ -53,6 +57,7 @@ const createController = (api: {
       }
       inFlight = true;
       isVerifying = true;
+      verifyingVehicleId = vehicleId;
       try {
         const response = await api.verify(vehicleId, vehicleNumber);
         result = response.verification;
@@ -63,6 +68,7 @@ const createController = (api: {
       } finally {
         inFlight = false;
         isVerifying = false;
+        verifyingVehicleId = null;
       }
     },
   };
@@ -86,6 +92,7 @@ const run = async () => {
 
   const first = controller.verify('veh-1', 'DL01AB1234');
   assertTrue(controller.isVerifying, 'Verify button disabled while request in progress');
+  assertEqual(controller.verifyingVehicleId, 'veh-1', 'loading state is bound to vehicle A');
   const second = await controller.verify('veh-1', 'DL01AB1234');
   assertEqual(second, null, 'duplicate simultaneous verify blocked');
   const verified = await first;

@@ -1,13 +1,17 @@
 export const PROMOTIONS_COUPONS_SCREEN = {
   title: 'Promotions & Coupons',
   subtitle: 'Browse offers and copy codes to use at checkout.',
+  driverSubtitle: 'Browse driver offers and copy codes.',
   emptyTitle: 'No promotions yet',
   emptyMessage: 'New coupons will show up here when they become available.',
+  driverEmptyMessage: 'New driver coupons will show up here when they become available.',
   retryLabel: 'Retry',
   copyLabel: 'Copy',
   copiedLabel: 'Copied',
   copySuccessTitle: 'Code copied',
   copySuccessMessage: (code: string) => `${code} is ready to paste at checkout.`,
+  driverCopySuccessMessage: (code: string) =>
+    `${code} is a driver offer. Redemption at a driver checkout is not available yet.`,
   expiresPrefix: 'Valid till',
   startsPrefix: 'Starts',
   minAmountPrefix: 'Min. booking',

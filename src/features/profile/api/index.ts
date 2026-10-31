@@ -7,11 +7,18 @@ export {
   updateVehicle,
   verifyVehicleRc,
 } from './vehicle.api';
+export {
+  unwrapVehicle,
+  unwrapVehicleList,
+  unwrapVerifyVehicleRcResponse,
+} from './vehicle.unwrap';
 export type {
   ApiVehicleType,
   CreateVehicleDto,
   UpdateVehicleDto,
   VehicleOwnerMatchStatus,
+  VehicleRcCheck,
+  VehicleRcRecordSnapshot,
   VehicleRcVerification,
   VehicleRcVerificationStatus,
   VehicleResponse,

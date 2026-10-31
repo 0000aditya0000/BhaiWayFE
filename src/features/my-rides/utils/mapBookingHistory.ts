@@ -1,6 +1,7 @@
 import type { BookingHistoryItemDto } from '@/features/ride-search/api/bookingsHistory.types';
 import { parseMoneySnapshot } from '@/features/ride-search/api';
 import { resolvePersonDisplayName } from '@/features/ride-search/api/bookingPersonName';
+import { resolvePersonPhotoUrl } from '@/features/ride-search/api/bookingPersonPhoto';
 import {
   resolveVehicleLabelForRide,
   resolveVehiclePlateForRide,
@@ -245,7 +246,7 @@ export const mapBookingHistoryDetail = (
     resolveVehicleLabelForRide(dto.rideId ?? '', dto.vehicle) || HISTORY_UNAVAILABLE_LABEL;
   const plateNumber =
     resolveVehiclePlateForRide(dto.rideId ?? '', dto.vehicle) || HISTORY_UNAVAILABLE_LABEL;
-  const driverPhoto = dto.driver?.profilePhoto?.trim() || DEFAULT_PROFILE_AVATAR;
+  const driverPhoto = resolvePersonPhotoUrl(dto.driver) || DEFAULT_PROFILE_AVATAR;
   const verified = Boolean(dto.driver?.verified ?? dto.vehicle?.verified);
 
   const totalAmountLabel =

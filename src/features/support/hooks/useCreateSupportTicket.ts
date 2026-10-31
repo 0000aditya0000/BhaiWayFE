@@ -210,7 +210,6 @@ export const useCreateSupportTicket = (
         return;
       }
 
-      // Register asset the same way as other document uploads (optional backend media row).
       const secureUrl = await saveIssueReportUrl(uploaded);
 
       setAttachments((prev) =>
@@ -218,8 +217,8 @@ export const useCreateSupportTicket = (
           item.id === attachmentId
             ? {
                 id: attachmentId,
-                localUri: secureUrl || uploaded.secureUrl,
-                secureUrl: secureUrl || uploaded.secureUrl,
+                localUri: secureUrl,
+                secureUrl,
                 uploading: false,
               }
             : item,
@@ -227,7 +226,7 @@ export const useCreateSupportTicket = (
       );
 
       logger.info('Support ticket Cloudinary URL ready for ticket API', {
-        secureUrl: secureUrl || uploaded.secureUrl,
+        secureUrl,
         publicId: uploaded.publicId,
         folder: uploaded.folder,
       });

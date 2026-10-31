@@ -1,10 +1,17 @@
 import {
+  unwrapVehicle,
+  unwrapVehicleList,
+  unwrapVerifyVehicleRcResponse,
+} from '../api/vehicle.unwrap';
+import {
   API_VEHICLE_TYPES,
+  formatVehicleDisplayName,
   isDuplicateRegistrationError,
   mapAddVehicleFormToCreateDto,
   mapCategoryToVehicleType,
   mapCreateVehicleError,
   mapVehicleResponseToGarageVehicle,
+  mergeGarageVehiclesWithServer,
   normalizeRegistrationNumber,
 } from './vehicle.mapper';
 
@@ -40,38 +47,102 @@ assertEqual(singleVehicle.make, 'Honda', 'make mapped');
 assertEqual(singleVehicle.name, 'Honda City', 'name excludes color');
 assertEqual(singleVehicle.color, 'White', 'color mapped separately');
 assertEqual(singleVehicle.variant, 'ZX', 'variant mapped');
-assertEqual(singleVehicle.rcStatus, 'required', 'default RC status is required');
+assertEqual(singleVehicle.rcStatus, 'required', 'default RC status is not verified');
+assertEqual(formatVehicleDisplayName('Hyundai', 'Hyundai'), 'Hyundai', 'duplicate make/model collapsed');
+assertEqual(formatVehicleDisplayName('Hyundai', 'i20'), 'Hyundai i20', 'make plus model');
+assertEqual(formatVehicleDisplayName('Hyundai i20', 'Hyundai i20'), 'Hyundai i20', 'identical full name');
 
-const verifiedVehicle = mapVehicleResponseToGarageVehicle(
-  {
-    id: 'veh-verified',
-    vehicleType: 'CAR',
-    make: 'Honda',
-    model: 'City',
-    registrationNumber: 'DL01AB1234',
-    seatingCapacity: 5,
-    isActive: true,
-    rcVerificationStatus: 'VERIFIED',
-    ownerMatchStatus: 'MATCHED',
-  },
-  null,
-);
+const sameMakeModel = mapVehicleResponseToGarageVehicle({
+  id: 'veh-same',
+  vehicleType: 'CAR',
+  make: 'i20',
+  model: 'i20',
+  registrationNumber: 'UP16AB1234',
+  seatingCapacity: 5,
+  isActive: true,
+});
+assertEqual(sameMakeModel.name, 'i20', 'garage name does not duplicate make/model');
+
+const verifiedVehicle = mapVehicleResponseToGarageVehicle({
+  id: 'veh-verified',
+  vehicleType: 'CAR',
+  make: 'Honda',
+  model: 'City',
+  registrationNumber: 'DL01AB1234',
+  seatingCapacity: 5,
+  isActive: true,
+  rcVerificationStatus: 'VERIFIED',
+  ownerMatchStatus: 'MATCHED',
+});
 assertEqual(verifiedVehicle.rcStatus, 'verified', 'per-vehicle VERIFIED maps to verified');
 assertEqual(verifiedVehicle.ownerMatchStatus, 'MATCHED', 'owner match mapped');
 
-const aggregateVerified = mapVehicleResponseToGarageVehicle(
-  {
-    id: 'veh-agg',
-    vehicleType: 'CAR',
-    make: 'Honda',
-    model: 'City',
-    registrationNumber: 'DL01AB1234',
-    seatingCapacity: 5,
-    isActive: true,
-  },
-  'VERIFIED',
+const aggregateIgnored = mapVehicleResponseToGarageVehicle({
+  id: 'veh-agg',
+  vehicleType: 'CAR',
+  make: 'Honda',
+  model: 'City',
+  registrationNumber: 'DL01AB1234',
+  seatingCapacity: 5,
+  isActive: true,
+});
+assertEqual(
+  aggregateIgnored.rcStatus,
+  'required',
+  'unverified vehicle stays not verified without per-vehicle RC status',
 );
-assertEqual(aggregateVerified.rcStatus, 'verified', 'aggregate vehicle VERIFIED maps');
+
+const pendingVehicle = mapVehicleResponseToGarageVehicle({
+  id: 'veh-pending',
+  vehicleType: 'CAR',
+  make: 'Honda',
+  model: 'City',
+  registrationNumber: 'DL01AB1234',
+  seatingCapacity: 5,
+  isActive: true,
+  rcVerificationStatus: 'PENDING',
+});
+assertEqual(pendingVehicle.rcStatus, 'pending', 'per-vehicle PENDING maps');
+
+assertEqual(
+  unwrapVehicleList({ data: [{ id: 'veh-1', vehicleType: 'CAR', make: 'Honda', model: 'City', registrationNumber: 'DL01AB1234', seatingCapacity: 5, isActive: true }] }).length,
+  1,
+  'unwraps { data } vehicle list',
+);
+assertEqual(unwrapVehicle({ data: { id: 'veh-1', vehicleType: 'CAR', make: 'Honda', model: 'City', registrationNumber: 'DL01', seatingCapacity: 5, isActive: true } }).id, 'veh-1', 'unwraps created vehicle');
+assertEqual(
+  unwrapVerifyVehicleRcResponse({
+    data: {
+      success: true,
+      verification: { vehicleId: 'veh-1', status: 'VERIFIED', vehicleNumber: 'DL01AB1234' },
+    },
+  }).verification?.status,
+  'VERIFIED',
+  'unwraps wrapped verify-rc response',
+);
+
+const merged = mergeGarageVehiclesWithServer(
+  [
+    {
+      id: 'veh-1',
+      vehicleType: 'CAR',
+      make: 'Honda',
+      model: 'City',
+      registrationNumber: 'DL01AB1234',
+      seatingCapacity: 5,
+      isActive: true,
+    },
+  ],
+  [
+    {
+      ...singleVehicle,
+      id: 'veh-1',
+      rcStatus: 'verified',
+      lastRcVerificationStatus: 'VERIFIED',
+    },
+  ],
+);
+assertEqual(merged[0]?.rcStatus, 'verified', 'keeps local RC status when list omits RC fields');
 
 const inactiveVehicle = mapVehicleResponseToGarageVehicle({
   id: 'veh-2',
@@ -115,6 +186,8 @@ assertEqual(createPayload.seatingCapacity, 5, 'POST seatingCapacity');
 assertEqual(createPayload.color, 'White', 'POST color');
 assertEqual('userId' in createPayload, false, 'does not send userId');
 assertEqual('isActive' in createPayload, false, 'does not send isActive');
+assertEqual('rcVerificationStatus' in createPayload, false, 'create does not send RC status');
+assertEqual('isRcVerified' in createPayload, false, 'create does not mark RC verified');
 
 const withDocument = mapAddVehicleFormToCreateDto({
   category: 'suv',

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
   AppFooter,
+  Avatar,
   BrandTopBar,
   IconButton,
   KeyboardAwareScrollView,
@@ -209,7 +210,15 @@ export const CommuteReviewBookingScreen = () => {
           <View style={styles.tripBody}>
             <View style={styles.driverRow}>
               <View style={styles.driverIconWrap}>
-                <Ionicons name="person" size={22} color={colors.primary} />
+                {booking.driverAvatarUri ? (
+                  <Avatar
+                    size={44}
+                    uri={booking.driverAvatarUri}
+                    accessibilityLabel={`${booking.driverName} photo`}
+                  />
+                ) : (
+                  <Ionicons name="person" size={22} color={colors.primary} />
+                )}
               </View>
               <View style={styles.driverMeta}>
                 <Text style={styles.driverName} numberOfLines={1}>

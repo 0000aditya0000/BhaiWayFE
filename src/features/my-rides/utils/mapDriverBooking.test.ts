@@ -36,6 +36,17 @@ assertEqual(
 );
 
 assertEqual(formatPaymentMethodLabel('PAY_LATER'), 'Pay After Ride', 'PAY_LATER label');
+assertEqual(formatPaymentMethodLabel('PAY_AFTER_RIDE'), 'Pay After Ride', 'PAY_AFTER_RIDE alias');
+assertEqual(
+  formatPaymentMethodLabel('PAY_NOW'),
+  'Paid with BhaiWay Wallet',
+  'PAY_NOW wallet label',
+);
+assertEqual(
+  formatPaymentMethodLabel('WALLET'),
+  'Paid with BhaiWay Wallet',
+  'WALLET alias label',
+);
 
 const booking: BookingResponseDto = {
   id: 'booking-1',
@@ -91,7 +102,7 @@ assertEqual(fromFirstName.name, 'Asha Verma', 'firstName + lastName when no disp
 
 const confirmed = mapDriverBookingToConfirmedPassenger(booking);
 assertEqual(confirmed.bookingStatus, 'CONFIRMED', 'booking status field');
-assertEqual(confirmed.paymentStatus, 'UNPAID', 'payment status field');
+assertEqual(confirmed.paymentStatus, 'Unpaid', 'payment status field');
 assertEqual(confirmed.paymentMethodLabel, 'Pay After Ride', 'payment method field');
 assertEqual(confirmed.fareTotal, 240, 'fare total without platform fee');
 assertEqual(confirmed.callAvailable, false, 'no phone → call unavailable');
@@ -102,6 +113,14 @@ assertEqual(
   }).callAvailable,
   true,
   'passenger phone → call available',
+);
+assertEqual(
+  mapDriverBookingToConfirmedPassenger({
+    ...booking,
+    passenger: { ...booking.passenger, phoneNumber: '9222222222' },
+  }).phone,
+  '9222222222',
+  'passenger.phoneNumber alias maps for call',
 );
 assertEqual(confirmed.chatAvailable, true, 'chat CTA available for booking conversation resolve');
 assertTrue(Boolean(confirmed.bookedAtLabel), 'bookedAt from createdAt');
@@ -120,7 +139,7 @@ const grouped = groupActiveDriverBookingsByRideId([booking, cancelled]);
 assertEqual(grouped['ride-noida-bareilly']?.length, 1, 'groups by rideId');
 assertEqual(
   buildDriverBookingSubtitle(booking),
-  'CONFIRMED · UNPAID · Pay After Ride · ₹240',
+  'CONFIRMED · Unpaid · Pay After Ride · ₹240',
   'subtitle composition',
 );
 

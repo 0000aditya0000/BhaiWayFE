@@ -218,7 +218,12 @@ const myRidesScreen = fs.readFileSync(
   'utf8',
 );
 
-assertIncludes(useCommuteBookingRequests, "status: 'PENDING'", 'requests screen loads PENDING');
+assertIncludes(useCommuteBookingRequests, 'listDriverBookings', 'requests screen loads driver bookings');
+assertNotIncludes(
+  useCommuteBookingRequests,
+  "status: 'PENDING'",
+  'does not use unscoped PENDING query that 404s without rideId',
+);
 assertIncludes(useCommuteBookingRequests, 'groupPendingCommuteBookingsByRide', 'requests grouped by ride');
 assertIncludes(useCommuteBookingRequestActions, 'acceptBookingById', 'accept uses booking id only');
 assertIncludes(useCommuteBookingRequestActions, 'rejectBookingById', 'reject uses booking id only');

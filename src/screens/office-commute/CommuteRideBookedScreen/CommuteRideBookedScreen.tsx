@@ -13,7 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { APP_CONFIG } from '@/config';
-import { AppFooter, AppText as Text } from '@/shared/components';
+import { AppFooter, Avatar, AppText as Text } from '@/shared/components';
 import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { COMMUTE_RIDE_BOOKED_SCREEN } from '@/features/office-commute/constants';
 import { useCommuteRideBooked } from '@/features/office-commute/hooks';
@@ -146,8 +146,9 @@ export const CommuteRideBookedScreen = () => {
 
         <View style={styles.driverCard}>
           <View style={styles.avatarWrap}>
-            <Image
-              source={{ uri: details.driverAvatarUri }}
+            <Avatar
+              size={64}
+              uri={details.driverAvatarUri || undefined}
               style={styles.avatar}
               accessibilityLabel={`${details.driverName} photo`}
             />

@@ -15,10 +15,13 @@ import {
   CALENDAR_WEEKDAY_LABELS,
   formatMonthTitle,
   formatTimePreview,
+  isDateInSelection,
   isDayDisabled,
   isSameCalendarDay,
   startOfMonth,
   to12HourParts,
+  toggleSelectedDay,
+  uniqueSortedDays,
 } from './calendar';
 
 const MINUTE_ARROW_STEP = 15;
@@ -29,13 +32,24 @@ export const NativeDatePicker = ({
   minimumDate,
   maximumDate,
   onChange,
+  onChangeDates,
   onClose,
   title = 'Select date',
+  subtitle,
   mode = 'date',
+  selectionMode = 'single',
+  selectedDates,
 }: NativeDatePickerProps) => {
   const insets = useSafeAreaInsets();
+  const isMultiple = selectionMode === 'multiple' && mode === 'date';
+  const selectedDatesKey = (selectedDates ?? [])
+    .map((date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`)
+    .join('|');
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(value));
   const [draftDate, setDraftDate] = useState(value);
+  const [draftDates, setDraftDates] = useState<Date[]>(() =>
+    uniqueSortedDays(selectedDates?.length ? selectedDates : [value]),
+  );
   const [hour, setHour] = useState(() => to12HourParts(value).hour);
   const [minute, setMinute] = useState(() => to12HourParts(value).minute);
   const [period, setPeriod] = useState<'AM' | 'PM'>(() => to12HourParts(value).period);
@@ -46,13 +60,18 @@ export const NativeDatePicker = ({
     if (!visible) {
       return;
     }
-    setViewMonth(startOfMonth(value));
-    setDraftDate(value);
+    const initial = uniqueSortedDays(
+      isMultiple && selectedDates && selectedDates.length > 0 ? selectedDates : [value],
+    );
+    const first = initial[0] ?? value;
+    setViewMonth(startOfMonth(first));
+    setDraftDate(first);
+    setDraftDates(initial.length > 0 ? initial : [value]);
     const parts = to12HourParts(value);
     setHour(parts.hour);
     setMinute(parts.minute);
     setPeriod(parts.period);
-  }, [value, visible]);
+  }, [isMultiple, selectedDates, selectedDatesKey, value, visible]);
 
   const cells = useMemo(() => buildMonthCells(viewMonth), [viewMonth]);
   const today = useMemo(() => new Date(), []);
@@ -60,11 +79,38 @@ export const NativeDatePicker = ({
   const handleConfirm = useCallback(() => {
     if (mode === 'time') {
       onChange(apply12HourParts(value, hour, minute, period));
-    } else {
-      onChange(draftDate);
+      onClose();
+      return;
     }
+    if (isMultiple) {
+      const sorted = uniqueSortedDays(draftDates);
+      if (sorted.length === 0) {
+        onClose();
+        return;
+      }
+      if (onChangeDates) {
+        onChangeDates(sorted);
+      } else {
+        onChange(sorted[0]!);
+      }
+      onClose();
+      return;
+    }
+    onChange(draftDate);
     onClose();
-  }, [draftDate, hour, minute, mode, onChange, onClose, period, value]);
+  }, [
+    draftDate,
+    draftDates,
+    hour,
+    isMultiple,
+    minute,
+    mode,
+    onChange,
+    onChangeDates,
+    onClose,
+    period,
+    value,
+  ]);
 
   const bumpHour = useCallback((delta: number) => {
     setHour((current) => {
@@ -113,7 +159,10 @@ export const NativeDatePicker = ({
                 color={colors.primary}
               />
             </View>
-            <Text style={styles.title}>{title}</Text>
+            <View style={styles.headerCopy}>
+              <Text style={styles.title}>{title}</Text>
+              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            </View>
           </View>
 
           {mode === 'date' ? (
@@ -148,7 +197,9 @@ export const NativeDatePicker = ({
 
               <View style={styles.grid}>
                 {cells.map((cell) => {
-                  const selected = isSameCalendarDay(cell.date, draftDate);
+                  const selected = isMultiple
+                    ? isDateInSelection(draftDates, cell.date)
+                    : isSameCalendarDay(cell.date, draftDate);
                   const todayMark = isSameCalendarDay(cell.date, today);
                   const disabled = isDayDisabled(cell.date, minimumDate, maximumDate);
                   return (
@@ -164,6 +215,12 @@ export const NativeDatePicker = ({
                         ]}
                         onPress={() => {
                           if (disabled) {
+                            return;
+                          }
+                          if (isMultiple) {
+                            setDraftDates((current) =>
+                              toggleSelectedDay(current, cell.date, minimumDate, maximumDate),
+                            );
                             return;
                           }
                           setDraftDate(cell.date);

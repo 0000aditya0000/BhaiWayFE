@@ -6,11 +6,7 @@ import { ROUTES } from '@/config';
 import type { MissingLocationKind } from '@/shared/components';
 import { ROUTE_SELECTION_USER_MESSAGES, toRouteEndpoints } from '@/features/offer-ride/utils/routeSelection';
 import { getRouteTooCloseMessage } from '@/features/ride-search/utils';
-import {
-  formatSlashDate,
-  parseSlashDate,
-  startOfDay,
-} from '@/shared/utils';
+import { formatSlashDate, parseSlashDate } from '@/shared/utils';
 import { COMMUTE_SERIES_COPY } from '../constants/commute-series.constants';
 import {
   formatEstimatedEarnings,
@@ -22,6 +18,13 @@ import {
 } from '../constants';
 import { publishCommuteDraft } from '../store';
 import type { CommuteLocationField, PublishCommuteDraft, WeekdayId } from '../types';
+import {
+  clampDatesToWindow,
+  commutePublishWindow,
+  formatOccurrenceDateField,
+  occurrenceDatesFromDraft,
+  weekdaysFromDates,
+} from '../utils/commuteCalendar.utils';
 import {
   isReturnTimeAfterOutbound,
   toggleRecurringDay,
@@ -36,9 +39,12 @@ export interface UsePublishCommuteResult {
   timePickerOpen: boolean;
   returnTimePickerOpen: boolean;
   selectedDate: Date;
+  selectedDates: Date[];
+  dateFieldValue: string;
   selectedTime: Date;
   selectedReturnTime: Date;
   minimumDate: Date;
+  maximumDate: Date;
   updateDraft: (patch: Partial<PublishCommuteDraft>) => void;
   incrementSeats: () => void;
   decrementSeats: () => void;
@@ -47,6 +53,7 @@ export interface UsePublishCommuteResult {
   openDatePicker: () => void;
   closeDatePicker: () => void;
   selectDate: (date: Date) => void;
+  selectDates: (dates: Date[]) => void;
   openTimePicker: () => void;
   closeTimePicker: () => void;
   selectTime: (date: Date) => void;
@@ -74,7 +81,7 @@ export const usePublishCommute = (): UsePublishCommuteResult => {
 
   useEffect(() => publishCommuteDraft.subscribe(setDraft), []);
 
-  const minimumDate = useMemo(() => startOfDay(new Date()), []);
+  const { minimumDate, maximumDate } = useMemo(() => commutePublishWindow(), []);
 
   const updateDraft = useCallback((patch: Partial<PublishCommuteDraft>) => {
     publishCommuteDraft.update(patch);
@@ -94,22 +101,37 @@ export const usePublishCommute = (): UsePublishCommuteResult => {
     });
   }, []);
 
-  const toggleDay = useCallback((id: WeekdayId) => {
-    const current = publishCommuteDraft.get();
-    const publishWeekday = weekdayIdFromSlashDate(current.departureDate);
-    const result = toggleRecurringDay(current.recurringDays, id, publishWeekday);
-    if (!result.ok) {
-      showAppAlert(COMMUTE_SERIES_COPY.publishWeekdayTitle, result.message);
-      return;
-    }
-    publishCommuteDraft.update({ recurringDays: result.next });
-    if (result.explainedPublishWeekday) {
-      showAppAlert(
-        COMMUTE_SERIES_COPY.publishWeekdayTitle,
-        COMMUTE_SERIES_COPY.publishWeekdayMessage,
+  const toggleDay = useCallback(
+    (id: WeekdayId) => {
+      const current = publishCommuteDraft.get();
+      const publishWeekday = weekdayIdFromSlashDate(current.departureDate);
+      const result = toggleRecurringDay(current.recurringDays, id, publishWeekday);
+      if (!result.ok) {
+        showAppAlert(COMMUTE_SERIES_COPY.publishWeekdayTitle, result.message);
+        return;
+      }
+      const nextDays = result.next;
+      const dates = occurrenceDatesFromDraft(
+        current.departureDate,
+        nextDays,
+        minimumDate,
+        maximumDate,
       );
-    }
-  }, []);
+      publishCommuteDraft.update({
+        recurringDays: nextDays,
+        ...(nextDays.length > 0 && dates[0]
+          ? { departureDate: formatSlashDate(dates[0]) }
+          : {}),
+      });
+      if (result.explainedPublishWeekday) {
+        showAppAlert(
+          COMMUTE_SERIES_COPY.publishWeekdayTitle,
+          COMMUTE_SERIES_COPY.publishWeekdayMessage,
+        );
+      }
+    },
+    [maximumDate, minimumDate],
+  );
 
   const toggleReturningBack = useCallback(() => {
     const current = publishCommuteDraft.get();
@@ -119,28 +141,28 @@ export const usePublishCommute = (): UsePublishCommuteResult => {
   const openDatePicker = useCallback(() => setDatePickerOpen(true), []);
   const closeDatePicker = useCallback(() => setDatePickerOpen(false), []);
 
-  const selectDate = useCallback((date: Date) => {
-    const current = publishCommuteDraft.get();
-    const nextDate = formatSlashDate(date);
-    const publishWeekday = weekdayIdFromSlashDate(nextDate);
-    if (
-      publishWeekday &&
-      current.recurringDays.length > 0 &&
-      !current.recurringDays.includes(publishWeekday)
-    ) {
+  const selectDates = useCallback(
+    (dates: Date[]) => {
+      const next = clampDatesToWindow(dates, minimumDate, maximumDate);
+      if (next.length === 0) {
+        setDatePickerOpen(false);
+        return;
+      }
       publishCommuteDraft.update({
-        departureDate: nextDate,
-        recurringDays: [...current.recurringDays, publishWeekday],
+        departureDate: formatSlashDate(next[0]!),
+        recurringDays: weekdaysFromDates(next),
       });
-      showAppAlert(
-        COMMUTE_SERIES_COPY.publishWeekdayTitle,
-        COMMUTE_SERIES_COPY.publishWeekdayMessage,
-      );
-    } else {
-      publishCommuteDraft.update({ departureDate: nextDate });
-    }
-    setDatePickerOpen(false);
-  }, []);
+      setDatePickerOpen(false);
+    },
+    [maximumDate, minimumDate],
+  );
+
+  const selectDate = useCallback(
+    (date: Date) => {
+      selectDates([date]);
+    },
+    [selectDates],
+  );
 
   const openTimePicker = useCallback(() => setTimePickerOpen(true), []);
   const closeTimePicker = useCallback(() => setTimePickerOpen(false), []);
@@ -173,6 +195,16 @@ export const usePublishCommute = (): UsePublishCommuteResult => {
   const selectedDate = useMemo(
     () => parseSlashDate(draft.departureDate) ?? minimumDate,
     [draft.departureDate, minimumDate],
+  );
+
+  const selectedDates = useMemo(
+    () => occurrenceDatesFromDraft(draft.departureDate, draft.recurringDays, minimumDate, maximumDate),
+    [draft.departureDate, draft.recurringDays, maximumDate, minimumDate],
+  );
+
+  const dateFieldValue = useMemo(
+    () => formatOccurrenceDateField(selectedDates, draft.departureDate),
+    [draft.departureDate, selectedDates],
   );
 
   const selectedTime = useMemo(
@@ -289,9 +321,12 @@ export const usePublishCommute = (): UsePublishCommuteResult => {
     timePickerOpen,
     returnTimePickerOpen,
     selectedDate,
+    selectedDates,
+    dateFieldValue,
     selectedTime,
     selectedReturnTime,
     minimumDate,
+    maximumDate,
     updateDraft,
     incrementSeats,
     decrementSeats,
@@ -300,6 +335,7 @@ export const usePublishCommute = (): UsePublishCommuteResult => {
     openDatePicker,
     closeDatePicker,
     selectDate,
+    selectDates,
     openTimePicker,
     closeTimePicker,
     selectTime,

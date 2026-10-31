@@ -13,13 +13,16 @@ import Animated, {
 
 import { AppFooter, Avatar, AppText as Text, IconButton } from '@/shared/components';
 import { BhaiWayMap, isValidMapCoordinate, type BhaiWayMapMarker } from '@/shared/maps';
-import { triggerLightHaptic } from '@/shared/utils';
+import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { SwipeToComplete } from '@/features/my-rides/components';
+import { SosRideBanner } from '@/features/sos';
 import { DRIVER_ACTIVE_TRIP_SCREEN } from '@/features/my-rides/constants';
 import { useDriverActiveTrip } from '@/features/my-rides/hooks';
+import { useLocalSearchParams } from 'expo-router';
 import { styles } from './DriverActiveTripScreen.styles';
 
 export const DriverActiveTripScreen = () => {
+  const params = useLocalSearchParams<{ rideId?: string }>();
   const {
     trip,
     driverCoordinate,
@@ -100,6 +103,7 @@ export const DriverActiveTripScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <SosRideBanner rideId={getSearchParam(params.rideId)} />
         <View style={styles.statusCard}>
           <View style={styles.statusTop}>
             <View style={styles.statusLeft}>

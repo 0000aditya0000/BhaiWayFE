@@ -7,21 +7,28 @@ import { ENDPOINTS, httpClient } from '@/network';
 import { trackingSocket } from '@/services/realtime';
 import { authSession } from '@/store';
 import type { MapLatLng } from '@/shared/maps';
+import { logger } from '@/shared/utils';
 
 import {
   DRIVER_LOCATION_TASK_NAME,
-  LOCATION_POST_MIN_MS,
+  LOCATION_HEARTBEAT_MS,
   RIDE_STATUS_POLL_MS,
+  SOCKET_EMIT_MIN_MS,
+  foregroundWatchDistanceInterval,
   isEligibleTrackingStatus,
   isValidPublishCoordinate,
   mapDriverPermissionMessage,
   pickEligibleDriverRideId,
+  resolvePublishTimestampMs,
+  shouldEmitDriverDiagnostic,
+  shouldFlushPendingSocketSample,
   shouldKeepTrackingOnBackground,
   shouldPublishSample,
   shouldReconcileOnAppState,
   shouldRetryBufferedSample,
   shouldStartNativeLocationUpdates,
   shouldStopForRideStatus,
+  shouldUpdateLastSocketPublish,
   type LastPublish,
   type LocationPermissionKind,
   type LocationSample,
@@ -71,12 +78,18 @@ let startGeneration = 0;
 let ensureLock: Promise<void> | null = null;
 let watchSub: Location.LocationSubscription | null = null;
 let statusTimer: ReturnType<typeof setInterval> | null = null;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let appStateSub: { remove: () => void } | null = null;
+let socketReconnectUnsub: (() => void) | null = null;
 let lastSocket: LastPublish = { at: 0, coordinate: null };
 let lastRest: LastPublish = { at: 0, coordinate: null };
 let pendingRetry: LocationSample | null = null;
+let pendingSocketSample: LocationSample | null = null;
+let lastSample: LocationSample | null = null;
 let nativeUpdatesStarted = false;
 let restInFlight = false;
+let receivedFirstGps = false;
+let lastDiagAt = 0;
 
 const notify = (): void => {
   listeners.forEach((listener) => {
@@ -99,16 +112,42 @@ const readHeading = (heading: number | null | undefined): number | null =>
 const readSpeed = (speed: number | null | undefined): number | null =>
   typeof speed === 'number' && Number.isFinite(speed) && speed >= 0 ? speed : null;
 
+const logDriverEvent = (event: string, extra?: Record<string, unknown>): void => {
+  const now = Date.now();
+  if (
+    !shouldEmitDriverDiagnostic({
+      event,
+      lastAtMs: lastDiagAt,
+      nowMs: now,
+    })
+  ) {
+    return;
+  }
+  lastDiagAt = now;
+  logger.info('[LiveLocation][driver]', {
+    event,
+    rideId: snapshot.rideId,
+    permission: snapshot.permission,
+    watching: snapshot.watching,
+    tracking: snapshot.tracking,
+    socketConnected: trackingSocket.isConnected(),
+    ...extra,
+  });
+};
+
 const toSample = (location: NativeLocation): LocationSample | null => {
+  const now = Date.now();
   const sample: LocationSample = {
     latitude: location.coords.latitude,
     longitude: location.coords.longitude,
     heading: readHeading(location.coords.heading),
     speed: readSpeed(location.coords.speed),
-    timestampMs:
+    timestampMs: resolvePublishTimestampMs(
       typeof location.timestamp === 'number' && Number.isFinite(location.timestamp)
         ? location.timestamp
-        : Date.now(),
+        : now,
+      now,
+    ),
   };
   return isValidPublishCoordinate(sample) ? sample : null;
 };
@@ -121,7 +160,9 @@ const persistRideId = async (rideId: string | null): Promise<void> => {
     }
     await AsyncStorage.setItem(STORED_RIDE_ID_KEY, rideId);
   } catch (error) {
-    console.log('[LiveLocation][driver] persist rideId failed', error);
+    logger.warn('[LiveLocation][driver] persist rideId failed', {
+      message: error instanceof Error ? error.message : 'unknown',
+    });
   }
 };
 
@@ -182,7 +223,9 @@ const stopNativeUpdates = async (): Promise<void> => {
       await Location.stopLocationUpdatesAsync(DRIVER_LOCATION_TASK_NAME);
     }
   } catch (error) {
-    console.log('[LiveLocation][driver] stop native updates failed', error);
+    logger.warn('[LiveLocation][driver] stop native updates failed', {
+      message: error instanceof Error ? error.message : 'unknown',
+    });
   }
   nativeUpdatesStarted = false;
 };
@@ -211,6 +254,7 @@ const requestForegroundPermission = async (): Promise<boolean> => {
 
     if (status === Location.PermissionStatus.GRANTED) {
       setSnapshot({ permission: 'granted', errorMessage: null });
+      logDriverEvent('permission', { granted: true });
       return true;
     }
 
@@ -222,6 +266,7 @@ const requestForegroundPermission = async (): Promise<boolean> => {
       errorMessage: mapDriverPermissionMessage(kind),
       watching: false,
     });
+    logDriverEvent('permission', { granted: false, kind });
     return false;
   } catch {
     setSnapshot({
@@ -248,7 +293,9 @@ const requestBackgroundPermission = async (): Promise<boolean> => {
     setSnapshot({ backgroundGranted: granted });
     return granted;
   } catch (error) {
-    console.log('[LiveLocation][driver] background permission skipped', error);
+    logger.warn('[LiveLocation][driver] background permission skipped', {
+      message: error instanceof Error ? error.message : 'unknown',
+    });
     setSnapshot({ backgroundGranted: false });
     return false;
   }
@@ -269,15 +316,10 @@ const postLocation = async (rideId: string, sample: LocationSample): Promise<voi
       longitude: sample.longitude,
     });
     pendingRetry = null;
-    console.log('[LiveLocation][driver] posted', {
-      rideId,
-      latitude: sample.latitude,
-      longitude: sample.longitude,
-      at: new Date().toISOString(),
-    });
+    logDriverEvent('publish_succeeded', { channel: 'rest' });
   } catch (error) {
-    console.log('[LiveLocation][driver] post failed', {
-      rideId,
+    logDriverEvent('publish_failed', {
+      channel: 'rest',
       status: error && typeof error === 'object' && 'status' in error ? error.status : undefined,
     });
     if (isAuthError(error)) {
@@ -296,12 +338,42 @@ const postLocation = async (rideId: string, sample: LocationSample): Promise<voi
   }
 };
 
+const flushSocketSample = (rideId: string, sample: LocationSample, now: number): void => {
+  const emitted = trackingSocket.emitDriverLocation({
+    rideId,
+    latitude: sample.latitude,
+    longitude: sample.longitude,
+    timestamp: new Date(sample.timestampMs).toISOString(),
+    heading: sample.heading,
+    speed: sample.speed,
+  });
+  if (shouldUpdateLastSocketPublish(emitted)) {
+    lastSocket = {
+      at: now,
+      coordinate: { latitude: sample.latitude, longitude: sample.longitude },
+    };
+    pendingSocketSample = null;
+    logDriverEvent('publish_succeeded', { channel: 'socket' });
+    return;
+  }
+  pendingSocketSample = sample;
+  logDriverEvent('publish_failed', {
+    channel: 'socket',
+    reason: trackingSocket.isConnected() ? 'emit_rejected' : 'socket_offline',
+  });
+};
+
 const ingestSample = (sample: LocationSample): void => {
   if (!snapshot.rideId || !snapshot.rideInProgress || !snapshot.tracking) {
     return;
   }
   const rideId = snapshot.rideId;
   const now = Date.now();
+  lastSample = sample;
+  if (!receivedFirstGps) {
+    receivedFirstGps = true;
+    logDriverEvent('first_gps', { hasFix: true });
+  }
   setSnapshot({
     coordinate: { latitude: sample.latitude, longitude: sample.longitude },
     heading: sample.heading,
@@ -310,33 +382,14 @@ const ingestSample = (sample: LocationSample): void => {
     watching: true,
   });
 
-  if (
-    shouldPublishSample({
-      kind: 'socket',
-      nowMs: now,
-      sample,
-      last: lastSocket,
-    })
-  ) {
-    lastSocket = {
-      at: now,
-      coordinate: { latitude: sample.latitude, longitude: sample.longitude },
-    };
-    const emitted = trackingSocket.emitDriverLocation({
-      rideId,
-      latitude: sample.latitude,
-      longitude: sample.longitude,
-      timestamp: new Date(sample.timestampMs).toISOString(),
-      heading: sample.heading,
-      speed: sample.speed,
-    });
-    if (emitted) {
-      console.log('[LiveLocation][driver] socket emit', {
-        rideId,
-        latitude: sample.latitude,
-        longitude: sample.longitude,
-      });
-    }
+  const socketDue = shouldPublishSample({
+    kind: 'socket',
+    nowMs: now,
+    sample,
+    last: lastSocket,
+  });
+  if (socketDue || pendingSocketSample) {
+    flushSocketSample(rideId, sample, now);
   }
 
   const restDue = shouldPublishSample({
@@ -366,6 +419,64 @@ const ingestSample = (sample: LocationSample): void => {
   }
 };
 
+const stopHeartbeat = (): void => {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+};
+
+const readFreshPosition = (generation: number): void => {
+  void Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High })
+    .then((position) => {
+      if (generation !== startGeneration) {
+        return;
+      }
+      const sample = toSample(position);
+      if (sample) {
+        ingestSample(sample);
+      }
+    })
+    .catch(() => {
+      if (generation !== startGeneration || !lastSample || !snapshot.rideId) {
+        return;
+      }
+      ingestSample({ ...lastSample, timestampMs: Date.now() });
+    });
+};
+
+const startHeartbeat = (generation: number): void => {
+  stopHeartbeat();
+  heartbeatTimer = setInterval(() => {
+    if (generation !== startGeneration || !snapshot.tracking || !snapshot.rideId) {
+      return;
+    }
+    readFreshPosition(generation);
+  }, LOCATION_HEARTBEAT_MS);
+};
+
+const bindSocketReconnect = (rideId: string, generation: number): void => {
+  socketReconnectUnsub?.();
+  socketReconnectUnsub = trackingSocket.subscribeReconnect(() => {
+    if (generation !== startGeneration || snapshot.rideId !== rideId) {
+      return;
+    }
+    logDriverEvent('socket_reconnected');
+    trackingSocket.joinRide(rideId);
+    const sample = pendingSocketSample || lastSample;
+    if (
+      sample &&
+      shouldFlushPendingSocketSample({
+        connected: trackingSocket.isConnected(),
+        hasPendingOrLastSample: true,
+      })
+    ) {
+      lastSocket = { at: 0, coordinate: null };
+      ingestSample({ ...sample, timestampMs: Date.now() });
+    }
+  });
+};
+
 const startForegroundWatch = async (generation: number): Promise<void> => {
   if (Platform.OS === 'web') {
     return;
@@ -374,9 +485,10 @@ const startForegroundWatch = async (generation: number): Promise<void> => {
   try {
     watchSub = await Location.watchPositionAsync(
       {
-        accuracy: Location.Accuracy.Balanced,
-        distanceInterval: 12,
-        timeInterval: LOCATION_POST_MIN_MS,
+        accuracy: Location.Accuracy.High,
+        distanceInterval: foregroundWatchDistanceInterval(Platform.OS),
+        timeInterval: SOCKET_EMIT_MIN_MS,
+        mayShowUserSettingsDialog: true,
       },
       (position) => {
         if (generation !== startGeneration) {
@@ -390,11 +502,14 @@ const startForegroundWatch = async (generation: number): Promise<void> => {
     );
     if (generation === startGeneration) {
       setSnapshot({ watching: true });
+      logDriverEvent('watcher_started', { platform: Platform.OS });
     } else {
       stopWatch();
     }
   } catch (error) {
-    console.log('[LiveLocation][driver] watchPositionAsync failed', error);
+    logger.warn('[LiveLocation][driver] watchPositionAsync failed', {
+      message: error instanceof Error ? error.message : 'unknown',
+    });
     if (generation === startGeneration) {
       setSnapshot({
         watching: false,
@@ -418,11 +533,11 @@ const startNativeUpdates = async (): Promise<void> => {
       return;
     }
     await Location.startLocationUpdatesAsync(DRIVER_LOCATION_TASK_NAME, {
-      accuracy: Location.Accuracy.Balanced,
-      timeInterval: LOCATION_POST_MIN_MS,
-      distanceInterval: 12,
-      deferredUpdatesInterval: LOCATION_POST_MIN_MS,
-      deferredUpdatesDistance: 12,
+      accuracy: Location.Accuracy.BestForNavigation,
+      timeInterval: SOCKET_EMIT_MIN_MS,
+      distanceInterval: foregroundWatchDistanceInterval(Platform.OS),
+      deferredUpdatesInterval: SOCKET_EMIT_MIN_MS,
+      deferredUpdatesDistance: 0,
       pausesUpdatesAutomatically: false,
       showsBackgroundLocationIndicator: true,
       activityType: Location.ActivityType.AutomotiveNavigation,
@@ -434,8 +549,11 @@ const startNativeUpdates = async (): Promise<void> => {
       },
     });
     nativeUpdatesStarted = true;
+    logDriverEvent('native_updates_started', { platform: Platform.OS });
   } catch (error) {
-    console.log('[LiveLocation][driver] startLocationUpdatesAsync failed', error);
+    logger.warn('[LiveLocation][driver] startLocationUpdatesAsync failed', {
+      message: error instanceof Error ? error.message : 'unknown',
+    });
   }
 };
 
@@ -454,7 +572,9 @@ const refreshRideStatus = async (rideId: string): Promise<void> => {
     }
     trackingSocket.joinRide(rideId);
   } catch (error) {
-    console.log('[LiveLocation][driver] getRideById failed', error);
+    logger.warn('[LiveLocation][driver] getRideById failed', {
+      message: error instanceof Error ? error.message : 'unknown',
+    });
     if (isAuthError(error)) {
       await driverLocationPublisher.stop('unauthorized');
     }
@@ -506,14 +626,7 @@ const ensureAppStateListener = (): void => {
         pendingRetry = null;
       }
     }
-    void Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
-      .then((position) => {
-        const sample = toSample(position);
-        if (sample) {
-          ingestSample(sample);
-        }
-      })
-      .catch(() => undefined);
+    readFreshPosition(startGeneration);
   });
 };
 
@@ -521,6 +634,9 @@ const startTrackingSession = async (rideId: string, generation: number): Promise
   lastSocket = { at: 0, coordinate: null };
   lastRest = { at: 0, coordinate: null };
   pendingRetry = null;
+  pendingSocketSample = null;
+  lastSample = null;
+  receivedFirstGps = false;
   setSnapshot({
     rideId,
     tracking: true,
@@ -529,8 +645,10 @@ const startTrackingSession = async (rideId: string, generation: number): Promise
   });
   await persistRideId(rideId);
   trackingSocket.joinRide(rideId);
+  bindSocketReconnect(rideId, generation);
   startStatusPoll(rideId, generation);
   ensureAppStateListener();
+  logDriverEvent('started', { rideId });
 
   const granted = snapshot.permission === 'granted' || (await requestForegroundPermission());
   if (generation !== startGeneration) {
@@ -540,27 +658,19 @@ const startTrackingSession = async (rideId: string, generation: number): Promise
     return;
   }
 
-  void requestBackgroundPermission();
   await startForegroundWatch(generation);
   if (generation !== startGeneration) {
     return;
   }
-  await startNativeUpdates();
-
-  try {
-    const position = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
-    if (generation !== startGeneration) {
-      return;
-    }
-    const sample = toSample(position);
-    if (sample) {
-      ingestSample(sample);
-    }
-  } catch (error) {
-    console.log('[LiveLocation][driver] getCurrentPositionAsync failed', error);
+  startHeartbeat(generation);
+  const backgroundGranted = await requestBackgroundPermission();
+  if (generation !== startGeneration) {
+    return;
   }
+  if (backgroundGranted || Platform.OS === 'android') {
+    await startNativeUpdates();
+  }
+  readFreshPosition(generation);
 };
 
 export const driverLocationPublisher = {
@@ -592,9 +702,14 @@ export const driverLocationPublisher = {
     }
     if (snapshot.tracking && snapshot.rideId === id) {
       trackingSocket.joinRide(id);
-      if (!watchSub && snapshot.permission === 'granted') {
-        void startForegroundWatch(startGeneration);
-        void startNativeUpdates();
+      if (snapshot.permission === 'granted') {
+        if (!watchSub) {
+          void startForegroundWatch(startGeneration);
+          void startNativeUpdates();
+        }
+        if (!heartbeatTimer) {
+          startHeartbeat(startGeneration);
+        }
       }
       return;
     }
@@ -602,9 +717,14 @@ export const driverLocationPublisher = {
     const run = async (): Promise<void> => {
       if (snapshot.tracking && snapshot.rideId === id) {
         trackingSocket.joinRide(id);
-        if (!watchSub && snapshot.permission === 'granted') {
-          void startForegroundWatch(startGeneration);
-          void startNativeUpdates();
+        if (snapshot.permission === 'granted') {
+          if (!watchSub) {
+            void startForegroundWatch(startGeneration);
+            void startNativeUpdates();
+          }
+          if (!heartbeatTimer) {
+            startHeartbeat(startGeneration);
+          }
         }
         return;
       }
@@ -619,7 +739,9 @@ export const driverLocationPublisher = {
           return;
         }
       } catch (error) {
-        console.log('[LiveLocation][driver] ensure getRideById failed', error);
+        logger.warn('[LiveLocation][driver] ensure getRideById failed', {
+          message: error instanceof Error ? error.message : 'unknown',
+        });
         if (isAuthError(error)) {
           await driverLocationPublisher.stop('unauthorized');
         }
@@ -644,6 +766,9 @@ export const driverLocationPublisher = {
     const rideId = snapshot.rideId;
     stopWatch();
     stopStatusPoll();
+    stopHeartbeat();
+    socketReconnectUnsub?.();
+    socketReconnectUnsub = null;
     await stopNativeUpdates();
     if (rideId) {
       trackingSocket.leaveRide(rideId);
@@ -651,13 +776,16 @@ export const driverLocationPublisher = {
     lastSocket = { at: 0, coordinate: null };
     lastRest = { at: 0, coordinate: null };
     pendingRetry = null;
+    pendingSocketSample = null;
+    lastSample = null;
+    receivedFirstGps = false;
     await persistRideId(null);
+    logDriverEvent('stopped', { reason, rideId });
     setSnapshot({
       ...initialSnapshot,
       permission: snapshot.permission,
       backgroundGranted: snapshot.backgroundGranted,
     });
-    console.log('[LiveLocation][driver] stopped', { reason, rideId });
   },
 
   /**
@@ -682,7 +810,9 @@ export const driverLocationPublisher = {
       }
       await driverLocationPublisher.ensure(rideId);
     } catch (error) {
-      console.log('[LiveLocation][driver] reconcile failed', error);
+      logger.warn('[LiveLocation][driver] reconcile failed', {
+        message: error instanceof Error ? error.message : 'unknown',
+      });
       if (isAuthError(error)) {
         await driverLocationPublisher.stop('unauthorized');
       }

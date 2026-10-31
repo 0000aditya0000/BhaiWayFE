@@ -1,5 +1,17 @@
 import { ENDPOINTS, httpClient } from '@/network';
 
+import {
+  unwrapVehicle,
+  unwrapVehicleList,
+  unwrapVerifyVehicleRcResponse,
+} from './vehicle.unwrap';
+
+export {
+  unwrapVehicle,
+  unwrapVehicleList,
+  unwrapVerifyVehicleRcResponse,
+} from './vehicle.unwrap';
+
 /** Swagger: VehicleType */
 export type ApiVehicleType = 'CAR' | 'BIKE';
 
@@ -8,7 +20,8 @@ export type VehicleRcVerificationStatus =
   | 'VERIFIED'
   | 'INVALID'
   | 'FAILED'
-  | 'PENDING';
+  | 'PENDING'
+  | 'NOT_VERIFIED';
 
 /** Backend owner-name match vs verified Aadhaar identity. */
 export type VehicleOwnerMatchStatus = 'MATCHED' | 'NOT_MATCHED' | 'NOT_CHECKED';
@@ -37,6 +50,28 @@ export interface VehicleResponse {
   isVerified?: boolean | null;
 }
 
+export interface VehicleRcRecordSnapshot {
+  vehicleName?: string | null;
+  make?: string | null;
+  model?: string | null;
+  color?: string | null;
+  registrationNumber?: string | null;
+  insuranceExpiry?: string | null;
+  registrationStatus?: string | null;
+}
+
+export interface VehicleRcCheck {
+  code?: string | null;
+  field?: string | null;
+  message?: string | null;
+  status?: string | null;
+  matched?: boolean | null;
+  entered?: string | null;
+  expected?: string | null;
+  rcValue?: string | null;
+  rcRecord?: string | null;
+}
+
 export interface VehicleRcVerification {
   vehicleId: string;
   status: VehicleRcVerificationStatus;
@@ -44,11 +79,18 @@ export interface VehicleRcVerification {
   verifiedAt?: string;
   verificationId?: string;
   ownerMatchStatus?: VehicleOwnerMatchStatus;
+  message?: string | null;
+  errors?: Array<string | VehicleRcCheck> | null;
+  failedChecks?: VehicleRcCheck[] | null;
+  checks?: VehicleRcCheck[] | null;
+  mismatches?: VehicleRcCheck[] | null;
+  rcRecord?: VehicleRcRecordSnapshot | null;
+  rcDetails?: VehicleRcRecordSnapshot | null;
 }
 
 export interface VerifyVehicleRcResponse {
   success: boolean;
-  verification: VehicleRcVerification;
+  verification: VehicleRcVerification | null;
 }
 
 export interface VerifyVehicleRcRequest {
@@ -93,50 +135,61 @@ export interface UpdateVehicleDto {
  * Docs: GET /vehicles — Authorization: Bearer <BHAIWAY_JWT>
  */
 export const listVehicles = async (): Promise<VehicleResponse[]> => {
-  const rows = await httpClient.get<VehicleResponse[]>(ENDPOINTS.vehicles.list);
-  return Array.isArray(rows) ? rows : [];
+  const payload = await httpClient.get<unknown>(ENDPOINTS.vehicles.list);
+  return unwrapVehicleList<VehicleResponse>(payload);
 };
 
 /**
  * Creates a vehicle for the authenticated user.
  * Docs: POST /vehicles — 201 VehicleResponseDto
+ * Does not verify RC. RC verification is POST /vehicles/:id/verify-rc only.
  */
-export const createVehicle = (payload: CreateVehicleDto): Promise<VehicleResponse> =>
-  httpClient.post<VehicleResponse>(ENDPOINTS.vehicles.create, payload);
+export const createVehicle = async (payload: CreateVehicleDto): Promise<VehicleResponse> => {
+  const created = await httpClient.post<unknown>(ENDPOINTS.vehicles.create, payload);
+  return unwrapVehicle<VehicleResponse>(created);
+};
 
 /** Docs: GET /vehicles/:id */
-export const getVehicleById = (id: string): Promise<VehicleResponse> =>
-  httpClient.get<VehicleResponse>(ENDPOINTS.vehicles.byId(id));
+export const getVehicleById = async (id: string): Promise<VehicleResponse> => {
+  const row = await httpClient.get<unknown>(ENDPOINTS.vehicles.byId(id));
+  return unwrapVehicle<VehicleResponse>(row);
+};
 
 /** Docs: PATCH /vehicles/:id */
-export const updateVehicle = (
+export const updateVehicle = async (
   id: string,
   payload: UpdateVehicleDto,
-): Promise<VehicleResponse> =>
-  httpClient.patch<VehicleResponse>(ENDPOINTS.vehicles.byId(id), payload);
+): Promise<VehicleResponse> => {
+  const updated = await httpClient.patch<unknown>(ENDPOINTS.vehicles.byId(id), payload);
+  return unwrapVehicle<VehicleResponse>(updated);
+};
 
 /** Docs: DELETE /vehicles/:id — soft delete */
 export const deleteVehicleById = (id: string): Promise<void> =>
   httpClient.delete<void>(ENDPOINTS.vehicles.byId(id));
 
 /** Docs: POST /vehicles/:id/activate */
-export const activateVehicle = (id: string): Promise<VehicleResponse> =>
-  httpClient.post<VehicleResponse>(ENDPOINTS.vehicles.activate(id));
+export const activateVehicle = async (id: string): Promise<VehicleResponse> => {
+  const updated = await httpClient.post<unknown>(ENDPOINTS.vehicles.activate(id));
+  return unwrapVehicle<VehicleResponse>(updated);
+};
 
 /**
  * Verifies vehicle RC via BhaiWay backend (Cashfree server-side only).
  * Docs: POST /vehicles/:id/verify-rc — Bearer JWT
  * Body optional: { vehicleNumber } — when omitted, backend uses registered registrationNumber.
+ * Must be called only after an explicit Verify RC tap — never from add-vehicle or list refresh.
  */
-export const verifyVehicleRc = (
+export const verifyVehicleRc = async (
   vehicleId: string,
   vehicleNumber?: string,
 ): Promise<VerifyVehicleRcResponse> => {
   const trimmed = vehicleNumber?.replace(/\s+/g, '').trim().toUpperCase();
   const body: VerifyVehicleRcRequest =
     trimmed && trimmed.length > 0 ? { vehicleNumber: trimmed } : {};
-  return httpClient.post<VerifyVehicleRcResponse>(
+  const payload = await httpClient.post<unknown>(
     ENDPOINTS.vehicles.verifyRc(vehicleId),
     body,
   );
+  return unwrapVerifyVehicleRcResponse(payload) as VerifyVehicleRcResponse;
 };

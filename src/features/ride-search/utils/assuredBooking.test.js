@@ -213,9 +213,9 @@ assertTrue(key2 !== key1, 'K farePayment change gets new idempotency key');
 const regularPayload = {
   rideId: 'ride-regular',
   seats: 1,
-  paymentMethod: 'PAY_LATER',
+  paymentMethod: 'PAY_AFTER_RIDE',
 };
-assertEqual(regularPayload.paymentMethod, 'PAY_LATER', 'L Regular PAY_LATER');
+assertEqual(regularPayload.paymentMethod, 'PAY_AFTER_RIDE', 'L Regular PAY_AFTER_RIDE');
 assertFalse('farePayment' in regularPayload, 'L Regular has no farePayment');
 
 // No DemoData mutations
@@ -243,7 +243,14 @@ const usePaymentOptions = fs.readFileSync(
 );
 assertIncludes(usePaymentOptions, "paymentMethod: 'ASSURED_DEPOSIT'", 'hook sends ASSURED_DEPOSIT');
 assertIncludes(usePaymentOptions, 'farePayment', 'hook sends farePayment');
-assertIncludes(usePaymentOptions, "paymentMethod: 'PAY_LATER'", 'Regular still PAY_LATER');
+assertIncludes(usePaymentOptions, 'toRegularRidePaymentRequestMethod', 'Regular uses payment aliases');
+assertIncludes(usePaymentOptions, "'WALLET'", 'Regular WALLET alias');
+const regularPaymentUtils = fs.readFileSync(
+  path.join(root, 'features/ride-search/utils/regularRidePayment.utils.ts'),
+  'utf8',
+);
+assertIncludes(regularPaymentUtils, "'PAY_AFTER_RIDE'", 'Regular Pay After Ride alias');
+assertIncludes(regularPaymentUtils, "'WALLET'", 'Regular WALLET request alias');
 assertIncludes(usePaymentOptions, 'resolveAssuredRequiredCoins', 'uses required-coins helper');
 assertIncludes(usePaymentOptions, 'refreshWallet', 'refreshes wallet after success');
 assertNotIncludes(usePaymentOptions, 'persistDemoBooking', 'no DemoData booking');

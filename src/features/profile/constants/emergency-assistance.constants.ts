@@ -31,6 +31,7 @@ export const EMERGENCY_ASSISTANCE_SCREEN = {
 
 export const EMPTY_EMERGENCY_RIDE: EmergencyRideSummary = {
   hasActiveRide: false,
+  rideId: null,
   role: null,
   driverName: 'No active ride',
   vehicleLabel: '—',

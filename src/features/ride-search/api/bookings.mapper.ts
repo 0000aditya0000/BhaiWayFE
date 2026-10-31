@@ -2,6 +2,7 @@ import type { ApiError } from '@/network/network.types';
 
 import type { BookingResponseDto, CancelBookingResultDto } from '../api/bookings.types';
 import { resolvePersonDisplayName } from '../api/bookingPersonName';
+import { resolvePersonPhotoUrl } from '../api/bookingPersonPhoto';
 import type { BookedRideDetails, BookingFareBreakdown, ReviewBookingData } from '../types';
 import {
   resolveBookingVehicleLabel,
@@ -13,9 +14,14 @@ import {
   parsePricePerSeat,
 } from '../utils/rideSearch.mapper';
 import {
+  couponErrorUserMessage,
+  isCouponAudienceMismatchError,
+} from '@/features/coupons/utils/couponErrors';
+import {
   isWomenOnlyRideError,
   WOMEN_ONLY_RIDE_MESSAGE,
 } from '@/shared/utils/womenOnlyRide';
+import { isWalletAccessForbiddenMessage } from '../utils/regularRidePayment.utils';
 
 const shortPlaceName = (value: string): string => {
   const segment = value.split(',')[0]?.trim();
@@ -184,7 +190,7 @@ export const mapBookingResponseToReviewOverlay = (
       subtitle: resolveBookingVehicleLabel(booking.vehicle),
       rating: 4.8,
       totalRides: 0,
-      avatarUri: booking.driver?.profilePhoto?.trim() || undefined,
+      avatarUri: resolvePersonPhotoUrl(booking.driver) || undefined,
     },
     maxPassengers: booking.seats,
   };
@@ -221,7 +227,17 @@ export const mapCreateBookingError = (error: unknown): string => {
     return WOMEN_ONLY_RIDE_MESSAGE;
   }
 
+  if (isCouponAudienceMismatchError(error, text)) {
+    return couponErrorUserMessage(error, text.trim() || 'This coupon is not eligible for this booking.');
+  }
+
   if (status === 403) {
+    if (isWalletAccessForbiddenMessage(text)) {
+      return (
+        text.trim() ||
+        'Your BhaiWay Wallet is locked. You cannot pay from wallet right now.'
+      );
+    }
     return (
       text.trim() ||
       'Identity verification is required before you can book a ride.'
@@ -235,6 +251,10 @@ export const mapCreateBookingError = (error: unknown): string => {
     );
   }
 
+  if (status === 404) {
+    return text.trim() || 'This ride is no longer available. Please search again.';
+  }
+
   if (status === 401) {
     return 'Your session expired. Please sign in again.';
   }
@@ -243,7 +263,7 @@ export const mapCreateBookingError = (error: unknown): string => {
     if (status === 422) {
       return (
         text.trim() ||
-        'Insufficient BhaiWay Coins for this Assured booking. Add coins and try again.'
+        'Insufficient BhaiWay Coins for this booking. Add coins and try again.'
       );
     }
     return text.trim() || 'Unable to complete this booking. Please check your details and try again.';

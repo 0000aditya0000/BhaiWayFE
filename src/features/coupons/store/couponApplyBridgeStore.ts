@@ -1,4 +1,4 @@
-import type { CouponChargeScope } from '../api/coupons.types';
+import type { CouponActorContext, CouponChargeScope } from '../api/coupons.types';
 
 /**
  * One-shot bridge: Available Coupons screen → Review booking screens.
@@ -61,6 +61,7 @@ export const couponApplyBridgeStore = {
 };
 
 export const buildCouponContextKey = (input: {
+  actorContext?: CouponActorContext;
   rideId: string;
   rideType: string;
   seats: number;
@@ -68,6 +69,7 @@ export const buildCouponContextKey = (input: {
   assuredFee: number;
 }): string =>
   [
+    input.actorContext ?? 'RIDER',
     input.rideId.trim(),
     String(input.rideType).trim().toLowerCase(),
     String(Math.max(1, Math.floor(input.seats))),

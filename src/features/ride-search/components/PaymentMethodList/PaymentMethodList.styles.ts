@@ -97,6 +97,19 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
+  sufficientHint: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#5C5F61',
+    marginTop: 2,
+  },
+  insufficientHint: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    color: colors.error,
+    marginTop: 2,
+  },
   radioOuter: {
     width: 20,
     height: 20,

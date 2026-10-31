@@ -74,6 +74,10 @@ export const useActiveRides = (): UseActiveRidesResult => {
       }
       const items = mapActiveRideItems(result.items);
       setState((current) => reduceActiveRidesSuccess(current, items));
+      const driverRide = items.find((item) => item.role === 'DRIVER' && item.rideId.trim());
+      if (driverRide) {
+        void driverLocationPublisher.ensure(driverRide.rideId);
+      }
       if (items.length === 0) {
         setExpanded(false);
       }

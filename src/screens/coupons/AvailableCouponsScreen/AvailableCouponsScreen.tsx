@@ -11,11 +11,11 @@ import { useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { CouponDto } from '@/features/coupons';
-import {
-  AVAILABLE_COUPONS_SCREEN,
-  formatCouponBenefitHeadline,
-} from '@/features/coupons/constants/available-coupons.constants';
+import { CouponTicketCard } from '@/features/coupons/components';
+import { AVAILABLE_COUPONS_SCREEN } from '@/features/coupons/constants/available-coupons.constants';
 import { useAvailableCoupons } from '@/features/coupons/hooks';
+import { buildAvailableCouponChips } from '@/features/coupons/utils/couponChips';
+import { resolveCouponActorContext } from '@/features/coupons/utils/couponAudience';
 import { IconButton, AppText as Text } from '@/shared/components';
 import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
 
@@ -26,21 +26,6 @@ const asNumber = (value: string | undefined, fallback = 0): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const formatDate = (value: string | null): string | null => {
-  if (!value) {
-    return null;
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return date.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-};
-
 export const AvailableCouponsScreen = () => {
   const params = useLocalSearchParams<{
     rideId?: string;
@@ -49,6 +34,7 @@ export const AvailableCouponsScreen = () => {
     assuredFee?: string;
     seats?: string;
     appliedCode?: string;
+    couponContext?: string;
   }>();
 
   const rideId = getSearchParam(params.rideId);
@@ -57,6 +43,10 @@ export const AvailableCouponsScreen = () => {
   const assuredFee = asNumber(getSearchParam(params.assuredFee), 0);
   const seats = Math.max(1, Math.floor(asNumber(getSearchParam(params.seats), 1)));
   const appliedCode = getSearchParam(params.appliedCode);
+  const actorContext = resolveCouponActorContext({
+    couponContext: getSearchParam(params.couponContext),
+    rideId,
+  });
 
   const {
     items,
@@ -76,6 +66,7 @@ export const AvailableCouponsScreen = () => {
     assuredFee,
     seats,
     appliedCode,
+    actorContext,
   });
 
   const handleBack = useCallback(() => {
@@ -87,101 +78,27 @@ export const AvailableCouponsScreen = () => {
     ({ item }: { item: CouponDto }) => {
       const isApplied = currentApplied === item.code;
       const isApplying = applyingCode === item.code;
-      const expires = formatDate(item.expiresAt);
-      const headline = formatCouponBenefitHeadline(item);
-      const benefit = String(item.benefitType ?? '').toUpperCase();
 
       return (
-        <View style={[styles.ticket, isApplied && styles.ticketApplied]}>
-          <View style={styles.ticketInner}>
-            <View style={[styles.accentRail, isApplied && styles.accentRailApplied]} />
-            <View style={styles.ticketBody}>
-              <View style={styles.ticketTop}>
-                <Text style={styles.headline}>{headline}</Text>
-                {isApplied ? (
-                  <View style={styles.appliedBadge}>
-                    <Text style={styles.appliedBadgeLabel}>
-                      {AVAILABLE_COUPONS_SCREEN.appliedLabel}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-              <Text style={styles.title}>{item.title}</Text>
-              {item.description ? (
-                <Text style={styles.description} numberOfLines={2}>
-                  {item.description}
-                </Text>
-              ) : null}
-              <View style={styles.metaRow}>
-                {item.minEligibleAmount ? (
-                  <View style={styles.metaChip}>
-                    <Ionicons name="wallet-outline" size={12} color={couponTokens.OUTLINE} />
-                    <Text style={styles.metaChipLabel}>
-                      {AVAILABLE_COUPONS_SCREEN.minAmountPrefix} {item.minEligibleAmount}
-                    </Text>
-                  </View>
-                ) : null}
-                {item.maxDiscountAmount && benefit === 'PERCENTAGE_DISCOUNT' ? (
-                  <View style={styles.metaChip}>
-                    <Ionicons name="pricetag-outline" size={12} color={couponTokens.OUTLINE} />
-                    <Text style={styles.metaChipLabel}>
-                      {AVAILABLE_COUPONS_SCREEN.maxDiscountPrefix} {item.maxDiscountAmount}
-                    </Text>
-                  </View>
-                ) : null}
-                {expires ? (
-                  <View style={styles.metaChip}>
-                    <Ionicons name="calendar-outline" size={12} color={couponTokens.OUTLINE} />
-                    <Text style={styles.metaChipLabel}>
-                      {AVAILABLE_COUPONS_SCREEN.expiresPrefix} {expires}
-                    </Text>
-                  </View>
-                ) : null}
-                {benefit === 'POINTS_CREDIT' ? (
-                  <View style={styles.metaChip}>
-                    <Ionicons name="gift-outline" size={12} color={couponTokens.OUTLINE} />
-                    <Text style={styles.metaChipLabel}>
-                      {AVAILABLE_COUPONS_SCREEN.pointsCreditHint}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.perforated}>
-            <View style={styles.notchLeft} />
-            <View style={styles.dashLine} />
-            <View style={styles.notchRight} />
-          </View>
-
-          <View style={styles.ticketFooter}>
-            <View style={styles.codeBox}>
-              <Text style={styles.codeBoxLabel}>{item.code}</Text>
-            </View>
-            <Pressable
-              style={[
-                styles.applyButton,
-                (isApplying || Boolean(applyingCode)) && styles.applyButtonDisabled,
-                isApplied && styles.applyButtonApplied,
-              ]}
-              disabled={Boolean(applyingCode) || isApplied}
-              onPress={() => void applyCoupon(item)}
-              accessibilityRole="button"
-              accessibilityLabel={`Apply coupon ${item.code}`}
-            >
-              {isApplying ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={[styles.applyLabel, isApplied && styles.applyLabelApplied]}>
-                  {isApplied
-                    ? AVAILABLE_COUPONS_SCREEN.appliedLabel
-                    : AVAILABLE_COUPONS_SCREEN.applyLabel}
-                </Text>
-              )}
-            </Pressable>
-          </View>
-        </View>
+        <CouponTicketCard
+          coupon={item}
+          chips={buildAvailableCouponChips(item)}
+          badge={
+            isApplied
+              ? { label: AVAILABLE_COUPONS_SCREEN.appliedLabel, tone: 'applied' }
+              : undefined
+          }
+          ctaLabel={
+            isApplied
+              ? AVAILABLE_COUPONS_SCREEN.appliedLabel
+              : AVAILABLE_COUPONS_SCREEN.applyLabel
+          }
+          ctaBusy={isApplying}
+          ctaDisabled={Boolean(applyingCode) || isApplied}
+          ctaVariant={isApplied ? 'applied' : 'apply'}
+          onPressCta={() => void applyCoupon(item)}
+          accessibilityLabel={`Apply coupon ${item.code}`}
+        />
       );
     },
     [applyCoupon, applyingCode, currentApplied],
@@ -199,6 +116,8 @@ export const AvailableCouponsScreen = () => {
     [items.length],
   );
 
+  const isDriver = actorContext === 'DRIVER';
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <View style={styles.header}>
@@ -212,7 +131,11 @@ export const AvailableCouponsScreen = () => {
           <Text style={styles.headerTitle} accessibilityRole="header">
             {AVAILABLE_COUPONS_SCREEN.title}
           </Text>
-          <Text style={styles.headerSubtitle}>{AVAILABLE_COUPONS_SCREEN.subtitle}</Text>
+          <Text style={styles.headerSubtitle}>
+            {isDriver
+              ? AVAILABLE_COUPONS_SCREEN.driverSubtitle
+              : AVAILABLE_COUPONS_SCREEN.subtitle}
+          </Text>
         </View>
       </View>
 
@@ -255,7 +178,11 @@ export const AvailableCouponsScreen = () => {
                 <Ionicons name="ticket-outline" size={32} color={couponTokens.PRIMARY} />
               </View>
               <Text style={styles.emptyTitle}>{AVAILABLE_COUPONS_SCREEN.emptyTitle}</Text>
-              <Text style={styles.emptyMessage}>{AVAILABLE_COUPONS_SCREEN.emptyMessage}</Text>
+              <Text style={styles.emptyMessage}>
+                {isDriver
+                  ? AVAILABLE_COUPONS_SCREEN.driverEmptyMessage
+                  : AVAILABLE_COUPONS_SCREEN.emptyMessage}
+              </Text>
             </View>
           }
         />

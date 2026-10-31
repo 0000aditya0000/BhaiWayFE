@@ -1,7 +1,15 @@
 import type { BookingResponseDto } from '@/features/ride-search/api/bookings.types';
 import { resolvePersonDisplayName } from '@/features/ride-search/api/bookingPersonName';
-import { formatApiDepartureTime } from '@/features/ride-search/utils';
-import { resolvePassengerContactPhone } from '@/features/ride-search/utils/bookingContactPhone';
+import { resolvePersonPhotoUrl } from '@/features/ride-search/api/bookingPersonPhoto';
+import { formatApiDepartureTime } from '@/features/ride-search/utils/rideSearch.mapper';
+import {
+  contactSnapshotKeys,
+  resolvePassengerContactPhone,
+} from '@/features/ride-search/utils/bookingContactPhone';
+import {
+  formatPaymentStatusDisplayLabel,
+  formatRegularRidePaymentMethodLabel,
+} from '@/features/ride-search/utils/regularRidePayment.utils';
 
 import { DEFAULT_PROFILE_AVATAR } from '../constants/my-rides.constants';
 import type { ActiveTripPassenger } from '../types/active-trip.types';
@@ -140,7 +148,7 @@ export const mapDriverBookingToPendingRequest = (
     subtitle: subtitleParts.join(' · '),
     rating,
     idVerified: resolvePassengerVerified(booking),
-    avatarUri: booking.passenger?.profilePhoto?.trim() || DEFAULT_PROFILE_AVATAR,
+    avatarUri: resolvePersonPhotoUrl(booking.passenger) || DEFAULT_PROFILE_AVATAR,
     seatsBooked,
     fareTotal: fareTotal > 0 ? fareTotal : undefined,
     fareLabel: fareTotal > 0 ? `₹${fareTotal}` : undefined,
@@ -232,24 +240,11 @@ export const sumActiveBookedSeats = (
     return sum + seats;
   }, 0);
 
-export const formatPaymentMethodLabel = (method: string | undefined): string => {
-  const normalized = String(method ?? '').trim().toUpperCase();
-  if (normalized === 'PAY_LATER') {
-    return 'Pay After Ride';
-  }
-  if (normalized === 'PAY_NOW') {
-    return 'Paid Now';
-  }
-  return method?.trim() || '';
-};
+export const formatPaymentMethodLabel = (method: string | undefined): string =>
+  formatRegularRidePaymentMethodLabel(method);
 
-export const formatPaymentStatusLabel = (status: string | undefined): string => {
-  const normalized = String(status ?? '').trim().toUpperCase();
-  if (!normalized) {
-    return '';
-  }
-  return normalized;
-};
+export const formatPaymentStatusLabel = (status: string | undefined): string =>
+  formatPaymentStatusDisplayLabel(status);
 
 const formatBookingTimeLabel = (iso: string | undefined): string => {
   if (!iso?.trim()) {
@@ -276,11 +271,7 @@ export const resolvePassengerDisplayName = (
 ): string => resolvePersonDisplayName(booking.passenger);
 
 const resolvePassengerPhone = (booking: BookingResponseDto): string | undefined => {
-  const raw =
-    asTrimmed(booking.passenger?.phone) ||
-    asTrimmed(booking.passenger?.phoneNumber) ||
-    asTrimmed(booking.passenger?.mobile) ||
-    '';
+  const raw = resolvePassengerContactPhone(booking);
   return raw || undefined;
 };
 
@@ -329,7 +320,7 @@ export const mapDriverBookingToRider = (
 ): UpcomingRideRider => {
   const passengerName = resolvePassengerDisplayName(booking) || 'Passenger';
   const avatarUri =
-    booking.passenger?.profilePhoto?.trim() || DEFAULT_PROFILE_AVATAR;
+    resolvePersonPhotoUrl(booking.passenger) || DEFAULT_PROFILE_AVATAR;
 
   return {
     id: booking.id,
@@ -354,6 +345,14 @@ export const mapDriverBookingToConfirmedPassenger = (
   const phone = resolvePassengerPhone(booking);
   const resolvedName = resolvePassengerDisplayName(booking);
 
+  if (!phone) {
+    console.log('[Ride Details] passenger phone missing on booking', {
+      bookingId: booking.id,
+      passengerId: booking.passengerId,
+      passengerKeys: contactSnapshotKeys(booking.passenger),
+    });
+  }
+
   if (!resolvedName) {
     console.log('[Driver bookings] passenger name missing on booking', {
       bookingId: booking.id,
@@ -371,7 +370,7 @@ export const mapDriverBookingToConfirmedPassenger = (
     name: resolvedName || 'Passenger',
     subtitle: buildDriverBookingSubtitle(booking),
     verified: resolvePassengerVerified(booking),
-    avatarUri: booking.passenger?.profilePhoto?.trim() || DEFAULT_PROFILE_AVATAR,
+    avatarUri: resolvePersonPhotoUrl(booking.passenger) || DEFAULT_PROFILE_AVATAR,
     seatsBooked,
     bookingStatus,
     paymentStatus,
@@ -393,7 +392,7 @@ export const mapDriverBookingToActiveTripPassenger = (
   return {
     id: booking.id,
     name: resolvePassengerDisplayName(booking) || 'Passenger',
-    avatarUri: booking.passenger?.profilePhoto?.trim() || DEFAULT_PROFILE_AVATAR,
+    avatarUri: resolvePersonPhotoUrl(booking.passenger) || DEFAULT_PROFILE_AVATAR,
     isOnline: pickupStatus === 'PICKED_UP',
   };
 };

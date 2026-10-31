@@ -6,6 +6,10 @@ import type {
 } from '../api/coupons.types';
 import { resolveApplyChargeScope } from './couponFare.utils';
 import {
+  couponErrorUserMessage,
+  isCouponAudienceMismatchError,
+} from './couponErrors';
+import {
   resolveCouponEligibleAmount,
   toCouponRideType,
 } from './coupons.mapper';
@@ -139,6 +143,9 @@ export const previewCouponForBooking = async (input: {
         lastMessage =
           preview.message ||
           'This coupon is invalid, expired, or not eligible for this ride.';
+        if (isCouponAudienceMismatchError(preview.raw ?? preview, lastMessage)) {
+          return { ok: false, message: lastMessage };
+        }
         if (isChargeScopeMismatch(lastMessage) && index < scopes.length - 1) {
           continue;
         }
@@ -164,11 +171,11 @@ export const previewCouponForBooking = async (input: {
 
       return { ok: true, applied };
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Could not validate this coupon.';
+      const message = couponErrorUserMessage(error, 'Could not validate this coupon.');
       lastMessage = message;
+      if (isCouponAudienceMismatchError(error, message)) {
+        return { ok: false, message: lastMessage };
+      }
       if (isChargeScopeMismatch(message) && index < scopes.length - 1) {
         continue;
       }

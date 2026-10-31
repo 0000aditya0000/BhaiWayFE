@@ -8,6 +8,14 @@ export { RoutePolyline } from './RoutePolyline';
 export { decodeGooglePolyline } from './decodeGooglePolyline';
 
 export { useDeviceLocation } from './useDeviceLocation';
+export {
+  CURRENT_LOCATION_ALERTS,
+  getCurrentDeviceCoordinate,
+} from './getCurrentDeviceCoordinate';
+export type {
+  CurrentDeviceCoordinateResult,
+  CurrentLocationFailureReason,
+} from './getCurrentDeviceCoordinate';
 export type {
   UseDeviceLocationOptions,
   UseDeviceLocationResult,

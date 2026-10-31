@@ -9,9 +9,17 @@ export const LOCATION_POST_MIN_METERS = 12;
 export const SOCKET_EMIT_MIN_MS = 2500;
 export const SOCKET_EMIT_MIN_METERS = 8;
 export const RIDE_STATUS_POLL_MS = 5000;
+/**
+ * iOS `watchPositionAsync` ignores `timeInterval`. A non-zero distance filter
+ * suppresses all updates while the driver is stationary (typical after Start Ride).
+ */
+export const IOS_WATCH_DISTANCE_INTERVAL_M = 0;
+export const LOCATION_HEARTBEAT_MS = 5000;
 /** Do not POST a buffered fix older than one REST interval as if it were current. */
 export const BUFFERED_SAMPLE_MAX_AGE_MS = 12_000;
 export const LOCATION_STALE_MS = 45_000;
+/** Unix-ms timestamps are ~1e12; CoreLocation/Expo sometimes still report seconds. */
+export const UNIX_SECONDS_TIMESTAMP_MAX = 100_000_000_000;
 
 export const IN_PROGRESS_STATUS = 'IN_PROGRESS';
 
@@ -165,6 +173,71 @@ export const shouldStartNativeLocationUpdates = (args: {
   platform: string;
   foregroundGranted: boolean;
 }): boolean => args.platform !== 'web' && args.foregroundGranted;
+
+export const foregroundWatchDistanceInterval = (platform: string): number =>
+  platform === 'ios' ? IOS_WATCH_DISTANCE_INTERVAL_M : SOCKET_EMIT_MIN_METERS;
+
+/** Convert Expo/CoreLocation timestamps to epoch milliseconds. */
+export const normalizeLocationTimestampMs = (
+  timestamp: number | null | undefined,
+  nowMs = Date.now(),
+): number => {
+  if (typeof timestamp !== 'number' || !Number.isFinite(timestamp) || timestamp <= 0) {
+    return nowMs;
+  }
+  if (timestamp < UNIX_SECONDS_TIMESTAMP_MAX) {
+    return Math.round(timestamp * 1000);
+  }
+  return timestamp;
+};
+
+/**
+ * iOS often returns a cached GPS fix whose timestamp is minutes old.
+ * Publishing that stamp makes Redis/socket reject the sample as stale, and
+ * `shouldRetryBufferedSample` drops the REST backup. Use "now" when the fix
+ * is too old or in the future.
+ */
+export const resolvePublishTimestampMs = (
+  sampleTimestampMs: number,
+  nowMs = Date.now(),
+): number => {
+  const normalized = normalizeLocationTimestampMs(sampleTimestampMs, nowMs);
+  const age = nowMs - normalized;
+  if (age > BUFFERED_SAMPLE_MAX_AGE_MS || age < -5_000) {
+    return nowMs;
+  }
+  return normalized;
+};
+
+/** Only advance the socket throttle clock when the emit actually left the device. */
+export const shouldUpdateLastSocketPublish = (emitted: boolean): boolean => emitted;
+
+export const shouldFlushPendingSocketSample = (args: {
+  connected: boolean;
+  hasPendingOrLastSample: boolean;
+}): boolean => args.connected && args.hasPendingOrLastSample;
+
+const DRIVER_DIAGNOSTIC_ALWAYS = new Set([
+  'started',
+  'stopped',
+  'permission',
+  'watcher_started',
+  'first_gps',
+  'socket_disconnected',
+  'socket_reconnected',
+]);
+
+export const shouldEmitDriverDiagnostic = (args: {
+  event: string;
+  lastAtMs: number;
+  nowMs: number;
+  minIntervalMs?: number;
+}): boolean => {
+  if (DRIVER_DIAGNOSTIC_ALWAYS.has(args.event)) {
+    return true;
+  }
+  return args.nowMs - args.lastAtMs >= (args.minIntervalMs ?? 8_000);
+};
 
 export const mapDriverPermissionMessage = (
   kind: LocationPermissionKind,

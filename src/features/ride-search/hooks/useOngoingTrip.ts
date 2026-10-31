@@ -211,8 +211,12 @@ export const useOngoingTrip = (params: UseOngoingTripParams): UseOngoingTripResu
   }, [router]);
 
   const triggerSos = useCallback(() => {
-    router.push(ROUTES.emergencyAssistance);
-  }, [router]);
+    const rideId = params.rideId.trim();
+    router.push({
+      pathname: ROUTES.emergencyAssistance,
+      params: rideId && rideId !== 'ride-default' ? { rideId } : undefined,
+    });
+  }, [params.rideId, router]);
 
   const completeTrip = useCallback(() => {
     void navigateAfterTripCompletion();

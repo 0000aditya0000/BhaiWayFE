@@ -1,5 +1,6 @@
 import type { ApiError } from '@/network/network.types';
 
+import { resolvePersonPhotoUrl } from '../api/bookingPersonPhoto';
 import type { RideSearchItemDto } from '../api/ridesSearch.types';
 import type { RideFeature, RideResultItem, RideVehicleSummary } from '../types';
 import {
@@ -101,7 +102,7 @@ export const mapRideSearchItemToResult = (item: RideSearchItemDto): RideResultIt
       rating: rating.averageRating,
       totalRatings: rating.totalRatings,
       verified,
-      avatarUri: item.driver.profilePhoto?.trim() || undefined,
+      avatarUri: resolvePersonPhotoUrl(item.driver) || undefined,
       recentRides: mapDriverRecentRidesFromSearch(item.driver.recentRides),
     },
     vehicle,

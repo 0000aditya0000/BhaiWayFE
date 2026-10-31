@@ -118,6 +118,36 @@ const emptyDriverMapped = mapRideSearchItemToResult({
 });
 assertEqual(emptyDriverMapped.driver.rating, 0, 'zero rating when none');
 assertEqual(emptyDriverMapped.driver.recentRides.length, 0, 'empty recent rides when none');
+assertEqual(emptyDriverMapped.driver.avatarUri, undefined, 'no dummy photo when omitted');
+
+const cloudinaryPhotoMapped = mapRideSearchItemToResult({
+  ...sampleItem,
+  driver: {
+    ...sampleItem.driver,
+    profilePhoto: {
+      secureUrl: 'https://res.cloudinary.com/bhaiway/rahul.jpg',
+    } as unknown as string,
+  },
+});
+assertEqual(
+  cloudinaryPhotoMapped.driver.avatarUri,
+  'https://res.cloudinary.com/bhaiway/rahul.jpg',
+  'Cloudinary profilePhoto object maps to avatarUri',
+);
+
+const aliasPhotoMapped = mapRideSearchItemToResult({
+  ...sampleItem,
+  driver: {
+    ...sampleItem.driver,
+    profilePhoto: null,
+    profilePicture: 'https://cdn.example/picture.jpg',
+  },
+});
+assertEqual(
+  aliasPhotoMapped.driver.avatarUri,
+  'https://cdn.example/picture.jpg',
+  'profilePicture alias maps to avatarUri',
+);
 
 const topLevelItem = {
   ...sampleItem,

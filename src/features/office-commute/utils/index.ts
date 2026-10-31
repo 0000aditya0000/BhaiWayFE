@@ -9,6 +9,15 @@ export {
   resolveCommuteRiderPricePerSeat,
 } from './commuteBooking.utils';
 export { mapCommuteSearchItemsToResults, mapRideSearchItemToCommuteResult } from './mapCommuteRideSearch';
+export {
+  clampDatesToWindow,
+  commutePublishWindow,
+  datesInWindowForWeekdays,
+  formatOccurrenceDateField,
+  occurrenceDatesFromDraft,
+  weekdaysFromDates,
+  COMMUTE_PUBLISH_WINDOW_DAYS,
+} from './commuteCalendar.utils';
 export { mapPublishCommuteDraftToCreateRide } from './createCommuteRide.mapper';
 export type { MapCommuteCreateRideResult } from './createCommuteRide.mapper';
 export {

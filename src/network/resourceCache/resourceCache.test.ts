@@ -9,6 +9,8 @@ import {
   invalidateVehiclesCache,
   invalidateWalletCache,
   invalidateAfterAadhaarVerification,
+  mergeVehicleIntoListCache,
+  patchVehicleInListCache,
 } from './invalidateResources';
 import { resourceCache } from './resourceCache';
 
@@ -191,6 +193,35 @@ const run = async (): Promise<void> => {
   resourceCache.setData(cacheKeys.vehicles.list(), []);
   invalidateVehiclesCache();
   assertEqual(resourceCache.peek(cacheKeys.vehicles.list()), undefined, 'vehicles invalidate');
+
+  resourceCache.setData(cacheKeys.vehicles.list(), [
+    { id: 'veh-a', make: 'Honda' },
+    { id: 'veh-b', make: 'Tata' },
+  ]);
+  mergeVehicleIntoListCache({ id: 'veh-c', make: 'Hyundai' });
+  const mergedList = resourceCache.peek<Array<{ id: string; make: string }>>(
+    cacheKeys.vehicles.list(),
+  );
+  assertEqual(mergedList?.length, 3, 'merge appends created vehicle');
+  assertEqual(mergedList?.[2]?.id, 'veh-c', 'created vehicle is last');
+  mergeVehicleIntoListCache({ id: 'veh-c', make: 'Hyundai i20' });
+  assertEqual(
+    resourceCache.peek<Array<{ id: string; make: string }>>(cacheKeys.vehicles.list())?.length,
+    3,
+    'merge does not duplicate same vehicle id',
+  );
+  patchVehicleInListCache('veh-a', { make: 'Honda City' });
+  patchVehicleInListCache('veh-b', { make: 'Tata' });
+  assertEqual(
+    resourceCache.peek<Array<{ id: string; make: string }>>(cacheKeys.vehicles.list())?.[0]?.make,
+    'Honda City',
+    'patch updates only the targeted vehicle',
+  );
+  assertEqual(
+    resourceCache.peek<Array<{ id: string; make: string }>>(cacheKeys.vehicles.list())?.[1]?.make,
+    'Tata',
+    'patch leaves other vehicles unchanged',
+  );
 
   resourceCache.setData(cacheKeys.user.me(), {});
   resourceCache.setData(cacheKeys.verification.me(), {});
