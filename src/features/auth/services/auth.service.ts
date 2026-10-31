@@ -19,25 +19,26 @@ import {
 
 type OtpPayloadWithReq = RequestOtpPayload & { verificationId?: string };
 
-/** Prefer MSG91 whenever enabled + credentials exist — never mock OTP in that case. */
-const useMsg91Otp = env.useMsg91Otp && otpService.isConfigured();
-const otpImpl = useMsg91Otp ? authMsg91 : env.useMocks ? authMock : authApi;
-/** Profile is a BhaiWay API, not MSG91. Never mock it when MSG91 auth is active. */
-const profileImpl = env.useMocks && !useMsg91Otp ? authMock : authApi;
+/** Widget credentials are optional — live API send/verify is backend-owned MSG91. */
+const useMsg91Widget = env.useMsg91Otp && otpService.isConfigured();
+const otpImpl = useMsg91Widget ? authMsg91 : env.useMocks ? authMock : authApi;
+/** Profile is a BhaiWay API, not MSG91. Never mock it when live auth is active. */
+const profileImpl = env.useMocks && !useMsg91Widget ? authMock : authApi;
 
-/** Profile/user APIs use BhaiWay backend when MSG91 auth is active. */
-const userImpl = env.useMocks && !useMsg91Otp ? authMock : usersApi;
+/** Profile/user APIs use BhaiWay backend when live auth is active. */
+const userImpl = env.useMocks && !useMsg91Widget ? authMock : usersApi;
 
 console.log('[Auth OTP] provider', {
-  provider: useMsg91Otp ? 'msg91' : env.useMocks ? 'mock-bypass' : 'api',
+  provider: useMsg91Widget ? 'msg91-widget' : env.useMocks ? 'mock-bypass' : 'api',
   useMsg91Otp: env.useMsg91Otp,
   msg91Configured: otpService.isConfigured(),
+  useMocks: env.useMocks,
 });
 
 export const authService = {
   requestOtp: async (payload: RequestOtpPayload): Promise<RequestOtpResult> => {
     console.log('[Auth OTP] requestOtp entry', {
-      provider: useMsg91Otp ? 'msg91' : env.useMocks ? 'mock' : 'api',
+      provider: useMsg91Widget ? 'msg91-widget' : env.useMocks ? 'mock' : 'api',
       phoneNumber: payload.phoneNumber,
       dialCode: payload.dialCode,
     });
@@ -53,7 +54,7 @@ export const authService = {
 
   verifyOtp: async (payload: VerifyOtpPayload): Promise<AuthSession> => {
     console.log('[Auth OTP] verifyOtp entry', {
-      provider: useMsg91Otp ? 'msg91' : env.useMocks ? 'mock' : 'api',
+      provider: useMsg91Widget ? 'msg91-widget' : env.useMocks ? 'mock' : 'api',
       phoneNumber: payload.phoneNumber,
       verificationId: payload.verificationId,
       codeLength: payload.code?.length ?? 0,
@@ -74,12 +75,12 @@ export const authService = {
 
   resendOtp: async (payload: OtpPayloadWithReq): Promise<RequestOtpResult> => {
     console.log('[Auth OTP] resendOtp entry', {
-      provider: useMsg91Otp ? 'msg91' : env.useMocks ? 'mock' : 'api',
+      provider: useMsg91Widget ? 'msg91-widget' : env.useMocks ? 'mock' : 'api',
       phoneNumber: payload.phoneNumber,
       verificationId: payload.verificationId,
     });
     try {
-      const result = useMsg91Otp
+      const result = useMsg91Widget
         ? await authMsg91.resendOtp(payload)
         : await otpImpl.requestOtp(payload);
       console.log('[Auth OTP] resendOtp response', result);

@@ -1,14 +1,12 @@
 export const ENDPOINTS = {
   auth: {
-    requestOtp: '/auth/otp/request',
-    verifyOtp: '/auth/otp/verify',
     /**
-     * Acknowledge / send OTP for MSG91 login.
-     * Play Store review phone: backend acknowledges without SMS.
+     * Backend-owned OTP send (MSG91 keys live on the server).
+     * Same route Android uses — there is no `/auth/otp/request` on the API.
      */
     msg91Send: '/auth/msg91/send',
     /**
-     * Exchange MSG91 widget access-token (or review phone+otp) for BhaiWay JWT.
+     * Exchange phone+OTP (or MSG91 widget access-token) for a BhaiWay JWT.
      */
     msg91Verify: '/auth/msg91/verify',
   },

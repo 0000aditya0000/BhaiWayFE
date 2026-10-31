@@ -15,6 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
+      "appleTeamId": "VYTYGLM7TC",
       "bundleIdentifier": "com.bhaiway.app",
       "buildNumber": "1",
       "config": {
@@ -30,7 +31,7 @@
           "remote-notification",
           "location"
         ],
-        "UIViewControllerBasedStatusBarAppearance": true
+        "UIViewControllerBasedStatusBarAppearance": false
       },
       "googleServicesFile": "./GoogleService-Info.plist"
     },
@@ -127,7 +128,10 @@
           "isAndroidForegroundServiceEnabled": true
         }
       ],
-      "expo-task-manager"
+      "expo-task-manager",
+      "@maplibre/maplibre-react-native",
+      "expo-ios-scene-lifecycle-plugin",
+      "./plugins/withIosMinDeploymentTarget"
     ],
     "runtimeVersion": {
       "policy": "appVersion"

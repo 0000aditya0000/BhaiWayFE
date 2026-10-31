@@ -25,7 +25,13 @@ const DEFAULT_EDGE_PADDING = {
 };
 
 /**
- * Shared Google Map surface for BhaiWay screens.
+ * Android always uses Google Maps. iOS uses Apple Maps unless AirGoogleMaps
+ * is linked in the native project (`react-native-maps` iOS Google plugin + rebuild).
+ */
+const NATIVE_MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
+
+/**
+ * Shared map surface for BhaiWay screens.
  * Falls back to MapBypassSurface when Maps are bypassed / unconfigured.
  */
 export const BhaiWayMap = React.memo(
@@ -151,7 +157,7 @@ export const BhaiWayMap = React.memo(
         <MapView
           ref={mapRef}
           style={StyleSheet.absoluteFill}
-          provider={PROVIDER_GOOGLE}
+          provider={NATIVE_MAP_PROVIDER}
           initialRegion={resolvedInitialRegion}
           onMapReady={handleMapReady}
           onRegionChangeComplete={onRegionChangeComplete}

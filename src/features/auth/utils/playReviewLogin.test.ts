@@ -110,6 +110,12 @@ const readAuthSource = (relativePath: string): string =>
   assert.match(msg91Source, /buildMsg91VerifyPayload/);
   assert.match(msg91Source, /isPlayReviewPhone/);
   assert.doesNotMatch(msg91Source, /Review Login|Demo Login|Google reviewer|review account/i);
+
+  const apiSource = readAuthSource('api/auth.api.ts');
+  assert.match(apiSource, /ENDPOINTS\.auth\.msg91Send/);
+  assert.match(apiSource, /ENDPOINTS\.auth\.msg91Verify/);
+  assert.doesNotMatch(apiSource, /\/auth\/otp\/request/);
+  assert.doesNotMatch(apiSource, /ENDPOINTS\.auth\.requestOtp/);
 }
 
 // ─── TEST 6: OTP is never persisted / logged as a value ───────────────────

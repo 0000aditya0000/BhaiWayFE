@@ -1,31 +1,29 @@
+
 /**
  * Expo app config — loads Maps keys from `.env` (EXPO_PUBLIC_*).
  * Do not commit real API keys into app.json; set them in `.env` instead.
  *
  * Firebase Cloud Messaging (push):
- *   Place native Firebase app configs at repo root (do NOT commit backend service accounts):
+ *   Place native Firebase app configs at repo root:
  *     ./google-services.json          (Android, package com.bhaiway.app)
  *     ./GoogleService-Info.plist      (iOS, bundle com.bhaiway.app)
- *   Then rebuild with EAS / prebuild. Expo Go cannot register FCM tokens.
  *
  * Then restart: npx expo start -c
- *
- * `config` is the static Expo config from app.json.
  */
+
 const fs = require('fs');
 const path = require('path');
 
 const firstNonEmpty = (...values) => {
   for (const value of values) {
-    if (typeof value !== 'string') {
-      continue;
-    }
+    if (typeof value !== 'string') continue;
+
     const trimmed = value.trim();
-    if (!trimmed || trimmed.startsWith('YOUR_')) {
-      continue;
-    }
+    if (!trimmed || trimmed.startsWith('YOUR_')) continue;
+
     return trimmed;
   }
+
   return '';
 };
 
@@ -43,27 +41,31 @@ const googlePlacesApiKey = firstNonEmpty(
   process.env.GOOGLE_MAPS_API_KEY,
 );
 
-/** One key is enough for both Maps SDK and Places if APIs are enabled on that key. */
 const mapsKey = googleMapsApiKey || googlePlacesApiKey;
 
-const androidGoogleServices = path.join(__dirname, 'google-services.json');
-const iosGoogleServices = path.join(__dirname, 'GoogleService-Info.plist');
+const androidGoogleServices = path.join(
+  __dirname,
+  'google-services.json',
+);
+const iosGoogleServices = path.join(
+  __dirname,
+  'GoogleService-Info.plist',
+);
 
 /**
- * Resolve Firebase client configs for local + EAS builds.
- * File secrets (EAS): set env GOOGLE_SERVICES_JSON / GOOGLE_SERVICE_INFO_PLIST
- * to the secret file path — copied to repo root so Gradle/plugins find them.
- * Without these files, getDevicePushTokenAsync fails in release APKs (OTA cannot add FCM).
+ * Resolve Firebase client configs for local and EAS builds.
  */
 const ensureFirebaseClientFile = (destPath, envVarNames, label) => {
-  if (fs.existsSync(destPath)) {
-    return true;
-  }
+  if (fs.existsSync(destPath)) return true;
+
   for (const envName of envVarNames) {
-    const fromEnv = typeof process.env[envName] === 'string' ? process.env[envName].trim() : '';
-    if (!fromEnv || !fs.existsSync(fromEnv)) {
-      continue;
-    }
+    const fromEnv =
+      typeof process.env[envName] === 'string'
+        ? process.env[envName].trim()
+        : '';
+
+    if (!fromEnv || !fs.existsSync(fromEnv)) continue;
+
     try {
       fs.copyFileSync(fromEnv, destPath);
       console.log(`[app.config] Copied ${label} from $${envName}`);
@@ -75,6 +77,7 @@ const ensureFirebaseClientFile = (destPath, envVarNames, label) => {
       );
     }
   }
+
   return false;
 };
 
@@ -83,9 +86,14 @@ const hasAndroidGoogleServices = ensureFirebaseClientFile(
   ['GOOGLE_SERVICES_JSON', 'GOOGLE_SERVICES_JSON_PATH'],
   'google-services.json',
 );
+
 const hasIosGoogleServices = ensureFirebaseClientFile(
   iosGoogleServices,
-  ['GOOGLE_SERVICE_INFO_PLIST', 'GOOGLE_SERVICES_PLIST', 'GOOGLE_SERVICE_INFO_PLIST_PATH'],
+  [
+    'GOOGLE_SERVICE_INFO_PLIST',
+    'GOOGLE_SERVICES_PLIST',
+    'GOOGLE_SERVICE_INFO_PLIST_PATH',
+  ],
   'GoogleService-Info.plist',
 );
 
@@ -97,17 +105,22 @@ if (!hasAndroidGoogleServices) {
 }
 
 /**
- * Fail early (before Gradle) when Firebase client package/bundle does not match
- * Expo android.package / ios.bundleIdentifier. Prevents opaque
- * `:app:processReleaseGoogleServices` failures on EAS.
+ * Validate Firebase client configuration against Expo identifiers.
  */
 const assertFirebaseClientMatchesApp = (androidPackage, iosBundleId) => {
   if (fs.existsSync(androidGoogleServices)) {
     try {
-      const googleServices = JSON.parse(fs.readFileSync(androidGoogleServices, 'utf8'));
+      const googleServices = JSON.parse(
+        fs.readFileSync(androidGoogleServices, 'utf8'),
+      );
+
       const packages = (googleServices.client || [])
-        .map((client) => client?.client_info?.android_client_info?.package_name)
+        .map(
+          (client) =>
+            client?.client_info?.android_client_info?.package_name,
+        )
         .filter(Boolean);
+
       if (packages.length > 0 && !packages.includes(androidPackage)) {
         throw new Error(
           [
@@ -120,18 +133,24 @@ const assertFirebaseClientMatchesApp = (androidPackage, iosBundleId) => {
         );
       }
     } catch (error) {
-      if (error && typeof error.message === 'string' && error.message.includes('google-services.json')) {
+      if (
+        error &&
+        typeof error.message === 'string' &&
+        error.message.includes('google-services.json')
+      ) {
         throw error;
       }
-      // Ignore unreadable/malformed file here; Gradle still validates later.
     }
   }
 
   if (fs.existsSync(iosGoogleServices)) {
     try {
       const plist = fs.readFileSync(iosGoogleServices, 'utf8');
-      const bundleMatch = plist.match(/<key>BUNDLE_ID<\/key>\s*<string>([^<]+)<\/string>/);
+      const bundleMatch = plist.match(
+        /<key>BUNDLE_ID<\/key>\s*<string>([^<]+)<\/string>/,
+      );
       const plistBundle = bundleMatch?.[1]?.trim();
+
       if (plistBundle && plistBundle !== iosBundleId) {
         throw new Error(
           [
@@ -141,7 +160,11 @@ const assertFirebaseClientMatchesApp = (androidPackage, iosBundleId) => {
         );
       }
     } catch (error) {
-      if (error && typeof error.message === 'string' && error.message.includes('GoogleService-Info.plist')) {
+      if (
+        error &&
+        typeof error.message === 'string' &&
+        error.message.includes('GoogleService-Info.plist')
+      ) {
         throw error;
       }
     }
@@ -149,12 +172,37 @@ const assertFirebaseClientMatchesApp = (androidPackage, iosBundleId) => {
 };
 
 module.exports = ({ config }) => {
-  const androidPackage = config?.android?.package || 'com.bhaiway.app';
-  const iosBundleId = config?.ios?.bundleIdentifier || 'com.bhaiway.app';
+  const androidPackage =
+    config?.android?.package || 'com.bhaiway.app';
+
+  const iosBundleId =
+    config?.ios?.bundleIdentifier || 'com.bhaiway.app';
+
   assertFirebaseClientMatchesApp(androidPackage, iosBundleId);
+
+  const existingPlugins = config.plugins ?? [];
+
+  // Avoid adding the build-properties plugin more than once.
+  const plugins = existingPlugins.filter(
+    (plugin) =>
+      (typeof plugin === 'string' ? plugin : plugin?.[0]) !==
+      'expo-build-properties',
+  );
+
+  plugins.push([
+    'expo-build-properties',
+    {
+      ios: {
+        deploymentTarget: '15.1',
+      },
+    },
+  ]);
 
   return {
     ...config,
+
+    plugins,
+
     ios: {
       ...config.ios,
       ...(hasIosGoogleServices
@@ -162,9 +210,11 @@ module.exports = ({ config }) => {
         : { googleServicesFile: undefined }),
       config: {
         ...(config.ios?.config ?? {}),
-        googleMapsApiKey: mapsKey || config.ios?.config?.googleMapsApiKey || '',
+        googleMapsApiKey:
+          mapsKey || config.ios?.config?.googleMapsApiKey || '',
       },
     },
+
     android: {
       ...config.android,
       ...(hasAndroidGoogleServices
@@ -174,29 +224,46 @@ module.exports = ({ config }) => {
         ...(config.android?.config ?? {}),
         googleMaps: {
           ...(config.android?.config?.googleMaps ?? {}),
-          apiKey: mapsKey || config.android?.config?.googleMaps?.apiKey || '',
+          apiKey:
+            mapsKey ||
+            config.android?.config?.googleMaps?.apiKey ||
+            '',
         },
       },
     },
+
     extra: {
       ...(config.extra ?? {}),
+
       googleMapsApiKey: mapsKey,
       googlePlacesApiKey: googlePlacesApiKey || mapsKey,
+
       cloudinaryCloudName: firstNonEmpty(
         process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME,
         config.extra?.cloudinaryCloudName,
       ),
+
       cloudinaryUploadPreset: firstNonEmpty(
         process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
         config.extra?.cloudinaryUploadPreset,
       ),
-      msg91WidgetId: firstNonEmpty(process.env.EXPO_PUBLIC_MSG91_WIDGET_ID),
-      msg91AuthToken: firstNonEmpty(process.env.EXPO_PUBLIC_MSG91_AUTH_TOKEN),
+
+      msg91WidgetId: firstNonEmpty(
+        process.env.EXPO_PUBLIC_MSG91_WIDGET_ID,
+      ),
+
+      msg91AuthToken: firstNonEmpty(
+        process.env.EXPO_PUBLIC_MSG91_AUTH_TOKEN,
+      ),
+
       googleSheetId: firstNonEmpty(
         process.env.EXPO_PUBLIC_GOOGLE_SHEET_ID,
         '1W_2ZuTbhrlMKuArAov4E5hzH11LtGs_s6xtiI98nj6w',
       ),
-      googleSheetWebhookUrl: firstNonEmpty(process.env.EXPO_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL),
+
+      googleSheetWebhookUrl: firstNonEmpty(
+        process.env.EXPO_PUBLIC_GOOGLE_SHEETS_WEBHOOK_URL,
+      ),
     },
   };
 };
