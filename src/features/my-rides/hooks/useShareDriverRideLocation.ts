@@ -20,6 +20,9 @@ export interface UseShareDriverRideLocationResult {
   speed: number | null;
   locationErrorMessage: string | null;
   rideInProgress: boolean;
+  backgroundGranted: boolean;
+  backgroundConsentRequired: boolean;
+  hasAffirmativeConsent: boolean;
   openLocationSettings: () => void;
 }
 
@@ -55,6 +58,9 @@ export const useShareDriverRideLocation = (
     speed: sameRide ? snapshot.speed : null,
     locationErrorMessage: sameRide ? snapshot.errorMessage : null,
     rideInProgress: sameRide ? snapshot.rideInProgress : false,
+    backgroundGranted: sameRide ? snapshot.backgroundGranted : false,
+    backgroundConsentRequired: sameRide ? Boolean(snapshot.backgroundConsentRequired) : false,
+    hasAffirmativeConsent: sameRide ? Boolean(snapshot.hasAffirmativeConsent) : false,
     openLocationSettings: driverLocationPublisher.openSettings,
   };
 };

@@ -25,8 +25,8 @@
         "NSCameraUsageDescription": "Allow BhaiWay to access your camera to take a profile picture.",
         "NSPhotoLibraryUsageDescription": "Allow BhaiWay to access your photos to set your profile picture.",
         "NSPhotoLibraryAddUsageDescription": "Allow BhaiWay to save photos to your library.",
-        "NSLocationWhenInUseUsageDescription": "BhaiWay uses your location to suggest nearby destinations and to share your live position with riders during an active trip.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "BhaiWay continues sharing your live location with riders while a trip is in progress, even when the app is in the background.",
+        "NSLocationWhenInUseUsageDescription": "BhaiWay uses your location to enable ride matching, pickup and drop-off assistance, and live ride tracking.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "BhaiWay needs background location access during an active driver ride so passengers can follow your live trip and authorized safety personnel can respond to emergencies, even when the app is in the background.",
         "UIBackgroundModes": [
           "remote-notification",
           "location"
@@ -121,8 +121,8 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "BhaiWay uses your location to suggest nearby destinations and to share your live position with riders during an active trip.",
-          "locationAlwaysAndWhenInUsePermission": "BhaiWay continues sharing your live location with riders while a trip is in progress, even when the app is in the background.",
+          "locationWhenInUsePermission": "BhaiWay uses your location to enable ride matching, pickup and drop-off assistance, and live ride tracking.",
+          "locationAlwaysAndWhenInUsePermission": "BhaiWay needs background location access during an active driver ride so passengers can follow your live trip and authorized safety personnel can respond to emergencies, even when the app is in the background.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true

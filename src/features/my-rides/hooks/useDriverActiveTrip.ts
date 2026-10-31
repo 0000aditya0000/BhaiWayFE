@@ -36,6 +36,7 @@ import {
   mapDriverBookingToActiveTripPassenger,
   mapLifecycleError,
 } from '../utils';
+import { useLocationPermissionFlow } from '@/features/location-permissions';
 import { useDriverRideKind } from './useDriverRideKind';
 import { useShareDriverRideLocation } from './useShareDriverRideLocation';
 
@@ -45,6 +46,14 @@ export interface UseDriverActiveTripResult {
   isRegular: boolean;
   completed: boolean;
   completing: boolean;
+  disclosureVisible: boolean;
+  settingsGuideVisible: boolean;
+  backgroundGranted: boolean;
+  onConsentLocation: () => Promise<void>;
+  onDeclineLocation: () => Promise<void>;
+  onOpenLocationSettings: () => void;
+  onDismissSettingsGuide: () => void;
+  promptLocationDisclosure: () => Promise<boolean>;
   completeTrip: () => void;
   triggerSos: () => void;
   toggleVoice: () => void;
@@ -98,12 +107,22 @@ export const useDriverActiveTrip = (): UseDriverActiveTripResult => {
   const {
     coordinate: driverCoordinate,
     locationErrorMessage,
+    backgroundGranted,
+    backgroundConsentRequired,
     openLocationSettings,
   } = useShareDriverRideLocation({
     rideId,
     enabled: Boolean(rideId) && !completed,
     isRegular,
   });
+
+  const permissionFlow = useLocationPermissionFlow();
+
+  useEffect(() => {
+    if (backgroundConsentRequired && !completed) {
+      void permissionFlow.checkAndPromptIfNeeded();
+    }
+  }, [backgroundConsentRequired, completed, permissionFlow]);
 
   useEffect(() => {
     if (!rideId) {
@@ -401,6 +420,14 @@ export const useDriverActiveTrip = (): UseDriverActiveTripResult => {
     isRegular,
     completed,
     completing,
+    disclosureVisible: permissionFlow.disclosureVisible,
+    settingsGuideVisible: permissionFlow.settingsGuideVisible,
+    backgroundGranted,
+    onConsentLocation: permissionFlow.handleConsent,
+    onDeclineLocation: permissionFlow.handleDecline,
+    onOpenLocationSettings: permissionFlow.handleOpenSettings,
+    onDismissSettingsGuide: permissionFlow.handleDismissSettingsGuide,
+    promptLocationDisclosure: permissionFlow.checkAndPromptIfNeeded,
     completeTrip,
     triggerSos,
     toggleVoice,

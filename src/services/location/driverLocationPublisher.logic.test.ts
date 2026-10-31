@@ -190,6 +190,32 @@ assertFalse(
   shouldStartNativeLocationUpdates({ platform: 'web', foregroundGranted: true }),
   'web does not start native background updates',
 );
+assertFalse(
+  shouldStartNativeLocationUpdates({
+    platform: 'android',
+    foregroundGranted: true,
+    hasAffirmativeConsent: false,
+  }),
+  'native background updates blocked without affirmative consent',
+);
+assertFalse(
+  shouldStartNativeLocationUpdates({
+    platform: 'android',
+    foregroundGranted: true,
+    hasAffirmativeConsent: true,
+    backgroundGranted: false,
+  }),
+  'native background updates blocked when background permission denied',
+);
+assertTrue(
+  shouldStartNativeLocationUpdates({
+    platform: 'android',
+    foregroundGranted: true,
+    hasAffirmativeConsent: true,
+    backgroundGranted: true,
+  }),
+  'native background updates allowed with affirmative consent and granted background permission',
+);
 assertTrue(
   canTrackWithoutAlwaysPermission(true),
   'in-app tracking continues with when-in-use only',

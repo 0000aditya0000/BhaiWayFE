@@ -172,7 +172,20 @@ export const pickEligibleDriverRideId = (
 export const shouldStartNativeLocationUpdates = (args: {
   platform: string;
   foregroundGranted: boolean;
-}): boolean => args.platform !== 'web' && args.foregroundGranted;
+  backgroundGranted?: boolean;
+  hasAffirmativeConsent?: boolean;
+}): boolean => {
+  if (args.platform === 'web' || !args.foregroundGranted) {
+    return false;
+  }
+  if (args.hasAffirmativeConsent !== undefined && !args.hasAffirmativeConsent) {
+    return false;
+  }
+  if (args.backgroundGranted !== undefined && !args.backgroundGranted) {
+    return false;
+  }
+  return true;
+};
 
 export const foregroundWatchDistanceInterval = (platform: string): number =>
   platform === 'ios' ? IOS_WATCH_DISTANCE_INTERVAL_M : SOCKET_EMIT_MIN_METERS;

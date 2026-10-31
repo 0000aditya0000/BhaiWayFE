@@ -16,6 +16,10 @@ import { BhaiWayMap, isValidMapCoordinate, type BhaiWayMapMarker } from '@/share
 import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { SwipeToComplete } from '@/features/my-rides/components';
 import { SosRideBanner } from '@/features/sos';
+import {
+  LocationDisclosureModal,
+  LocationSettingsGuideModal,
+} from '@/features/location-permissions';
 import { DRIVER_ACTIVE_TRIP_SCREEN } from '@/features/my-rides/constants';
 import { useDriverActiveTrip } from '@/features/my-rides/hooks';
 import { useLocalSearchParams } from 'expo-router';
@@ -28,6 +32,14 @@ export const DriverActiveTripScreen = () => {
     driverCoordinate,
     isRegular,
     completed,
+    disclosureVisible,
+    settingsGuideVisible,
+    backgroundGranted,
+    onConsentLocation,
+    onDeclineLocation,
+    onOpenLocationSettings,
+    onDismissSettingsGuide,
+    promptLocationDisclosure,
     completeTrip,
     triggerSos,
     toggleVoice,
@@ -192,6 +204,20 @@ export const DriverActiveTripScreen = () => {
                   <Text style={styles.locationErrorAction}>Open settings</Text>
                 </Pressable>
               ) : null}
+              {!backgroundGranted ? (
+                <Pressable
+                  style={styles.backgroundNoticeBanner}
+                  onPress={promptLocationDisclosure}
+                  accessibilityRole="button"
+                  accessibilityLabel="Enable background live tracking"
+                >
+                  <Ionicons name="information-circle-outline" size={18} color="#374BB1" />
+                  <Text style={styles.backgroundNoticeText}>
+                    Background location is paused. Tap to share live trip with riders.
+                  </Text>
+                  <Text style={styles.backgroundNoticeAction}>Enable</Text>
+                </Pressable>
+              ) : null}
             </>
           ) : (
             <Image
@@ -260,6 +286,17 @@ export const DriverActiveTripScreen = () => {
       </ScrollView>
 
       <AppFooter activeTab="rides" />
+
+      <LocationDisclosureModal
+        visible={disclosureVisible}
+        onConsent={onConsentLocation}
+        onDecline={onDeclineLocation}
+      />
+      <LocationSettingsGuideModal
+        visible={settingsGuideVisible}
+        onOpenSettings={onOpenLocationSettings}
+        onDismiss={onDismissSettingsGuide}
+      />
     </SafeAreaView>
   );
 };

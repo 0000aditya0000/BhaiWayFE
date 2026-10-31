@@ -36,6 +36,7 @@ import {
   resolveBookingRecordId,
   resolvePassengerDisplayName,
 } from '../utils';
+import { useLocationPermissionFlow } from '@/features/location-permissions';
 import { useDriverRideKind } from './useDriverRideKind';
 import { useShareDriverRideLocation } from './useShareDriverRideLocation';
 
@@ -119,6 +120,14 @@ export interface UseDriverPickupResult {
   etaLabel: string;
   /** Remaining distance to pickup. */
   distanceLabel: string;
+  disclosureVisible: boolean;
+  settingsGuideVisible: boolean;
+  backgroundGranted: boolean;
+  onConsentLocation: () => Promise<void>;
+  onDeclineLocation: () => Promise<void>;
+  onOpenLocationSettings: () => void;
+  onDismissSettingsGuide: () => void;
+  promptLocationDisclosure: () => Promise<boolean>;
   requestRiderOtp: () => void;
   setOtpValue: (value: string) => void;
   verifyOtp: () => void;
@@ -141,11 +150,23 @@ export const useDriverPickup = (): UseDriverPickupResult => {
   const usesBackendPickup = Boolean(rideId);
 
   /** Publish driver GPS while heading to pickup — Regular + Assured after Start Ride. */
-  const { coordinate: driverCoordinate } = useShareDriverRideLocation({
+  const {
+    coordinate: driverCoordinate,
+    backgroundGranted,
+    backgroundConsentRequired,
+  } = useShareDriverRideLocation({
     rideId,
     enabled: usesBackendPickup,
     isRegular,
   });
+
+  const permissionFlow = useLocationPermissionFlow();
+
+  useEffect(() => {
+    if (backgroundConsentRequired && usesBackendPickup) {
+      void permissionFlow.checkAndPromptIfNeeded();
+    }
+  }, [backgroundConsentRequired, usesBackendPickup, permissionFlow]);
 
   const [apiStops, setApiStops] = useState<DriverPickupStop[] | null>(null);
   const [loadingPassengers, setLoadingPassengers] = useState(false);
@@ -661,6 +682,14 @@ export const useDriverPickup = (): UseDriverPickupResult => {
     routeCoordinates,
     etaLabel,
     distanceLabel,
+    disclosureVisible: permissionFlow.disclosureVisible,
+    settingsGuideVisible: permissionFlow.settingsGuideVisible,
+    backgroundGranted,
+    onConsentLocation: permissionFlow.handleConsent,
+    onDeclineLocation: permissionFlow.handleDecline,
+    onOpenLocationSettings: permissionFlow.handleOpenSettings,
+    onDismissSettingsGuide: permissionFlow.handleDismissSettingsGuide,
+    promptLocationDisclosure: permissionFlow.checkAndPromptIfNeeded,
     requestRiderOtp,
     setOtpValue,
     verifyOtp,

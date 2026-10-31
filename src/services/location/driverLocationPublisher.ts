@@ -2,6 +2,7 @@ import { AppState, Linking, Platform, type AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 
+import { locationConsentService } from '@/features/location-permissions/services/locationConsent.service';
 import { getRideById, listMyRides } from '@/features/offer-ride/api';
 import { ENDPOINTS, httpClient } from '@/network';
 import { trackingSocket } from '@/services/realtime';
@@ -45,6 +46,8 @@ export type DriverLocationPublisherSnapshot = {
   speed: number | null;
   permission: LocationPermissionKind;
   backgroundGranted: boolean;
+  hasAffirmativeConsent?: boolean;
+  backgroundConsentRequired?: boolean;
   errorMessage: string | null;
   watching: boolean;
 };
@@ -58,6 +61,8 @@ const initialSnapshot: DriverLocationPublisherSnapshot = {
   speed: null,
   permission: 'pending',
   backgroundGranted: false,
+  hasAffirmativeConsent: false,
+  backgroundConsentRequired: false,
   errorMessage: null,
   watching: false,
 };
@@ -285,18 +290,25 @@ const requestBackgroundPermission = async (): Promise<boolean> => {
   try {
     const existing = await Location.getBackgroundPermissionsAsync();
     if (existing.status === Location.PermissionStatus.GRANTED) {
-      setSnapshot({ backgroundGranted: true });
+      setSnapshot({ backgroundGranted: true, backgroundConsentRequired: false });
       return true;
+    }
+    // GOOGLE PLAY STRICT COMPLIANCE:
+    // Never trigger OS background permission dialog without affirmative user consent.
+    const hasConsent = await locationConsentService.hasAffirmativeConsent();
+    if (!hasConsent) {
+      setSnapshot({ backgroundGranted: false, backgroundConsentRequired: true });
+      return false;
     }
     const requested = await Location.requestBackgroundPermissionsAsync();
     const granted = requested.status === Location.PermissionStatus.GRANTED;
-    setSnapshot({ backgroundGranted: granted });
+    setSnapshot({ backgroundGranted: granted, backgroundConsentRequired: !granted });
     return granted;
   } catch (error) {
     logger.warn('[LiveLocation][driver] background permission skipped', {
       message: error instanceof Error ? error.message : 'unknown',
     });
-    setSnapshot({ backgroundGranted: false });
+    setSnapshot({ backgroundGranted: false, backgroundConsentRequired: true });
     return false;
   }
 };
@@ -520,9 +532,12 @@ const startForegroundWatch = async (generation: number): Promise<void> => {
 };
 
 const startNativeUpdates = async (): Promise<void> => {
+  const hasConsent = await locationConsentService.hasAffirmativeConsent();
   if (!shouldStartNativeLocationUpdates({
     platform: Platform.OS,
     foregroundGranted: snapshot.permission === 'granted',
+    backgroundGranted: snapshot.backgroundGranted,
+    hasAffirmativeConsent: hasConsent,
   })) {
     return;
   }
@@ -610,8 +625,22 @@ const ensureAppStateListener = (): void => {
     void refreshRideStatus(snapshot.rideId);
     if (!watchSub && snapshot.permission === 'granted') {
       void startForegroundWatch(startGeneration);
-      void startNativeUpdates();
     }
+    void (async () => {
+      const hasConsent = await locationConsentService.hasAffirmativeConsent();
+      const bg = await Location.getBackgroundPermissionsAsync().catch(() => null);
+      const bgGranted = bg?.status === Location.PermissionStatus.GRANTED;
+      setSnapshot({
+        backgroundGranted: bgGranted,
+        hasAffirmativeConsent: hasConsent,
+        backgroundConsentRequired: !bgGranted,
+      });
+      if (bgGranted && hasConsent && !nativeUpdatesStarted) {
+        await startNativeUpdates();
+      } else if (!bgGranted && nativeUpdatesStarted) {
+        await stopNativeUpdates();
+      }
+    })();
     if (pendingRetry && snapshot.rideId) {
       const rideId = snapshot.rideId;
       const sample = pendingRetry;
@@ -663,11 +692,31 @@ const startTrackingSession = async (rideId: string, generation: number): Promise
     return;
   }
   startHeartbeat(generation);
+
+  const hasConsent = await locationConsentService.hasAffirmativeConsent();
+  setSnapshot({ hasAffirmativeConsent: hasConsent });
+
+  if (!hasConsent) {
+    // GOOGLE PLAY STRICT COMPLIANCE:
+    // Prominent disclosure must be affirmatively accepted in the UI before requesting
+    // background permission or starting native background updates.
+    setSnapshot({
+      backgroundGranted: false,
+      backgroundConsentRequired: true,
+    });
+    readFreshPosition(generation);
+    return;
+  }
+
   const backgroundGranted = await requestBackgroundPermission();
   if (generation !== startGeneration) {
     return;
   }
-  if (backgroundGranted || Platform.OS === 'android') {
+  setSnapshot({
+    backgroundGranted,
+    backgroundConsentRequired: !backgroundGranted,
+  });
+  if (backgroundGranted) {
     await startNativeUpdates();
   }
   readFreshPosition(generation);
@@ -705,8 +754,20 @@ export const driverLocationPublisher = {
       if (snapshot.permission === 'granted') {
         if (!watchSub) {
           void startForegroundWatch(startGeneration);
-          void startNativeUpdates();
         }
+        void (async () => {
+          const hasConsent = await locationConsentService.hasAffirmativeConsent();
+          const bg = await Location.getBackgroundPermissionsAsync().catch(() => null);
+          const bgGranted = bg?.status === Location.PermissionStatus.GRANTED;
+          setSnapshot({
+            backgroundGranted: bgGranted,
+            hasAffirmativeConsent: hasConsent,
+            backgroundConsentRequired: !bgGranted,
+          });
+          if (hasConsent && bgGranted && !nativeUpdatesStarted) {
+            await startNativeUpdates();
+          }
+        })();
         if (!heartbeatTimer) {
           startHeartbeat(startGeneration);
         }
@@ -720,8 +781,20 @@ export const driverLocationPublisher = {
         if (snapshot.permission === 'granted') {
           if (!watchSub) {
             void startForegroundWatch(startGeneration);
-            void startNativeUpdates();
           }
+          void (async () => {
+            const hasConsent = await locationConsentService.hasAffirmativeConsent();
+            const bg = await Location.getBackgroundPermissionsAsync().catch(() => null);
+            const bgGranted = bg?.status === Location.PermissionStatus.GRANTED;
+            setSnapshot({
+              backgroundGranted: bgGranted,
+              hasAffirmativeConsent: hasConsent,
+              backgroundConsentRequired: !bgGranted,
+            });
+            if (hasConsent && bgGranted && !nativeUpdatesStarted) {
+              await startNativeUpdates();
+            }
+          })();
           if (!heartbeatTimer) {
             startHeartbeat(startGeneration);
           }

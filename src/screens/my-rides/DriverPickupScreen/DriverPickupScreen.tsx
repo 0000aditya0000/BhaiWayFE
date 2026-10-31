@@ -21,6 +21,10 @@ import {
   useDriverPickup,
 } from '@/features/my-rides/hooks';
 import {
+  LocationDisclosureModal,
+  LocationSettingsGuideModal,
+} from '@/features/location-permissions';
+import {
   NoShowClaimPanel,
   resolvePassengerNoShowBookingId,
   useNoShowClaim,
@@ -60,6 +64,14 @@ export const DriverPickupScreen = () => {
     routeCoordinates,
     etaLabel,
     distanceLabel,
+    disclosureVisible,
+    settingsGuideVisible,
+    backgroundGranted,
+    onConsentLocation,
+    onDeclineLocation,
+    onOpenLocationSettings,
+    onDismissSettingsGuide,
+    promptLocationDisclosure,
     requestRiderOtp,
     setOtpValue,
     verifyOtp,
@@ -390,6 +402,17 @@ export const DriverPickupScreen = () => {
       />
 
       <AppFooter activeTab="rides" />
+
+      <LocationDisclosureModal
+        visible={disclosureVisible}
+        onConsent={onConsentLocation}
+        onDecline={onDeclineLocation}
+      />
+      <LocationSettingsGuideModal
+        visible={settingsGuideVisible}
+        onOpenSettings={onOpenLocationSettings}
+        onDismiss={onDismissSettingsGuide}
+      />
     </SafeAreaView>
   );
 };
