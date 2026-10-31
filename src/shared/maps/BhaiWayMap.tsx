@@ -172,7 +172,9 @@ export const BhaiWayMap = React.memo(
           liteMode={liteMode && Platform.OS === 'android'}
         >
           <MapMarkers markers={markers} />
-          <RoutePolyline coordinates={routeCoordinates} />
+          {routeCoordinates && routeCoordinates.length >= 2 ? (
+            <RoutePolyline coordinates={routeCoordinates} />
+          ) : null}
           {children}
         </MapView>
 

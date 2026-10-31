@@ -6,7 +6,10 @@ import { ROUTES } from '@/config';
 import { RouteOptionCard, RouteOptionsMap } from '@/features/offer-ride/components';
 import { SELECT_DRIVING_ROUTE_SCREEN } from '@/features/offer-ride/constants/select-route.constants';
 import { useSelectDrivingRoute } from '@/features/offer-ride/hooks';
-import type { SelectDrivingRouteMode } from '@/features/offer-ride/api/routeOptions.types';
+import type {
+  RouteOptionDto,
+  SelectDrivingRouteMode,
+} from '@/features/offer-ride/api/routeOptions.types';
 import {
   formatRouteDistanceLabel,
   formatRouteDurationLabel,
@@ -58,6 +61,16 @@ export const SelectDrivingRouteScreen = ({ mode }: SelectDrivingRouteScreenProps
     confirm();
   }, [canContinue, confirm]);
 
+  const handleSelectRouteOption = useCallback(
+    (option: RouteOptionDto) => {
+      triggerLightHaptic();
+      requestAnimationFrame(() => {
+        selectOption(option);
+      });
+    },
+    [selectOption],
+  );
+
   const showRetry = Boolean(errorMessage) && !loading;
 
   return (
@@ -77,7 +90,7 @@ export const SelectDrivingRouteScreen = ({ mode }: SelectDrivingRouteScreenProps
           options={options}
           selectedOptionId={selectedOptionId}
           loading={loading}
-          onSelectOption={selectOption}
+          onSelectOption={handleSelectRouteOption}
         />
       </View>
 
@@ -117,10 +130,7 @@ export const SelectDrivingRouteScreen = ({ mode }: SelectDrivingRouteScreenProps
                   durationLabel={formatRouteDurationLabel(option.durationSeconds)}
                   selected={option.optionId === selectedOptionId}
                   disabled={loading}
-                  onPress={() => {
-                    triggerLightHaptic();
-                    selectOption(option);
-                  }}
+                  onPress={() => handleSelectRouteOption(option)}
                 />
               ))
             : null}

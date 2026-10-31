@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Polyline } from 'react-native-maps';
 
 import type { MapLatLng } from './map.types';
@@ -22,23 +22,32 @@ export const RoutePolyline = React.memo(
     tappable = false,
     onPress,
   }: RoutePolylineProps) => {
-    const valid = useMemo(
-      () => coordinates.filter(isValidMapCoordinate),
-      [coordinates],
-    );
+    const valid = useMemo(() => {
+      const filtered = coordinates.filter(isValidMapCoordinate);
+      return filtered.length >= 2 ? filtered : null;
+    }, [coordinates]);
 
-    if (valid.length < 2) {
+    const handlePress = useCallback(() => {
+      if (!onPress) {
+        return;
+      }
+      requestAnimationFrame(() => {
+        onPress();
+      });
+    }, [onPress]);
+
+    if (!valid) {
       return null;
     }
 
     return (
       <Polyline
-        coordinates={[...valid]}
+        coordinates={valid}
         strokeColor={strokeColor}
         strokeWidth={strokeWidth}
         zIndex={zIndex}
-        tappable={tappable}
-        onPress={onPress}
+        tappable={tappable && Boolean(onPress)}
+        onPress={onPress ? handlePress : undefined}
       />
     );
   },

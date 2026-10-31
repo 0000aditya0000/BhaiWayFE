@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 
 import {
@@ -68,10 +68,12 @@ export const RouteOptionsMap = ({
 
   const decoded = useMemo(
     () =>
-      options.map((option) => ({
-        option,
-        coordinates: decodeOption(option),
-      })),
+      options
+        .map((option) => ({
+          option,
+          coordinates: decodeOption(option),
+        }))
+        .filter((item) => item.coordinates.length >= 2),
     [options],
   );
 
@@ -83,8 +85,14 @@ export const RouteOptionsMap = ({
     return points;
   }, [decoded]);
 
-  const alternatives = decoded.filter((item) => item.option.optionId !== selectedOptionId);
-  const selected = decoded.filter((item) => item.option.optionId === selectedOptionId);
+  const handleSelectOption = useCallback(
+    (option: RouteOptionDto) => {
+      requestAnimationFrame(() => {
+        onSelectOption?.(option);
+      });
+    },
+    [onSelectOption],
+  );
 
   return (
     <BhaiWayMap
@@ -96,7 +104,7 @@ export const RouteOptionsMap = ({
       bypassTitle="Route preview"
       bypassSubtitle="Driving routes will appear on the map when Google Maps is available."
     >
-      {alternatives.map((item) => {
+      {decoded.map((item) => {
         const stroke = resolveRouteStroke(item.option.optionId, selectedOptionId);
         return (
           <RoutePolyline
@@ -105,22 +113,8 @@ export const RouteOptionsMap = ({
             strokeColor={stroke.strokeColor}
             strokeWidth={stroke.strokeWidth}
             zIndex={stroke.zIndex}
-            tappable
-            onPress={() => onSelectOption?.(item.option)}
-          />
-        );
-      })}
-      {selected.map((item) => {
-        const stroke = resolveRouteStroke(item.option.optionId, selectedOptionId);
-        return (
-          <RoutePolyline
-            key={item.option.optionId}
-            coordinates={item.coordinates}
-            strokeColor={stroke.strokeColor}
-            strokeWidth={stroke.strokeWidth}
-            zIndex={stroke.zIndex}
-            tappable
-            onPress={() => onSelectOption?.(item.option)}
+            tappable={Boolean(onSelectOption)}
+            onPress={() => handleSelectOption(item.option)}
           />
         );
       })}
