@@ -9,7 +9,13 @@ export const driverRidesRefreshStore = {
 
   bump: (): void => {
     generation += 1;
-    listeners.forEach((listener) => listener());
+    listeners.forEach((listener) => {
+      try {
+        listener();
+      } catch {
+        // Prevent subscriber errors from bubbling up to publish flows
+      }
+    });
   },
 
   subscribe: (listener: Listener): (() => void) => {

@@ -7,7 +7,7 @@ export const triggerLightHaptic = (): void => {
   if (!isIOS) {
     return;
   }
-  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 };
 
 /** Selection feedback for toggles and radio-style controls; iOS only. */
@@ -15,7 +15,7 @@ export const triggerSelectionHaptic = (): void => {
   if (!isIOS) {
     return;
   }
-  void Haptics.selectionAsync();
+  void Haptics.selectionAsync().catch(() => {});
 };
 
 /** Success/error notification haptics; iOS only. */
@@ -23,7 +23,7 @@ export const triggerNotificationHaptic = (type: Haptics.NotificationFeedbackType
   if (!isIOS) {
     return;
   }
-  void Haptics.notificationAsync(type);
+  void Haptics.notificationAsync(type).catch(() => {});
 };
 
 export const triggerSuccessHaptic = (): void => {

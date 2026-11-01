@@ -6,7 +6,7 @@ import { ROUTES } from '@/config';
 import { applyDriverCouponRedemption } from '@/features/coupons/utils/couponErrors';
 import { driverRidesRefreshStore } from '@/features/my-rides/store/driverRidesRefreshStore';
 import { getMyVerifications, listVehicles } from '@/features/profile/api';
-import { formatBhaiWayCoins, getErrorMessage, showAppAlert, triggerLightHaptic, triggerSuccessHaptic } from '@/shared/utils';
+import { formatBhaiWayCoins, getErrorMessage, logger, showAppAlert, triggerLightHaptic, triggerSuccessHaptic } from '@/shared/utils';
 import { authSession } from '@/store';
 import { rideCoordsCache } from '@/shared/maps';
 import { createRide } from '../api';
@@ -301,27 +301,43 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
           return;
         }
 
-        const created = await createRide(mapped.payload);
-        console.log('[Publish Ride] POST /rides response', created);
-
-        const origin = current.originLocation;
-        const destination = current.destinationLocation;
-        await rideCoordsCache.save({
-          rideId: created.id,
-          origin:
-            origin && Number.isFinite(origin.latitude) && Number.isFinite(origin.longitude)
-              ? { latitude: origin.latitude!, longitude: origin.longitude! }
-              : null,
-          destination:
-            destination &&
-            Number.isFinite(destination.latitude) &&
-            Number.isFinite(destination.longitude)
-              ? { latitude: destination.latitude!, longitude: destination.longitude! }
-              : null,
-          originAddress: current.origin || origin?.address,
-          destinationAddress: current.destination || destination?.address,
+        logger.info('[Publish Ride] Initiating ride creation', {
+          rideType: mapped.payload.rideType,
+          vehicleId: mapped.payload.vehicleId,
         });
 
+        const created = await createRide(mapped.payload);
+        logger.info('[Publish Ride] POST /rides response received', {
+          rideId: created?.id,
+          status: created?.status,
+        });
+
+        // 1. Coordinates cache (non-critical)
+        try {
+          const origin = current.originLocation;
+          const destination = current.destinationLocation;
+          await rideCoordsCache.save({
+            rideId: created.id,
+            origin:
+              origin && Number.isFinite(origin.latitude) && Number.isFinite(origin.longitude)
+                ? { latitude: origin.latitude!, longitude: origin.longitude! }
+                : null,
+            destination:
+              destination &&
+              Number.isFinite(destination.latitude) &&
+              Number.isFinite(destination.longitude)
+                ? { latitude: destination.latitude!, longitude: destination.longitude! }
+                : null,
+            originAddress: current.origin || origin?.address,
+            destinationAddress: current.destination || destination?.address,
+          });
+        } catch (cacheError) {
+          logger.warn('[Publish Ride] Failed to save ride coords cache', {
+            message: cacheError instanceof Error ? cacheError.message : 'unknown',
+          });
+        }
+
+        // 2. Set summary in publishedRideStore
         const vehicle =
           vehicles.find((item) => item.id === created.vehicleId) ??
           vehicles.find((item) => item.id === current.selectedVehicleId) ??
@@ -333,12 +349,45 @@ export const useRidePreferences = (): UseRidePreferencesResult => {
             notes: current.notes,
           }),
         );
+
+        // 3. Reset draft
         publishRideDraft.reset(current.rideType);
-        driverRidesRefreshStore.bump();
-        const { invalidateRidesMyCache } = await import('@/network/resourceCache');
-        invalidateRidesMyCache();
+
+        // 4. Invalidate cache and bump list refresh (non-critical)
+        try {
+          driverRidesRefreshStore.bump();
+          const { invalidateRidesMyCache } = await import('@/network/resourceCache');
+          invalidateRidesMyCache();
+        } catch (refreshError) {
+          logger.warn('[Publish Ride] Cache invalidation skipped', {
+            message: refreshError instanceof Error ? refreshError.message : 'unknown',
+          });
+        }
+
+        // 5. Success haptic
         triggerSuccessHaptic();
-        router.replace(ROUTES.offerRidePublished);
+
+        // 6. Navigate to success screen
+        try {
+          router.replace(ROUTES.offerRidePublished);
+        } catch (navError) {
+          logger.warn('[Publish Ride] Replace navigation failed, attempting push', {
+            message: navError instanceof Error ? navError.message : 'unknown',
+          });
+          try {
+            router.push(ROUTES.offerRidePublished);
+          } catch (pushError) {
+            logger.error('[Publish Ride] Navigation failed', {
+              message: pushError instanceof Error ? pushError.message : 'unknown',
+            });
+            showAppAlert(
+              'Ride published',
+              'Your ride was successfully published. View it anytime under My Rides.',
+              [{ text: 'My Rides', onPress: () => router.replace(ROUTES.myRides) }],
+            );
+          }
+        }
+        return;
       } catch (error) {
         if (isApiError(error) && error.status === 401) {
           authSession.clear();

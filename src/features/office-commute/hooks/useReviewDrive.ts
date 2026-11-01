@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
@@ -27,7 +27,7 @@ import {
   isValidMapCoordinate,
   parseMapCoordinate,
 } from '@/shared/maps';
-import { parseSlashDate, showAppAlert } from '@/shared/utils';
+import { logger, parseSlashDate, showAppAlert, triggerSuccessHaptic } from '@/shared/utils';
 import { authSession } from '@/store';
 import {
   DEFAULT_OFFICE_LOCATION,
@@ -69,6 +69,7 @@ export const useReviewDrive = (): UseReviewDriveResult => {
   const router = useRouter();
   const [draft, setDraft] = useState<PublishCommuteDraft>(() => publishCommuteDraft.get());
   const [publishing, setPublishing] = useState(false);
+  const publishingRef = useRef(false);
   const { verified: isCorporateVerified, ready: corporateStatusReady } =
     useCorporateVerified();
 
@@ -160,7 +161,7 @@ export const useReviewDrive = (): UseReviewDriveResult => {
   }, [router]);
 
   const publishRide = useCallback(() => {
-    if (publishing) {
+    if (publishingRef.current || publishing) {
       return;
     }
 
@@ -170,6 +171,7 @@ export const useReviewDrive = (): UseReviewDriveResult => {
       return;
     }
 
+    publishingRef.current = true;
     setPublishing(true);
 
     void (async () => {
@@ -241,11 +243,17 @@ export const useReviewDrive = (): UseReviewDriveResult => {
             idempotencyKey ? { idempotencyKey } : undefined,
           );
 
+        logger.info('[Commute Publish] Initiating ride creation', {
+          rideType: mapped.payload.rideType,
+          vehicleId: mapped.payload.vehicleId,
+        });
+
         let created;
         try {
           created = await publishOnce();
         } catch (error) {
           if (needsKey && isAmbiguousPublishNetworkError(error)) {
+            logger.info('[Commute Publish] Ambiguous network error, retrying with idempotency key');
             created = await publishOnce();
           } else {
             throw error;
@@ -253,15 +261,20 @@ export const useReviewDrive = (): UseReviewDriveResult => {
         }
 
         const occurrenceSummary = summarizeCommutePublish(created);
+        logger.info('[Commute Publish] POST /rides response received', {
+          rideId: occurrenceSummary.rideId,
+          seriesId: occurrenceSummary.seriesId,
+        });
+
         commutePublishIdempotencyStore.clear();
-        driverRidesRefreshStore.bump();
+
         publishedCommuteStore.set({
           pickupLabel,
           dropoffLabel: destinationLabel,
           departureLabel,
           seats: draft.seats,
           pricePerSeat: draft.pricePerSeat,
-          recurringDays: [...draft.recurringDays],
+          recurringDays: [...(draft.recurringDays ?? [])],
           rideId: occurrenceSummary.rideId,
           seriesId: occurrenceSummary.seriesId,
           occurrenceSummary: occurrenceSummary.message,
@@ -269,8 +282,41 @@ export const useReviewDrive = (): UseReviewDriveResult => {
           returnCount: occurrenceSummary.returnCount,
         });
         publishCommuteDraft.reset();
-        showAppAlert('Ride published', occurrenceSummary.message);
-        router.replace(ROUTES.officeCommutePublished);
+
+        // Safe cache invalidation (non-critical)
+        try {
+          driverRidesRefreshStore.bump();
+          const { invalidateRidesMyCache } = await import('@/network/resourceCache');
+          invalidateRidesMyCache();
+        } catch (refreshError) {
+          logger.warn('[Commute Publish] Cache invalidation skipped', {
+            message: refreshError instanceof Error ? refreshError.message : 'unknown',
+          });
+        }
+
+        triggerSuccessHaptic();
+
+        // Safe navigation to success screen
+        try {
+          router.replace(ROUTES.officeCommutePublished);
+        } catch (navError) {
+          logger.warn('[Commute Publish] Replace navigation failed, attempting push', {
+            message: navError instanceof Error ? navError.message : 'unknown',
+          });
+          try {
+            router.push(ROUTES.officeCommutePublished);
+          } catch (pushError) {
+            logger.error('[Commute Publish] Navigation failed', {
+              message: pushError instanceof Error ? pushError.message : 'unknown',
+            });
+            showAppAlert(
+              'Ride published',
+              occurrenceSummary.message || 'Your commute ride was published successfully.',
+              [{ text: 'My Rides', onPress: () => router.replace(ROUTES.myRides) }],
+            );
+          }
+        }
+        return;
       } catch (error) {
         if (isReturnRouteSelectionTokenError(error)) {
           publishCommuteDraft.update({ returnRouteSelection: null });
@@ -289,6 +335,7 @@ export const useReviewDrive = (): UseReviewDriveResult => {
         }
         showAppAlert('Unable to publish', mapCreateRideError(error));
       } finally {
+        publishingRef.current = false;
         setPublishing(false);
       }
     })();

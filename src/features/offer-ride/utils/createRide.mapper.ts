@@ -304,15 +304,22 @@ export const mapDraftToCreateRideDto = (draft: PublishRideDraft): MapCreateRideR
   return { ok: true, payload };
 };
 
-const formatDisplayDateFromCivil = (value: string): string => {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
+const formatDisplayDateFromCivil = (value?: string | null): string => {
+  if (!value || typeof value !== 'string') {
+    return '';
+  }
+  const trimmed = value.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmed);
   if (!match) {
-    return value.trim();
+    return trimmed;
   }
   return `${match[3]}/${match[2]}/${match[1]}`;
 };
 
-const formatDisplayTimeFromCivil = (value: string): string => {
+const formatDisplayTimeFromCivil = (value?: string | null): string => {
+  if (!value || typeof value !== 'string') {
+    return '';
+  }
   const hhmm = toApiDepartureTime(value);
   if (!hhmm) {
     return value.trim();
@@ -329,30 +336,34 @@ export const mapRideResponseToPublishedSummary = (
   vehicle: PublishRideVehicleOption | null,
   extras?: { music?: boolean; notes?: string },
 ): PublishedRideSummary => {
-  const dateLabel = formatDisplayDateFromCivil(ride.departureDate);
-  const timeLabel = formatDisplayTimeFromCivil(ride.departureTime);
+  const dateLabel = formatDisplayDateFromCivil(ride?.departureDate);
+  const timeLabel = formatDisplayTimeFromCivil(ride?.departureTime);
+  const departureLabel =
+    dateLabel && timeLabel
+      ? `${dateLabel} · ${timeLabel}`
+      : dateLabel || timeLabel || 'Upcoming';
 
   return {
-    rideId: ride.id,
-    backendStatus: ride.status,
-    isBookable: ride.isBookable,
-    statusLabel: mapRideStatusLabel(ride.status, ride.rideType),
-    pickupLabel: ride.source,
-    dropoffLabel: ride.destination,
-    departureLabel: `${dateLabel} · ${timeLabel}`,
-    seats: ride.availableSeats,
-    pricePerSeat: String(ride.pricePerSeat),
-    rideType: ride.rideType === 'ASSURED' ? 'assured' : 'regular',
+    rideId: ride?.id ?? '',
+    backendStatus: ride?.status ?? 'PUBLISHED',
+    isBookable: ride?.isBookable ?? true,
+    statusLabel: mapRideStatusLabel(ride?.status, ride?.rideType),
+    pickupLabel: ride?.source || 'Starting point',
+    dropoffLabel: ride?.destination || 'Destination',
+    departureLabel,
+    seats: typeof ride?.availableSeats === 'number' ? ride.availableSeats : 1,
+    pricePerSeat: String(ride?.pricePerSeat ?? '0'),
+    rideType: ride?.rideType === 'ASSURED' ? 'assured' : 'regular',
     vehicle,
     preferences: {
-      noSmoking: Boolean(ride.noSmoking),
-      noPets: Boolean(ride.noPets),
-      luggage: Boolean(ride.luggageAllowed),
+      noSmoking: Boolean(ride?.noSmoking),
+      noPets: Boolean(ride?.noPets),
+      luggage: Boolean(ride?.luggageAllowed),
       music: Boolean(extras?.music),
     },
-    notes: extras?.notes ?? ride.notes ?? '',
+    notes: extras?.notes ?? ride?.notes ?? '',
     refundableAmount:
-      ride.assuredDepositAmount != null && String(ride.assuredDepositAmount).trim()
+      ride?.assuredDepositAmount != null && String(ride.assuredDepositAmount).trim()
         ? String(ride.assuredDepositAmount).trim()
         : null,
   };

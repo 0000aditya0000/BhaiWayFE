@@ -46,14 +46,15 @@ export const useRidePublished = (): UseRidePublishedResult => {
   }), []);
 
   const dayChips = useMemo(() => {
-    if (summary.recurringDays.length === 0) {
+    const days = summary?.recurringDays ?? [];
+    if (days.length === 0) {
       return [];
     }
-    return WEEKDAY_OPTIONS.filter((day) => summary.recurringDays.includes(day.id)).map((day) => ({
+    return WEEKDAY_OPTIONS.filter((day) => days.includes(day.id)).map((day) => ({
       id: day.id,
       label: day.label,
     }));
-  }, [summary.recurringDays]);
+  }, [summary?.recurringDays]);
 
   const openNotifications = useCallback(() => {
     router.push(ROUTES.notifications);
@@ -69,16 +70,19 @@ export const useRidePublished = (): UseRidePublishedResult => {
     router.replace(ROUTES.officeCommutePublish);
   }, [router]);
 
+  const priceNum = Number(summary?.pricePerSeat ?? 0);
+  const priceLabel = formatBhaiWayCoins(Number.isFinite(priceNum) ? priceNum : 0);
+
   return {
     summary,
-    pickupLabel: summary.pickupLabel || RIDE_PUBLISHED_SCREEN.fallbackPickup,
-    dropoffLabel: summary.dropoffLabel || RIDE_PUBLISHED_SCREEN.fallbackDrop,
-    departureLabel: summary.departureLabel,
-    seatsLabel: `${summary.seats} ${RIDE_PUBLISHED_SCREEN.seatsSuffix}`,
-    priceLabel: formatBhaiWayCoins(Number(summary.pricePerSeat || '0')),
+    pickupLabel: summary?.pickupLabel || RIDE_PUBLISHED_SCREEN.fallbackPickup,
+    dropoffLabel: summary?.dropoffLabel || RIDE_PUBLISHED_SCREEN.fallbackDrop,
+    departureLabel: summary?.departureLabel ?? '',
+    seatsLabel: `${summary?.seats ?? 1} ${RIDE_PUBLISHED_SCREEN.seatsSuffix}`,
+    priceLabel,
     dayChips,
-    isOneTime: summary.recurringDays.length === 0,
-    occurrenceSummary: summary.occurrenceSummary ?? RIDE_PUBLISHED_SCREEN.subtitle,
+    isOneTime: (summary?.recurringDays?.length ?? 0) === 0,
+    occurrenceSummary: summary?.occurrenceSummary ?? RIDE_PUBLISHED_SCREEN.subtitle,
     openNotifications,
     viewMyRides,
     modifyRide,

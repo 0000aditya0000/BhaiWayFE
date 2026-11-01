@@ -3,6 +3,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -46,14 +47,14 @@ export const RidePublishedScreen = () => {
       withSpring(1, { damping: 14, stiffness: 200 }),
     );
     pingScale.value = withRepeat(
-      withSequence(withTiming(1.35, { duration: 900 }), withTiming(1, { duration: 0 })),
+      withTiming(1.35, { duration: 900, easing: Easing.out(Easing.quad) }),
       -1,
-      false,
+      true,
     );
     pingOpacity.value = withRepeat(
-      withSequence(withTiming(0, { duration: 900 }), withTiming(0.35, { duration: 0 })),
+      withTiming(0.08, { duration: 900, easing: Easing.out(Easing.quad) }),
       -1,
-      false,
+      true,
     );
   }, [checkOpacity, checkScale, pingOpacity, pingScale]);
 

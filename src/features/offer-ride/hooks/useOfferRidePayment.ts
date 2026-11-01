@@ -9,6 +9,7 @@ import { formatCoinsLabel } from '@/features/profile/utils/walletCoin';
 import { rideCoordsCache } from '@/shared/maps';
 import {
   getErrorMessage,
+  logger,
   showAppAlert,
   triggerLightHaptic,
   triggerSuccessHaptic,
@@ -202,27 +203,45 @@ export const useOfferRidePayment = (): UseOfferRidePaymentResult => {
           return;
         }
 
-        const created = await createRide(mapped.payload, { idempotencyKey });
-        console.log('[Assured Publish] POST /rides response', created);
-
-        const origin = current.originLocation;
-        const destination = current.destinationLocation;
-        await rideCoordsCache.save({
-          rideId: created.id,
-          origin:
-            origin && Number.isFinite(origin.latitude) && Number.isFinite(origin.longitude)
-              ? { latitude: origin.latitude!, longitude: origin.longitude! }
-              : null,
-          destination:
-            destination &&
-            Number.isFinite(destination.latitude) &&
-            Number.isFinite(destination.longitude)
-              ? { latitude: destination.latitude!, longitude: destination.longitude! }
-              : null,
-          originAddress: current.origin || origin?.address,
-          destinationAddress: current.destination || destination?.address,
+        logger.info('[Assured Publish] Initiating ride creation', {
+          rideType: mapped.payload.rideType,
+          vehicleId: mapped.payload.vehicleId,
         });
 
+        const created = await createRide(mapped.payload, { idempotencyKey });
+        logger.info('[Assured Publish] POST /rides response received', {
+          rideId: created?.id,
+          status: created?.status,
+        });
+
+        clearPublishIdempotencyKey();
+
+        // 1. Coordinates cache (non-critical)
+        try {
+          const origin = current.originLocation;
+          const destination = current.destinationLocation;
+          await rideCoordsCache.save({
+            rideId: created.id,
+            origin:
+              origin && Number.isFinite(origin.latitude) && Number.isFinite(origin.longitude)
+                ? { latitude: origin.latitude!, longitude: origin.longitude! }
+                : null,
+            destination:
+              destination &&
+              Number.isFinite(destination.latitude) &&
+              Number.isFinite(destination.longitude)
+                ? { latitude: destination.latitude!, longitude: destination.longitude! }
+                : null,
+            originAddress: current.origin || origin?.address,
+            destinationAddress: current.destination || destination?.address,
+          });
+        } catch (cacheError) {
+          logger.warn('[Assured Publish] Failed to save ride coords cache', {
+            message: cacheError instanceof Error ? cacheError.message : 'unknown',
+          });
+        }
+
+        // 2. Set summary in publishedRideStore
         const vehicle =
           vehicles.find((item) => item.id === created.vehicleId) ??
           vehicles.find((item) => item.id === current.selectedVehicleId) ??
@@ -234,17 +253,53 @@ export const useOfferRidePayment = (): UseOfferRidePaymentResult => {
             notes: current.notes,
           }),
         );
+
+        // 3. Reset draft
         publishRideDraft.reset(current.rideType);
-        clearPublishIdempotencyKey();
-        driverRidesRefreshStore.bump();
-        const { invalidateRidesMyCache, invalidateWalletCache } = await import(
-          '@/network/resourceCache'
-        );
-        invalidateRidesMyCache();
-        invalidateWalletCache();
-        await refreshWallet();
+
+        // 4. Invalidate cache and bump list refresh (non-critical)
+        try {
+          driverRidesRefreshStore.bump();
+          const { invalidateRidesMyCache, invalidateWalletCache } = await import(
+            '@/network/resourceCache'
+          );
+          invalidateRidesMyCache();
+          invalidateWalletCache();
+          await refreshWallet().catch((err) => {
+            logger.warn('[Assured Publish] Non-critical wallet refresh error', {
+              message: err instanceof Error ? err.message : 'unknown',
+            });
+          });
+        } catch (refreshError) {
+          logger.warn('[Assured Publish] Cache refresh skipped', {
+            message: refreshError instanceof Error ? refreshError.message : 'unknown',
+          });
+        }
+
+        // 5. Success haptic
         triggerSuccessHaptic();
-        router.replace(ROUTES.offerRidePublished);
+
+        // 6. Navigate to success screen
+        try {
+          router.replace(ROUTES.offerRidePublished);
+        } catch (navError) {
+          logger.warn('[Assured Publish] Replace navigation failed, attempting push', {
+            message: navError instanceof Error ? navError.message : 'unknown',
+          });
+          try {
+            router.push(ROUTES.offerRidePublished);
+          } catch (pushError) {
+            logger.error('[Assured Publish] Navigation failed', {
+              message: pushError instanceof Error ? pushError.message : 'unknown',
+            });
+            showAppAlert(
+              'Ride published',
+              'Your ride was successfully published. View it anytime under My Rides.',
+              [{ text: 'My Rides', onPress: () => router.replace(ROUTES.myRides) }],
+            );
+          }
+        }
+        return;
       } catch (error) {
         if (isApiError(error) && error.status === 401) {
           authSession.clear();

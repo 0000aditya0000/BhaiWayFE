@@ -101,14 +101,14 @@ export const useOfferRidePublished = (): UseOfferRidePublishedResult => {
 
   const preferenceChips = useMemo(
     () =>
-      RIDE_PREFERENCE_OPTIONS.filter((option) => summary.preferences[option.id]).map(
+      RIDE_PREFERENCE_OPTIONS.filter((option) => summary?.preferences?.[option.id]).map(
         (option) => ({
           id: option.id,
           label: option.label,
           icon: option.icon,
         }),
       ),
-    [summary.preferences],
+    [summary?.preferences],
   );
 
   const openNotifications = useCallback(() => {
@@ -134,8 +134,8 @@ export const useOfferRidePublished = (): UseOfferRidePublishedResult => {
     });
   }, [summary]);
 
-  const price = summary.pricePerSeat || '0';
-  const priceLabel = formatBhaiWayCoins(Number(price), { spaced: false });
+  const priceNum = Number(summary?.pricePerSeat ?? 0);
+  const priceLabel = formatBhaiWayCoins(Number.isFinite(priceNum) ? priceNum : 0, { spaced: false });
 
   return {
     summary,
