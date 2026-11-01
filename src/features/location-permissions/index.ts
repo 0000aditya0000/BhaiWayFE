@@ -2,6 +2,8 @@ export * from './types/locationPermission.types';
 export * from './config/locationDisclosure.config';
 export * from './services/locationConsent.service';
 export * from './services/locationPermission.service';
+export * from './store/locationDisclosureStore';
 export * from './components/LocationDisclosureModal';
 export * from './components/LocationSettingsGuideModal';
+export * from './components/LocationDisclosureHost';
 export * from './hooks/useLocationPermissionFlow';

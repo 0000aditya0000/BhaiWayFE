@@ -738,7 +738,7 @@ export const useMyRides = (): UseMyRidesResult => {
         const alreadyInProgress =
           String(ride.rideStatus ?? '').toUpperCase() === 'IN_PROGRESS';
 
-        if (alreadyInProgress) {
+        const proceedResumeInProgress = () => {
           void driverLocationPublisher.ensure(rideId);
           void (async () => {
             try {
@@ -764,11 +764,10 @@ export const useMyRides = (): UseMyRidesResult => {
               openPickup();
             }
           })();
-          return;
-        }
+        };
 
-        setStartingRideId(rideId);
-        void (async () => {
+        const proceedStartRide = async () => {
+          setStartingRideId(rideId);
           try {
             await startRideById(rideId);
             void driverLocationPublisher.ensure(rideId);
@@ -795,7 +794,14 @@ export const useMyRides = (): UseMyRidesResult => {
           } finally {
             setStartingRideId(null);
           }
-        })();
+        };
+
+        if (alreadyInProgress) {
+          proceedResumeInProgress();
+          return;
+        }
+
+        void proceedStartRide();
         return;
       }
 

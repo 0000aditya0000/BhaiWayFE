@@ -300,6 +300,11 @@ const requestBackgroundPermission = async (): Promise<boolean> => {
       setSnapshot({ backgroundGranted: false, backgroundConsentRequired: true });
       return false;
     }
+    const fg = await Location.getForegroundPermissionsAsync();
+    if (fg.status !== Location.PermissionStatus.GRANTED) {
+      setSnapshot({ backgroundGranted: false, backgroundConsentRequired: true });
+      return false;
+    }
     const requested = await Location.requestBackgroundPermissionsAsync();
     const granted = requested.status === Location.PermissionStatus.GRANTED;
     setSnapshot({ backgroundGranted: granted, backgroundConsentRequired: !granted });
@@ -679,6 +684,21 @@ const startTrackingSession = async (rideId: string, generation: number): Promise
   ensureAppStateListener();
   logDriverEvent('started', { rideId });
 
+  const hasConsent = await locationConsentService.hasAffirmativeConsent();
+  setSnapshot({ hasAffirmativeConsent: hasConsent });
+
+  if (!hasConsent) {
+    // GOOGLE PLAY STRICT COMPLIANCE:
+    // Prominent disclosure must be affirmatively accepted in the UI before requesting
+    // any OS permissions (foreground or background) or starting native background updates.
+    setSnapshot({
+      backgroundGranted: false,
+      backgroundConsentRequired: true,
+      watching: false,
+    });
+    return;
+  }
+
   const granted = snapshot.permission === 'granted' || (await requestForegroundPermission());
   if (generation !== startGeneration) {
     return;
@@ -693,20 +713,7 @@ const startTrackingSession = async (rideId: string, generation: number): Promise
   }
   startHeartbeat(generation);
 
-  const hasConsent = await locationConsentService.hasAffirmativeConsent();
-  setSnapshot({ hasAffirmativeConsent: hasConsent });
-
-  if (!hasConsent) {
-    // GOOGLE PLAY STRICT COMPLIANCE:
-    // Prominent disclosure must be affirmatively accepted in the UI before requesting
-    // background permission or starting native background updates.
-    setSnapshot({
-      backgroundGranted: false,
-      backgroundConsentRequired: true,
-    });
-    readFreshPosition(generation);
-    return;
-  }
+  
 
   const backgroundGranted = await requestBackgroundPermission();
   if (generation !== startGeneration) {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useSessionUser } from '@/shared/hooks';
 import { logger } from '@/shared/utils';
+import { locationDisclosureStore } from '@/features/location-permissions';
 import { DEFAULT_HOME_LOCATION, HOME_CATEGORIES } from '../constants';
 import type { HomeCategory, HomeLocation } from '../types';
 import { getFirstName, resolveUserHomeLocation } from '../utils';
@@ -70,7 +71,10 @@ export const useHome = (): UseHomeResult => {
 
   useEffect(() => {
     void loadDashboard('initial');
-  }, [loadDashboard]);
+    void locationDisclosureStore.promptHomeDisclosureIfNeeded(async () => {
+      await loadUserLocation();
+    });
+  }, [loadDashboard, loadUserLocation]);
 
   const refresh = useCallback(() => loadDashboard('refresh'), [loadDashboard]);
   const retry = useCallback(() => loadDashboard('initial'), [loadDashboard]);

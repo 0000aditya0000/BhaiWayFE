@@ -16,10 +16,6 @@ import { BhaiWayMap, isValidMapCoordinate, type BhaiWayMapMarker } from '@/share
 import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { SwipeToComplete } from '@/features/my-rides/components';
 import { SosRideBanner } from '@/features/sos';
-import {
-  LocationDisclosureModal,
-  LocationSettingsGuideModal,
-} from '@/features/location-permissions';
 import { DRIVER_ACTIVE_TRIP_SCREEN } from '@/features/my-rides/constants';
 import { useDriverActiveTrip } from '@/features/my-rides/hooks';
 import { useLocalSearchParams } from 'expo-router';
@@ -286,17 +282,6 @@ export const DriverActiveTripScreen = () => {
       </ScrollView>
 
       <AppFooter activeTab="rides" />
-
-      <LocationDisclosureModal
-        visible={disclosureVisible}
-        onConsent={onConsentLocation}
-        onDecline={onDeclineLocation}
-      />
-      <LocationSettingsGuideModal
-        visible={settingsGuideVisible}
-        onOpenSettings={onOpenLocationSettings}
-        onDismiss={onDismissSettingsGuide}
-      />
     </SafeAreaView>
   );
 };

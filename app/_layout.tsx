@@ -18,6 +18,7 @@ import { AadhaarRewardHost } from '@/features/profile/components/AadhaarRewardHo
 import { PushNavigationRouterBridge } from '@/features/notifications/push/PushNavigationRouterBridge';
 import { PushNotificationsBootstrap } from '@/features/notifications/push/PushNotificationsBootstrap';
 import { DriverSosAlertOverlay, SosBootstrap } from '@/features/sos';
+import { LocationDisclosureHost } from '@/features/location-permissions';
 import {
   isSplashAnimationCompleted,
   markSplashAnimationCompleted,
@@ -104,6 +105,7 @@ export default function RootLayout() {
                   <AppAlertModal />
                   <AadhaarRewardHost />
                   <DriverSosAlertOverlay />
+                  <LocationDisclosureHost />
                 </View>
               </DigiLockerProvider>
             </ReduxProvider>

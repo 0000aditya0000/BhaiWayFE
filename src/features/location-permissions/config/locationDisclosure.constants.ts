@@ -16,16 +16,16 @@ export interface DisclosureConfig {
 }
 
 export const ANDROID_DISCLOSURE_CONFIG: DisclosureConfig = {
-  title: 'Live Ride Location',
-  badgeText: 'Driver Trip Tracking',
+  title: 'Location Access & Tracking',
+  badgeText: 'Location Access',
   primaryExplanation:
-    'BhaiWay collects your location in the background while you are driving an active ride, even when the app is closed or not in use.',
+    'BhaiWay collects location data to enable live driver tracking, passenger arrival updates, and route navigation even when the app is closed or not in use.',
   bulletPoints: [
     {
       icon: 'people-outline',
       title: 'Passenger Trip Following',
       description:
-        'Your live location is shared with confirmed passengers so they can follow your arrival and trip progress in real time.',
+        'Your live location is shared with confirmed passengers during your active ride so they can follow your arrival and trip progress in real time.',
     },
     {
       icon: 'shield-checkmark-outline',
@@ -42,21 +42,21 @@ export const ANDROID_DISCLOSURE_CONFIG: DisclosureConfig = {
   ],
   privacyNote:
     'BhaiWay does not track your location when you are off-duty or outside an active ride. You can manage or revoke location access at any time in Android Settings.',
-  continueButtonText: 'Continue',
+  continueButtonText: 'Accept & Continue',
   notNowButtonText: 'Not now',
 };
 
 export const IOS_DISCLOSURE_CONFIG: DisclosureConfig = {
-  title: 'Live Ride Location',
-  badgeText: 'Driver Trip Tracking',
+  title: 'Location Access & Tracking',
+  badgeText: 'Location Access',
   primaryExplanation:
-    'BhaiWay uses your location during an active driver ride to share your live trip progress with confirmed passengers and support ride safety and SOS response.',
+    'BhaiWay collects location data to enable live driver tracking, passenger arrival updates, and route navigation even when the app is in the background or minimized.',
   bulletPoints: [
     {
       icon: 'location-outline',
       title: 'Background Updates',
       description:
-        'Location updates may continue when BhaiWay is in the background or your screen is locked, ensuring passengers can follow your journey while you navigate.',
+        'Location updates continue when BhaiWay is in the background or your screen is locked, ensuring passengers can follow your journey while you navigate.',
     },
     {
       icon: 'shield-checkmark-outline',
@@ -73,7 +73,7 @@ export const IOS_DISCLOSURE_CONFIG: DisclosureConfig = {
   ],
   privacyNote:
     'Location sharing automatically terminates when the ride finishes or is cancelled. You can change permissions in iOS Settings at any time.',
-  continueButtonText: 'Continue',
+  continueButtonText: 'Accept & Continue',
   notNowButtonText: 'Not now',
 };
 

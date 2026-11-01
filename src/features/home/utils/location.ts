@@ -22,14 +22,7 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
 export const resolveUserHomeLocation = async (): Promise<HomeLocation | null> => {
   try {
     const existing = await Location.getForegroundPermissionsAsync();
-    let status = existing.status;
-
-    if (status !== Location.PermissionStatus.GRANTED) {
-      const requested = await Location.requestForegroundPermissionsAsync();
-      status = requested.status;
-    }
-
-    if (status !== Location.PermissionStatus.GRANTED) {
+    if (existing.status !== Location.PermissionStatus.GRANTED) {
       return null;
     }
 

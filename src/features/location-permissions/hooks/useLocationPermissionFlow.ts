@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
 import { locationConsentService } from '../services/locationConsent.service';
 import { locationPermissionService } from '../services/locationPermission.service';
+import { locationDisclosureStore } from '../store/locationDisclosureStore';
 import type { LocationPermissionSnapshot } from '../types/locationPermission.types';
 
 export interface UseLocationPermissionFlowResult {
@@ -21,9 +22,12 @@ export interface UseLocationPermissionFlowResult {
 export const useLocationPermissionFlow = (options?: {
   onPermissionResolved?: (granted: boolean) => void;
 }): UseLocationPermissionFlowResult => {
-  const [disclosureVisible, setDisclosureVisible] = useState(false);
-  const [settingsGuideVisible, setSettingsGuideVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const storeState = useSyncExternalStore(
+    locationDisclosureStore.subscribe,
+    locationDisclosureStore.getSnapshot,
+    locationDisclosureStore.getSnapshot,
+  );
+
   const [snapshot, setSnapshot] = useState<LocationPermissionSnapshot | null>(null);
 
   const refreshSnapshot = useCallback(async () => {
@@ -42,7 +46,7 @@ export const useLocationPermissionFlow = (options?: {
       if (state === 'active') {
         void refreshSnapshot().then((next) => {
           if (next.backgroundGranted) {
-            setSettingsGuideVisible(false);
+            locationDisclosureStore.handleDismissSettingsGuide();
             options?.onPermissionResolved?.(true);
           }
         });
@@ -61,82 +65,48 @@ export const useLocationPermissionFlow = (options?: {
     }
 
     if (!current.hasAffirmativeConsent) {
-      setDisclosureVisible(true);
+      void locationDisclosureStore.requestConsent({
+        onConsent: async () => {
+          const updated = await refreshSnapshot();
+          options?.onPermissionResolved?.(updated.backgroundGranted);
+        },
+        onDecline: () => {
+          options?.onPermissionResolved?.(false);
+        },
+      });
       return false;
     }
 
     if (current.requiresSettings) {
-      setSettingsGuideVisible(true);
+      locationDisclosureStore.handleDismissSettingsGuide();
       return false;
     }
 
-    // Has consent, attempt direct request
-    setLoading(true);
-    try {
-      const result = await locationPermissionService.requestBackgroundPermissionAfterConsent();
-      await refreshSnapshot();
-      if (result.backgroundGranted) {
-        options?.onPermissionResolved?.(true);
-        return true;
-      }
-      if (result.settingsRequired) {
-        setSettingsGuideVisible(true);
-      }
-      options?.onPermissionResolved?.(false);
-      return false;
-    } finally {
-      setLoading(false);
-    }
+    return false;
   }, [options, refreshSnapshot]);
 
   const handleConsent = useCallback(async () => {
-    setLoading(true);
-    try {
-      await locationConsentService.recordConsent('consented');
-      setDisclosureVisible(false);
-
-      const result = await locationPermissionService.requestBackgroundPermissionAfterConsent();
-      await refreshSnapshot();
-
-      if (result.backgroundGranted) {
-        options?.onPermissionResolved?.(true);
-      } else if (result.settingsRequired) {
-        setSettingsGuideVisible(true);
-        options?.onPermissionResolved?.(false);
-      } else {
-        options?.onPermissionResolved?.(false);
-      }
-    } finally {
-      setLoading(false);
-    }
+    await locationDisclosureStore.handleConsent();
+    const updated = await refreshSnapshot();
+    options?.onPermissionResolved?.(updated.backgroundGranted);
   }, [options, refreshSnapshot]);
 
   const handleDecline = useCallback(async () => {
-    await locationConsentService.recordConsent('declined');
-    setDisclosureVisible(false);
+    await locationDisclosureStore.handleDecline();
     await refreshSnapshot();
     options?.onPermissionResolved?.(false);
   }, [options, refreshSnapshot]);
 
-  const handleOpenSettings = useCallback(() => {
-    setSettingsGuideVisible(false);
-    locationPermissionService.openSettings();
-  }, []);
-
-  const handleDismissSettingsGuide = useCallback(() => {
-    setSettingsGuideVisible(false);
-  }, []);
-
   return {
-    disclosureVisible,
-    settingsGuideVisible,
-    loading,
+    disclosureVisible: storeState.visible,
+    settingsGuideVisible: storeState.settingsGuideVisible,
+    loading: storeState.loading,
     snapshot,
     refreshSnapshot,
     checkAndPromptIfNeeded,
     handleConsent,
     handleDecline,
-    handleOpenSettings,
-    handleDismissSettingsGuide,
+    handleOpenSettings: locationDisclosureStore.handleOpenSettings,
+    handleDismissSettingsGuide: locationDisclosureStore.handleDismissSettingsGuide,
   };
 };
