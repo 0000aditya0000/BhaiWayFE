@@ -29,15 +29,18 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "BhaiWay needs background location access during an active driver ride so passengers can follow your live trip and authorized safety personnel can respond to emergencies, even when the app is in the background.",
         "UIBackgroundModes": [
           "remote-notification",
+          "location",
+          "remote-notification",
           "location"
         ],
-        "UIViewControllerBasedStatusBarAppearance": false
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "ITSAppUsesNonExemptEncryption": false
       },
       "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.bhaiway.app",
-      "versionCode": 3,
+      "versionCode": 4,
       "softwareKeyboardLayoutMode": "resize",
       "splash": {
         "image": "./assets/splash-native.png",
