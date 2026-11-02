@@ -7,7 +7,7 @@ import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 
 import { APP_CONFIG } from '@/config';
 import { AppFooter, Avatar, IconButton, AppText as Text } from '@/shared/components';
-import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
+import { isGoogleMapsBypassed, isValidMapCoordinate, MapBypassSurface } from '@/shared/maps';
 import { colors, spacing } from '@/shared/theme';
 import { formatBhaiWayCoins, getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { TRIP_COMPLETED_SCREEN } from '@/features/ride-search/constants';
@@ -269,9 +269,30 @@ export const TripCompletedScreen = () => {
               liteMode={Platform.OS === 'android'}
               pointerEvents="none"
             >
-              <Marker coordinate={trip.pickup} pinColor={colors.primary} tracksViewChanges={false} />
-              <Marker coordinate={trip.dropoff} pinColor="#585E72" tracksViewChanges={false} />
-              <Polyline coordinates={polyline} strokeColor="#374BB1" strokeWidth={4} />
+              {isValidMapCoordinate(trip.pickup) ? (
+                <Marker
+                  key="trip-completed-pickup"
+                  coordinate={trip.pickup}
+                  pinColor={colors.primary}
+                  tracksViewChanges={false}
+                />
+              ) : null}
+              {isValidMapCoordinate(trip.dropoff) ? (
+                <Marker
+                  key="trip-completed-dropoff"
+                  coordinate={trip.dropoff}
+                  pinColor="#585E72"
+                  tracksViewChanges={false}
+                />
+              ) : null}
+              {polyline.length >= 2 ? (
+                <Polyline
+                  key="trip-completed-polyline"
+                  coordinates={polyline}
+                  strokeColor="#374BB1"
+                  strokeWidth={4}
+                />
+              ) : null}
             </MapView>
           )}
           <View style={styles.mapTint} pointerEvents="none" />

@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo } from 'react';
 import { StyleSheet } from 'react-native';
+import { Polyline } from 'react-native-maps';
 
 import {
   BhaiWayMap,
-  RoutePolyline,
   decodeGooglePolyline,
   isValidMapCoordinate,
   type BhaiWayMapMarker,
@@ -107,14 +107,14 @@ export const RouteOptionsMap = ({
       {decoded.map((item) => {
         const stroke = resolveRouteStroke(item.option.optionId, selectedOptionId);
         return (
-          <RoutePolyline
+          <Polyline
             key={item.option.optionId}
             coordinates={item.coordinates}
             strokeColor={stroke.strokeColor}
             strokeWidth={stroke.strokeWidth}
             zIndex={stroke.zIndex}
             tappable={Boolean(onSelectOption)}
-            onPress={() => handleSelectOption(item.option)}
+            onPress={onSelectOption ? () => handleSelectOption(item.option) : undefined}
           />
         );
       })}

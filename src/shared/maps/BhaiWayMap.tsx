@@ -1,21 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
-import MapView, { PROVIDER_GOOGLE, type Region } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE, type Region } from 'react-native-maps';
 
 import { AppText as Text } from '@/shared/components';
 import { colors, spacing } from '@/shared/theme';
 
 import { isGoogleMapsBypassed } from './isGoogleMapsBypassed';
 import { MapBypassSurface } from './MapBypassSurface';
-import { MapMarkers } from './MapMarker';
-import type { BhaiWayMapProps, MapLatLng } from './map.types';
+import type { BhaiWayMapMarker, BhaiWayMapProps, MapLatLng } from './map.types';
 import {
   buildRegionFromCoordinates,
   DEFAULT_MAP_DELTA,
   isValidMapCoordinate,
   MAP_CAMERA_FALLBACK,
+  pinColorForKind,
 } from './map.utils';
-import { RoutePolyline } from './RoutePolyline';
 
 const DEFAULT_EDGE_PADDING = {
   top: spacing.xl,
@@ -71,6 +70,25 @@ export const BhaiWayMap = React.memo(
       const fromExtra = extraFitCoordinates.filter(isValidMapCoordinate);
       return [...fromMarkers, ...fromRoute, ...fromExtra];
     }, [extraFitCoordinates, markers, routeCoordinates]);
+
+    const validMarkers = useMemo(
+      () =>
+        markers.filter(
+          (marker): marker is BhaiWayMapMarker =>
+            marker != null &&
+            typeof marker.id === 'string' &&
+            isValidMapCoordinate(marker.coordinate),
+        ),
+      [markers],
+    );
+
+    const validRouteCoordinates = useMemo(() => {
+      if (!Array.isArray(routeCoordinates) || routeCoordinates.length < 2) {
+        return [];
+      }
+      const filtered = routeCoordinates.filter(isValidMapCoordinate);
+      return filtered.length >= 2 ? filtered : [];
+    }, [routeCoordinates]);
 
     const resolvedInitialRegion: Region = useMemo(() => {
       if (initialRegion) {
@@ -171,11 +189,26 @@ export const BhaiWayMap = React.memo(
           showsCompass={false}
           liteMode={liteMode && Platform.OS === 'android'}
         >
-          <MapMarkers markers={markers} />
-          {routeCoordinates && routeCoordinates.length >= 2 ? (
-            <RoutePolyline coordinates={routeCoordinates} />
+          {validMarkers.map((marker) => (
+            <Marker
+              key={marker.id}
+              identifier={marker.id}
+              coordinate={marker.coordinate}
+              title={marker.title}
+              description={marker.description}
+              pinColor={marker.pinColor ?? pinColorForKind(marker.kind)}
+              tracksViewChanges={false}
+            />
+          ))}
+          {validRouteCoordinates.length >= 2 ? (
+            <Polyline
+              key="bhaiway-map-primary-polyline"
+              coordinates={validRouteCoordinates}
+              strokeColor="#374BB1"
+              strokeWidth={4}
+            />
           ) : null}
-          {children}
+          {React.Children.toArray(children).filter(Boolean)}
         </MapView>
 
         {loading ? (

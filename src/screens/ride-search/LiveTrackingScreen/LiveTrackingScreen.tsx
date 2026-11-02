@@ -438,18 +438,25 @@ export const LiveTrackingScreen = () => {
                   showsCompass={false}
                 >
                   {polyline.length >= 2 ? (
-                    <>
-                      <Polyline
-                        coordinates={polyline}
-                        strokeColor="rgba(55, 75, 177, 0.2)"
-                        strokeWidth={6}
-                      />
-                      <Polyline coordinates={polyline} strokeColor="#374BB1" strokeWidth={4} />
-                    </>
+                    <Polyline
+                      key="live-tracking-poly-glow"
+                      coordinates={polyline}
+                      strokeColor="rgba(55, 75, 177, 0.2)"
+                      strokeWidth={6}
+                    />
+                  ) : null}
+                  {polyline.length >= 2 ? (
+                    <Polyline
+                      key="live-tracking-poly-core"
+                      coordinates={polyline}
+                      strokeColor="#374BB1"
+                      strokeWidth={4}
+                    />
                   ) : null}
 
                   {isValidMapCoordinate(tracking.pickup) && !isPickupVerified ? (
                     <Marker
+                      key="live-tracking-pickup-unverified"
                       coordinate={tracking.pickup}
                       tracksViewChanges={false}
                       anchor={{ x: 0.5, y: 1 }}
@@ -460,8 +467,9 @@ export const LiveTrackingScreen = () => {
                     </Marker>
                   ) : null}
 
-                  {hasRiderPin && riderCoordinate && !isPickupVerified ? (
+                  {hasRiderPin && riderCoordinate && isValidMapCoordinate(riderCoordinate) && !isPickupVerified ? (
                     <Marker
+                      key="live-tracking-rider"
                       coordinate={riderCoordinate}
                       tracksViewChanges={false}
                       anchor={{ x: 0.5, y: 0.5 }}
@@ -472,6 +480,7 @@ export const LiveTrackingScreen = () => {
                     </Marker>
                   ) : isValidMapCoordinate(tracking.pickup) && isPickupVerified ? (
                     <Marker
+                      key="live-tracking-pickup-verified"
                       coordinate={tracking.pickup}
                       tracksViewChanges={false}
                       anchor={{ x: 0.5, y: 0.5 }}
@@ -482,8 +491,9 @@ export const LiveTrackingScreen = () => {
                     </Marker>
                   ) : null}
 
-                  {isPickupVerified ? (
+                  {isPickupVerified && isValidMapCoordinate(tracking.dropoff) ? (
                     <Marker
+                      key="live-tracking-dropoff"
                       coordinate={tracking.dropoff}
                       tracksViewChanges={false}
                       anchor={{ x: 0.5, y: 1 }}
@@ -497,8 +507,9 @@ export const LiveTrackingScreen = () => {
                     </Marker>
                   ) : null}
 
-                  {hasLiveDriver && driverPosition ? (
+                  {hasLiveDriver && driverPosition && isValidMapCoordinate(driverPosition) ? (
                     <Marker
+                      key="live-tracking-driver"
                       coordinate={driverPosition}
                       tracksViewChanges
                       anchor={{ x: 0.5, y: 0.5 }}

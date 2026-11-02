@@ -15,7 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { AppFooter, Avatar, AppText as Text } from '@/shared/components';
-import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
+import { isGoogleMapsBypassed, isValidMapCoordinate, MapBypassSurface } from '@/shared/maps';
 import { spacing } from '@/shared/theme';
 import { getSearchParam, triggerLightHaptic } from '@/shared/utils';
 import { ONGOING_TRIP_SCREEN } from '@/features/ride-search/constants';
@@ -210,31 +210,48 @@ export const OngoingTripScreen = () => {
             rotateEnabled={false}
             pitchEnabled={false}
           >
-            <Marker coordinate={trip.pickup} tracksViewChanges={false} anchor={{ x: 0.5, y: 0.5 }}>
-              <View style={styles.carMarkerWrap}>
-                <View style={styles.carGlow} />
-                <View style={styles.carIcon}>
-                  <Ionicons name="car" size={36} color={ongoingTripTokens.PRIMARY} />
+            {isValidMapCoordinate(trip.pickup) ? (
+              <Marker
+                key="ongoing-trip-pickup"
+                coordinate={trip.pickup}
+                tracksViewChanges={false}
+                anchor={{ x: 0.5, y: 0.5 }}
+              >
+                <View style={styles.carMarkerWrap}>
+                  <View style={styles.carGlow} />
+                  <View style={styles.carIcon}>
+                    <Ionicons name="car" size={36} color={ongoingTripTokens.PRIMARY} />
+                  </View>
+                  <View style={styles.carLiveDot} />
                 </View>
-                <View style={styles.carLiveDot} />
-              </View>
-            </Marker>
-            <Marker coordinate={trip.dropoff} tracksViewChanges={false} anchor={{ x: 0.5, y: 1 }}>
-              <View style={styles.destinationMarker}>
-                <View style={styles.destinationBadge}>
-                  <Text style={styles.destinationBadgeText}>
-                    {ONGOING_TRIP_SCREEN.destinationBadge}
-                  </Text>
+              </Marker>
+            ) : null}
+            {isValidMapCoordinate(trip.dropoff) ? (
+              <Marker
+                key="ongoing-trip-dropoff"
+                coordinate={trip.dropoff}
+                tracksViewChanges={false}
+                anchor={{ x: 0.5, y: 1 }}
+              >
+                <View style={styles.destinationMarker}>
+                  <View style={styles.destinationBadge}>
+                    <Text style={styles.destinationBadgeText}>
+                      {ONGOING_TRIP_SCREEN.destinationBadge}
+                    </Text>
+                  </View>
+                  <Ionicons name="location" size={36} color={ongoingTripTokens.ERROR} />
                 </View>
-                <Ionicons name="location" size={36} color={ongoingTripTokens.ERROR} />
-              </View>
-            </Marker>
-            <Polyline
-              coordinates={polyline}
-              strokeColor="#374BB1"
-              strokeWidth={6}
-              lineDashPattern={[1, 12]}
-            />
+              </Marker>
+            ) : null}
+            {polyline.length >= 2 ? (
+              <Polyline
+                key="ongoing-trip-polyline"
+                coordinates={polyline}
+                strokeColor="#374BB1"
+                strokeWidth={6}
+                lineDashPattern={[1, 12]}
+              />
+            ) : null}
           </MapView>
         )}
         <LinearGradient

@@ -4,7 +4,7 @@ import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AppText as Text } from '@/shared/components';
-import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
+import { isGoogleMapsBypassed, isValidMapCoordinate, MapBypassSurface } from '@/shared/maps';
 import { colors, spacing } from '@/shared/theme';
 import { COMMUTE_REVIEW_BOOKING_SCREEN } from '../../constants/commute-review-booking.constants';
 import { getRouteMatchVisual } from '../../utils/routeMatchVisual';
@@ -114,21 +114,30 @@ export const CommuteBookingMapHero = React.memo(
               liteMode={Platform.OS === 'android'}
               pointerEvents="none"
             >
-              <Marker
-                coordinate={{ latitude: pickup.latitude, longitude: pickup.longitude }}
-                pinColor={colors.primary}
-                tracksViewChanges={false}
-              />
-              <Marker
-                coordinate={{ latitude: dropoff.latitude, longitude: dropoff.longitude }}
-                pinColor={colors.error}
-                tracksViewChanges={false}
-              />
-              <Polyline
-                coordinates={polylineCoordinates}
-                strokeColor={colors.secondary}
-                strokeWidth={4}
-              />
+              {isValidMapCoordinate(pickup) ? (
+                <Marker
+                  key="commute-hero-pickup"
+                  coordinate={{ latitude: pickup.latitude, longitude: pickup.longitude }}
+                  pinColor={colors.primary}
+                  tracksViewChanges={false}
+                />
+              ) : null}
+              {isValidMapCoordinate(dropoff) ? (
+                <Marker
+                  key="commute-hero-dropoff"
+                  coordinate={{ latitude: dropoff.latitude, longitude: dropoff.longitude }}
+                  pinColor={colors.error}
+                  tracksViewChanges={false}
+                />
+              ) : null}
+              {polylineCoordinates.length >= 2 ? (
+                <Polyline
+                  key="commute-hero-polyline"
+                  coordinates={polylineCoordinates}
+                  strokeColor={colors.secondary}
+                  strokeWidth={4}
+                />
+              ) : null}
             </MapView>
           )}
         </View>

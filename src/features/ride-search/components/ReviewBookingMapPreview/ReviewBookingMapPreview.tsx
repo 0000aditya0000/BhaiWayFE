@@ -3,7 +3,7 @@ import { Platform, View } from 'react-native';
 import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 
 import { AppText as Text } from '@/shared/components';
-import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
+import { isGoogleMapsBypassed, isValidMapCoordinate, MapBypassSurface } from '@/shared/maps';
 import { colors, spacing } from '@/shared/theme';
 import type { BookingLocation, MapCoordinate } from '../../types';
 import { styles } from './ReviewBookingMapPreview.styles';
@@ -115,21 +115,30 @@ export const ReviewBookingMapPreview = React.memo(
             liteMode={Platform.OS === 'android'}
             pointerEvents="none"
           >
-            <Marker
-              coordinate={{ latitude: pickup.latitude, longitude: pickup.longitude }}
-              pinColor={colors.primary}
-              tracksViewChanges={false}
-            />
-            <Marker
-              coordinate={{ latitude: dropoff.latitude, longitude: dropoff.longitude }}
-              pinColor={colors.error}
-              tracksViewChanges={false}
-            />
-            <Polyline
-              coordinates={polylineCoordinates}
-              strokeColor={colors.primary}
-              strokeWidth={4}
-            />
+            {isValidMapCoordinate(pickup) ? (
+              <Marker
+                key="review-booking-pickup"
+                coordinate={{ latitude: pickup.latitude, longitude: pickup.longitude }}
+                pinColor={colors.primary}
+                tracksViewChanges={false}
+              />
+            ) : null}
+            {isValidMapCoordinate(dropoff) ? (
+              <Marker
+                key="review-booking-dropoff"
+                coordinate={{ latitude: dropoff.latitude, longitude: dropoff.longitude }}
+                pinColor={colors.error}
+                tracksViewChanges={false}
+              />
+            ) : null}
+            {polylineCoordinates.length >= 2 ? (
+              <Polyline
+                key="review-booking-polyline"
+                coordinates={polylineCoordinates}
+                strokeColor={colors.primary}
+                strokeWidth={4}
+              />
+            ) : null}
           </MapView>
         )}
 

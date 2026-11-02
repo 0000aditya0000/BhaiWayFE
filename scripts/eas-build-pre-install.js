@@ -30,3 +30,11 @@ copyIfPresent('GOOGLE_SERVICES_JSON', 'google-services.json');
 copyIfPresent('GOOGLE_SERVICES_JSON_PATH', 'google-services.json');
 copyIfPresent('GOOGLE_SERVICE_INFO_PLIST', 'GoogleService-Info.plist');
 copyIfPresent('GOOGLE_SERVICES_PLIST', 'GoogleService-Info.plist');
+
+// Ensure react-native-maps iOS crash fix is applied before prebuild
+try {
+  require('./patch-react-native-maps.js');
+} catch (err) {
+  console.warn('[eas-build-pre-install] Failed to run patch-react-native-maps:', err);
+}
+

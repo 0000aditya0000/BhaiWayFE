@@ -4,7 +4,7 @@ import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AppText as Text } from '@/shared/components';
-import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
+import { isGoogleMapsBypassed, isValidMapCoordinate, MapBypassSurface } from '@/shared/maps';
 import { colors, spacing } from '@/shared/theme';
 import { styles } from './RoutePreviewCard.styles';
 import type { RoutePreviewCardProps } from './RoutePreviewCard.types';
@@ -114,23 +114,32 @@ export const RoutePreviewCard = React.memo(
           liteMode={Platform.OS === 'android'}
           pointerEvents="none"
         >
-          <Marker
-            coordinate={coordinates[0]}
-            anchor={{ x: 0.5, y: 0.5 }}
-            pinColor={colors.primary}
-            tracksViewChanges={false}
-          />
-          <Marker
-            coordinate={coordinates[1]}
-            pinColor={colors.primary}
-            tracksViewChanges={false}
-          />
-          <Polyline
-            coordinates={coordinates}
-            strokeColor={colors.primary}
-            strokeWidth={3}
-            lineDashPattern={[10, 6]}
-          />
+          {coordinates[0] && isValidMapCoordinate(coordinates[0]) ? (
+            <Marker
+              key="route-preview-start"
+              coordinate={coordinates[0]}
+              anchor={{ x: 0.5, y: 0.5 }}
+              pinColor={colors.primary}
+              tracksViewChanges={false}
+            />
+          ) : null}
+          {coordinates[1] && isValidMapCoordinate(coordinates[1]) ? (
+            <Marker
+              key="route-preview-end"
+              coordinate={coordinates[1]}
+              pinColor={colors.primary}
+              tracksViewChanges={false}
+            />
+          ) : null}
+          {coordinates.length >= 2 ? (
+            <Polyline
+              key="route-preview-polyline"
+              coordinates={coordinates}
+              strokeColor={colors.primary}
+              strokeWidth={3}
+              lineDashPattern={[10, 6]}
+            />
+          ) : null}
         </MapView>
 
         <View style={styles.statsRow}>

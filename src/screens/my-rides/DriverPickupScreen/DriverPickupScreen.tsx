@@ -220,18 +220,25 @@ export const DriverPickupScreen = () => {
             showsMyLocationButton={false}
           >
             {polyline.length >= 2 ? (
-              <>
-                <Polyline
-                  coordinates={polyline}
-                  strokeColor="rgba(75, 97, 196, 0.25)"
-                  strokeWidth={6}
-                />
-                <Polyline coordinates={polyline} strokeColor="#4B61C4" strokeWidth={4} />
-              </>
+              <Polyline
+                key="driver-pickup-glow"
+                coordinates={polyline}
+                strokeColor="rgba(75, 97, 196, 0.25)"
+                strokeWidth={6}
+              />
+            ) : null}
+            {polyline.length >= 2 ? (
+              <Polyline
+                key="driver-pickup-core"
+                coordinates={polyline}
+                strokeColor="#4B61C4"
+                strokeWidth={4}
+              />
             ) : null}
 
-            {hasPickup ? (
+            {hasPickup && isValidMapCoordinate(stop.coordinate) ? (
               <Marker
+                key="driver-pickup-passenger-marker"
                 coordinate={stop.coordinate}
                 tracksViewChanges={false}
                 anchor={{ x: 0.5, y: 1 }}
@@ -247,8 +254,9 @@ export const DriverPickupScreen = () => {
               </Marker>
             ) : null}
 
-            {hasDriver && driverCoordinate ? (
+            {hasDriver && driverCoordinate && isValidMapCoordinate(driverCoordinate) ? (
               <Marker
+                key="driver-pickup-vehicle-marker"
                 coordinate={driverCoordinate}
                 tracksViewChanges={false}
                 anchor={{ x: 0.5, y: 0.5 }}

@@ -134,7 +134,8 @@
       "expo-task-manager",
       "@maplibre/maplibre-react-native",
       "expo-ios-scene-lifecycle-plugin",
-      "./plugins/withIosMinDeploymentTarget"
+      "./plugins/withIosMinDeploymentTarget",
+      "./plugins/withReactNativeMapsCrashFix"
     ],
     "runtimeVersion": {
       "policy": "appVersion"

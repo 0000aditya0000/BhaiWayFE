@@ -4,7 +4,7 @@ import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { AppText as Text } from '@/shared/components';
-import { isGoogleMapsBypassed, MapBypassSurface } from '@/shared/maps';
+import { isGoogleMapsBypassed, isValidMapCoordinate, MapBypassSurface } from '@/shared/maps';
 import { colors, spacing } from '@/shared/theme';
 import { RIDE_DETAILS_SCREEN } from '../../constants';
 import type { MapCoordinate, RideDetailsLocation } from '../../types';
@@ -98,17 +98,30 @@ export const RideDetailsRouteCard = React.memo(
               liteMode={Platform.OS === 'android'}
               pointerEvents="none"
             >
-              <Marker
-                coordinate={{ latitude: pickup.latitude, longitude: pickup.longitude }}
-                pinColor={colors.primary}
-                tracksViewChanges={false}
-              />
-              <Marker
-                coordinate={{ latitude: dropoff.latitude, longitude: dropoff.longitude }}
-                pinColor="#404659"
-                tracksViewChanges={false}
-              />
-              <Polyline coordinates={polyline} strokeColor={colors.primary} strokeWidth={4} />
+              {isValidMapCoordinate(pickup) ? (
+                <Marker
+                  key="ride-details-pickup"
+                  coordinate={{ latitude: pickup.latitude, longitude: pickup.longitude }}
+                  pinColor={colors.primary}
+                  tracksViewChanges={false}
+                />
+              ) : null}
+              {isValidMapCoordinate(dropoff) ? (
+                <Marker
+                  key="ride-details-dropoff"
+                  coordinate={{ latitude: dropoff.latitude, longitude: dropoff.longitude }}
+                  pinColor="#404659"
+                  tracksViewChanges={false}
+                />
+              ) : null}
+              {polyline.length >= 2 ? (
+                <Polyline
+                  key="ride-details-polyline"
+                  coordinates={polyline}
+                  strokeColor={colors.primary}
+                  strokeWidth={4}
+                />
+              ) : null}
             </MapView>
           )}
           <LinearGradient
