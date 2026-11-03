@@ -9,6 +9,7 @@ export const ENDPOINTS = {
      * Exchange phone+OTP (or MSG91 widget access-token) for a BhaiWay JWT.
      */
     msg91Verify: '/auth/msg91/verify',
+    msg91Register: '/auth/msg91/register',
   },
   users: {
     /** Authenticated user + profile (Bearer JWT). */
@@ -28,6 +29,14 @@ export const ENDPOINTS = {
       request: '/users/me/email/change/request',
       /** Verify OTP and update email address (Bearer JWT). */
       verify: '/users/me/email/change/verify',
+    },
+    accountDeletion: {
+      /** Submit an account deletion request (Bearer JWT). */
+      request: '/users/me/account-deletion/request',
+      /** Get current account deletion status (Bearer JWT). */
+      status: '/users/me/account-deletion',
+      /** Cancel an active account deletion request (Bearer JWT). */
+      cancel: '/users/me/account-deletion/cancel',
     },
   },
   corporateIdentity: {

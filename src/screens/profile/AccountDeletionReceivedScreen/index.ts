@@ -1,0 +1,2 @@
+export { AccountDeletionReceivedScreen } from './AccountDeletionReceivedScreen';
+

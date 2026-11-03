@@ -7,7 +7,8 @@ export type ProfileMenuActionId =
   | 'refer'
   | 'safety'
   | 'support'
-  | 'legal';
+  | 'legal'
+  | 'deleteAccount';
 
 export interface ProfileBadge {
   id: string;
@@ -30,7 +31,8 @@ export interface ProfileMenuItem {
     | 'gift-outline'
     | 'shield-outline'
     | 'headset-outline'
-    | 'document-text-outline';
+    | 'document-text-outline'
+    | 'trash-outline';
 }
 
 export interface MyRatingReview {

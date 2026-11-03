@@ -14,9 +14,9 @@ export const DriverLocationTrackingBootstrap = (): null => {
   useEffect(() => {
     let lastToken: string | null = null;
     const unsubAuth = authSession.subscribe((session) => {
-      if (!session.token || !session.user) {
+      if (!session.token || !session.user || session.deletionPending) {
         lastToken = null;
-        void driverLocationPublisher.stop('logout');
+        void driverLocationPublisher.stop(session.deletionPending ? 'account_deletion_pending' : 'logout');
         return;
       }
       if (lastToken === session.token) {

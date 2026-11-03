@@ -12,6 +12,7 @@ import { authSession, showAppAlert } from '@/store';
 import { aadhaarRewardUiStore } from '@/features/profile/store/aadhaarRewardUiStore';
 import { verificationStore } from '@/features/profile/store';
 import { getMyVerifications } from '@/features/profile/api';
+import { useUpload } from '@/hooks/useUpload';
 import { authService } from '../services';
 import { profileSetupDraft } from '../store';
 import { mapCompleteProfileError, isDuplicateEmailError, mapGenderFromApi } from '../utils';
@@ -31,6 +32,8 @@ export interface UseCompleteProfileResult {
   form: UseFormReturn<ProfileFormValues>;
   avatarUri: string | null;
   setAvatarUri: (uri: string) => void;
+  avatarUploading: boolean;
+  setAvatarUploading: (uploading: boolean) => void;
   loading: boolean;
   isIdentityVerified: boolean;
   genderLabel: string;
@@ -42,6 +45,7 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
   const router = useRouter();
   const initialDraft = profileSetupDraft.get();
   const [avatarUri, setAvatarUriState] = useState<string | null>(initialDraft.avatarUri);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const submittingRef = useRef(false);
   const [isIdentityVerified, setIsIdentityVerified] = useState(
@@ -50,6 +54,11 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
   const [genderLabel, setGenderLabel] = useState(() =>
     formatApiGenderLabel(authSession.getUser()?.gender ?? null),
   );
+
+  const { uploadLocalFile } = useUpload({
+    kind: 'profile',
+    showAlerts: false,
+  });
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileValidationSchema),
@@ -130,12 +139,12 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
   }, [initialDraft.promptFillDetails]);
 
   const submit = useCallback(() => {
-    if (submittingRef.current) {
+    if (submittingRef.current || avatarUploading) {
       return;
     }
 
     void form.handleSubmit(async (values) => {
-      if (submittingRef.current) {
+      if (submittingRef.current || avatarUploading) {
         return;
       }
 
@@ -143,18 +152,45 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
       submittingRef.current = true;
       setLoading(true);
 
-      const cloudinaryAvatar =
-        avatarUri && /^https?:\/\//i.test(avatarUri) ? avatarUri : undefined;
-
       try {
+        let resolvedAvatar = avatarUri;
+
+        // If user picked an image that has not finished uploading or is still a local URI, upload to Cloudinary now
+        if (resolvedAvatar && !/^https?:\/\//i.test(resolvedAvatar)) {
+          setAvatarUploading(true);
+          const uploaded = await uploadLocalFile({
+            uri: resolvedAvatar,
+            fileName: `profile_${Date.now()}.jpg`,
+            mimeType: 'image/jpeg',
+          });
+          setAvatarUploading(false);
+
+          if (!uploaded) {
+            showAppAlert(
+              'Photo Upload Failed',
+              'Could not upload your profile photo to Cloudinary. Please try again or remove the photo.',
+            );
+            return;
+          }
+
+          resolvedAvatar = uploaded.secureUrl;
+          setAvatarUriState(uploaded.secureUrl);
+          profileSetupDraft.set({ avatarUri: uploaded.secureUrl });
+        }
+
         const profile = await authService.completeProfile({
           fullName: values.fullName,
           email: values.email,
-          avatarUri: cloudinaryAvatar ?? avatarUri,
+          avatarUri: resolvedAvatar && /^https?:\/\//i.test(resolvedAvatar) ? resolvedAvatar : null,
         });
+
         triggerSuccessHaptic();
         authSession.setUserFromProfile(profile);
-        await authService.hydrateAuthenticatedUser().catch(() => undefined);
+
+        const { invalidateUserProfileCache } = await import('@/network/resourceCache');
+        invalidateUserProfileCache();
+        await authService.hydrateAuthenticatedUser({ force: true }).catch(() => undefined);
+
         profileSetupDraft.clear();
         await markAadhaarClaimEligibleAfterRegistration();
         router.replace(ROUTES.home);
@@ -172,9 +208,13 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
             fullName: values.fullName.trim(),
             email: values.email.trim(),
             gender: values.gender ?? 'other',
-            avatarUri: cloudinaryAvatar ?? avatarUri ?? null,
+            avatarUri: avatarUri && /^https?:\/\//i.test(avatarUri) ? avatarUri : null,
           });
-          await authService.hydrateAuthenticatedUser().catch(() => undefined);
+
+          const { invalidateUserProfileCache } = await import('@/network/resourceCache');
+          invalidateUserProfileCache();
+          await authService.hydrateAuthenticatedUser({ force: true }).catch(() => undefined);
+
           profileSetupDraft.clear();
           await markAadhaarClaimEligibleAfterRegistration();
           router.replace(ROUTES.home);
@@ -187,12 +227,14 @@ export const useCompleteProfile = (): UseCompleteProfileResult => {
         setLoading(false);
       }
     })();
-  }, [avatarUri, form, router]);
+  }, [avatarUploading, avatarUri, form, router, uploadLocalFile]);
 
   return {
     form,
     avatarUri,
     setAvatarUri,
+    avatarUploading,
+    setAvatarUploading,
     loading,
     isIdentityVerified,
     genderLabel,

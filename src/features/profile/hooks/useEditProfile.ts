@@ -67,7 +67,9 @@ export const useEditProfile = (): UseEditProfileResult => {
 
   const { uploadLocalFile, isUploading: avatarUploading } = useUpload({
     kind: 'profile',
-    onUploaded: saveProfilePhotoUrl,
+    onUploaded: async (result) => {
+      await saveProfilePhotoUrl(result);
+    },
     showAlerts: true,
   });
 
@@ -82,7 +84,7 @@ export const useEditProfile = (): UseEditProfileResult => {
         }
 
         const fullName = resolveProfileFullName(response.profile) || sessionUser?.fullName || '';
-        const email = response.user.email?.trim() || sessionUser?.email || '';
+        const email = response.user.email?.trim() || response.profile?.email?.trim() || '';
         const apiGender = (response.profile?.gender ?? null) as ApiGender | null;
         const photo = response.profile?.profilePhoto?.trim() || sessionUser?.avatarUri || null;
 

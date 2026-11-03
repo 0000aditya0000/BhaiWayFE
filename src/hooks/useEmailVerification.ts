@@ -80,9 +80,7 @@ export const useEmailVerification = (): UseEmailVerificationResult => {
 
   useEffect(() => {
     const next = sessionUser?.email?.trim() || null;
-    if (next) {
-      setEmail(next);
-    }
+    setEmail(next);
   }, [sessionUser?.email]);
 
   const refreshStatus = useCallback(async () => {
@@ -95,22 +93,24 @@ export const useEmailVerification = (): UseEmailVerificationResult => {
     setIsLoading(true);
     try {
       const status = await getEmailVerificationStatus();
-      setEmail(status.email?.trim() || email);
-      setVerified(Boolean(status.verified));
+      const serverEmail = status.email?.trim() || null;
+      setEmail(serverEmail);
+      setVerified(Boolean(serverEmail && status.verified));
       setError(null);
     } catch (err) {
       // Fall back to /users/me emailVerified when status endpoint fails.
       try {
         const me = await authService.getMe();
-        setEmail(me.user.email?.trim() || email);
-        setVerified(Boolean(me.user.emailVerified));
+        const serverEmail = me.user.email?.trim() || null;
+        setEmail(serverEmail);
+        setVerified(Boolean(serverEmail && me.user.emailVerified));
       } catch {
         setError(mapEmailVerificationError(err));
       }
     } finally {
       setIsLoading(false);
     }
-  }, [email]);
+  }, []);
 
   const sendOtp = useCallback(
     async (emailOverride?: string): Promise<boolean> => {
@@ -166,11 +166,12 @@ export const useEmailVerification = (): UseEmailVerificationResult => {
     try {
       await verifyEmail(normalized);
       setVerified(true);
-      await authService.hydrateAuthenticatedUser().catch(() => undefined);
+      await authService.hydrateAuthenticatedUser({ force: true }).catch(() => undefined);
       await getEmailVerificationStatus()
         .then((status) => {
-          setEmail(status.email?.trim() || email);
-          setVerified(Boolean(status.verified));
+          const serverEmail = status.email?.trim() || null;
+          setEmail(serverEmail);
+          setVerified(Boolean(serverEmail && status.verified));
         })
         .catch(() => undefined);
       return true;
@@ -182,7 +183,7 @@ export const useEmailVerification = (): UseEmailVerificationResult => {
       verifyInFlightRef.current = false;
       setIsVerifying(false);
     }
-  }, [email]);
+  }, []);
 
   const clearError = useCallback(() => setError(null), []);
 

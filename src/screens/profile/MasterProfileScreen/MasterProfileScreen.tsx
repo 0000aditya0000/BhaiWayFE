@@ -57,6 +57,7 @@ const MENU_VISUALS: Record<ProfileMenuItem['id'], MenuVisual> = {
   safety: { iconColor: '#DC2626', bgColor: '#FEE2E2' },
   support: { iconColor: '#4B61C4', bgColor: '#E8EBFA' },
   legal: { iconColor: '#64748B', bgColor: '#F1F5F9' },
+  deleteAccount: { iconColor: '#DC2626', bgColor: '#FEE2E2' },
 };
 
 export const MasterProfileScreen = () => {
@@ -75,6 +76,7 @@ export const MasterProfileScreen = () => {
     openEditProfile,
     openVerifyEmail,
     openChangeEmail,
+    openAddEmail,
     openRatings,
     onMenuPress,
     openLogout,
@@ -104,6 +106,11 @@ export const MasterProfileScreen = () => {
     triggerLightHaptic();
     openChangeEmail();
   }, [openChangeEmail]);
+
+  const handleAddEmail = useCallback(() => {
+    triggerLightHaptic();
+    openAddEmail();
+  }, [openAddEmail]);
 
   const handleWallet = useCallback(() => {
     triggerLightHaptic();
@@ -366,7 +373,7 @@ export const MasterProfileScreen = () => {
                       styles.verifyEmailButton,
                       pressed && { opacity: 0.88 },
                     ]}
-                    onPress={handleEditProfile}
+                    onPress={handleAddEmail}
                     accessibilityRole="button"
                     accessibilityLabel={PROFILE_SCREEN.addEmailLabel}
                   >
@@ -566,7 +573,9 @@ export const MasterProfileScreen = () => {
                         <Ionicons name={item.icon} size={22} color={visual.iconColor} />
                       </View>
                       <View style={styles.menuMeta}>
-                        <Text style={styles.menuTitle}>{item.title}</Text>
+                        <Text style={[styles.menuTitle, item.id === 'deleteAccount' && { color: profileTokens.DANGER }]}>
+                          {item.title}
+                        </Text>
                         <Text style={styles.menuSubtitle} numberOfLines={2}>
                           {item.subtitle}
                         </Text>

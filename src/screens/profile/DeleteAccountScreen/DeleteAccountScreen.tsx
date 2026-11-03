@@ -1,9 +1,8 @@
 import React, { useCallback } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppFooter, IconButton, AppText as Text, AppTextInput as TextInput } from '@/shared/components';
+import { IconButton, AppText as Text, AppTextInput as TextInput } from '@/shared/components';
 import { triggerLightHaptic } from '@/shared/utils';
 import { DELETE_ACCOUNT_SCREEN } from '@/features/profile/constants';
 import { useDeleteAccount } from '@/features/profile/hooks';
@@ -12,20 +11,28 @@ import { deleteAccountTokens, styles } from './DeleteAccountScreen.styles';
 export const DeleteAccountScreen = () => {
   const {
     reasons,
-    selectedReason,
+    selectedReasonId,
     feedback,
+    canContinue,
     selectReason,
     setFeedback,
     goBack,
-    openNotifications,
-    keepAccount,
-    deleteAccount,
+    continueToConfirm,
   } = useDeleteAccount();
 
   const handleGoBack = useCallback(() => {
     triggerLightHaptic();
     goBack();
   }, [goBack]);
+
+  const handleFeedbackChange = useCallback(
+    (text: string) => {
+      if (text.length <= 1000) {
+        setFeedback(text);
+      }
+    },
+    [setFeedback],
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -38,16 +45,12 @@ export const DeleteAccountScreen = () => {
             accessibilityLabel="Go back"
           />
         </View>
-        <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
-            {DELETE_ACCOUNT_SCREEN.title}
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
+            Delete Account
           </Text>
-
-        <IconButton
-          icon="notifications-outline"
-          onPress={openNotifications}
-          color={deleteAccountTokens.PRIMARY}
-          accessibilityLabel="Open notifications"
-        />
+        </View>
+        <View style={styles.headerRight} />
       </View>
 
       <ScrollView
@@ -56,20 +59,17 @@ export const DeleteAccountScreen = () => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.warningCard}>
-          <Ionicons name="warning-outline" size={28} color={deleteAccountTokens.ERROR} />
-          <View style={styles.warningMeta}>
-            <Text style={styles.warningTitle}>{DELETE_ACCOUNT_SCREEN.warningTitle}</Text>
-            <Text style={styles.warningBody}>{DELETE_ACCOUNT_SCREEN.warningBody}</Text>
-          </View>
+        <View style={styles.introBlock}>
+          <Text style={styles.pageTitle}>{DELETE_ACCOUNT_SCREEN.title}</Text>
+          <Text style={styles.pageSubtitle}>{DELETE_ACCOUNT_SCREEN.subtitle}</Text>
         </View>
 
         <View style={styles.feedbackSection}>
           <Text style={styles.reasonsHeading}>{DELETE_ACCOUNT_SCREEN.reasonsHeading}</Text>
 
-          <View style={styles.reasonsList}>
+          <View style={styles.reasonsList} accessibilityRole="radiogroup">
             {reasons.map((reason) => {
-              const selected = selectedReason === reason.id;
+              const selected = selectedReasonId === reason.id;
               return (
                 <Pressable
                   key={reason.id}
@@ -79,7 +79,9 @@ export const DeleteAccountScreen = () => {
                   accessibilityState={{ selected }}
                   accessibilityLabel={reason.label}
                 >
-                  <Text style={styles.reasonLabel}>{reason.label}</Text>
+                  <Text style={[styles.reasonLabel, selected && styles.reasonLabelSelected]}>
+                    {reason.label}
+                  </Text>
                   <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
                     {selected ? <View style={styles.radioInner} /> : null}
                   </View>
@@ -93,50 +95,35 @@ export const DeleteAccountScreen = () => {
             <TextInput
               style={styles.feedbackInput}
               value={feedback}
-              onChangeText={setFeedback}
+              onChangeText={handleFeedbackChange}
               placeholder={DELETE_ACCOUNT_SCREEN.feedbackPlaceholder}
               placeholderTextColor={deleteAccountTokens.OUTLINE}
               multiline
+              maxLength={1000}
               textAlignVertical="top"
               accessibilityLabel={DELETE_ACCOUNT_SCREEN.feedbackLabel}
             />
-          </View>
-        </View>
-
-        <View style={styles.moodImageWrap} accessibilityLabel="Farewell illustration">
-          <View style={styles.moodImage}>
-            <Ionicons name="exit-outline" size={40} color={deleteAccountTokens.OUTLINE} />
+            <Text style={styles.charCounter}>{feedback.length} / 1000</Text>
           </View>
         </View>
 
         <View style={styles.actions}>
           <Pressable
             style={({ pressed }) => [
-              styles.keepButton,
-              pressed && { backgroundColor: '#DADFF7', transform: [{ scale: 0.98 }] },
+              styles.continueButton,
+              !canContinue && styles.continueButtonDisabled,
+              pressed && canContinue && { opacity: 0.9, transform: [{ scale: 0.99 }] },
             ]}
-            onPress={keepAccount}
+            onPress={continueToConfirm}
+            disabled={!canContinue}
             accessibilityRole="button"
-            accessibilityLabel={DELETE_ACCOUNT_SCREEN.keepAccountLabel}
+            accessibilityLabel={DELETE_ACCOUNT_SCREEN.continueLabel}
+            accessibilityState={{ disabled: !canContinue }}
           >
-            <Text style={styles.keepLabel}>{DELETE_ACCOUNT_SCREEN.keepAccountLabel}</Text>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.deleteButton,
-              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-            ]}
-            onPress={deleteAccount}
-            accessibilityRole="button"
-            accessibilityLabel={DELETE_ACCOUNT_SCREEN.deleteAccountLabel}
-          >
-            <Text style={styles.deleteLabel}>{DELETE_ACCOUNT_SCREEN.deleteAccountLabel}</Text>
+            <Text style={styles.continueLabel}>{DELETE_ACCOUNT_SCREEN.continueLabel}</Text>
           </Pressable>
         </View>
       </ScrollView>
-
-      <AppFooter activeTab="profile" />
     </SafeAreaView>
   );
 };

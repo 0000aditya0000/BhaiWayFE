@@ -35,3 +35,6 @@ export { IdentityVerifiedSuccessScreen } from './IdentityVerifiedSuccessScreen';
 export { EmailVerificationScreen } from './EmailVerificationScreen';
 export { ChangeEmailScreen } from './ChangeEmailScreen';
 export { ChangeEmailVerifyScreen } from './ChangeEmailVerifyScreen';
+export { DeleteAccountConfirmScreen } from './DeleteAccountConfirmScreen';
+export { AccountDeletionReceivedScreen } from './AccountDeletionReceivedScreen';
+export { AccountDeletionPendingScreen } from './AccountDeletionPendingScreen';
