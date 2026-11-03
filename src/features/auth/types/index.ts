@@ -17,5 +17,7 @@ export type {
   UserSummaryResponse,
   GetMeResponse,
   AssuredDepositPenaltyDto,
+  DriverEarningsDto,
+  UserRatingsBlockDto,
   UserProfile,
 } from './auth.types';

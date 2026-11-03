@@ -148,3 +148,18 @@ export type {
   ListTrustedContactsQuery,
 } from './trustedContacts.api';
 
+
+export {
+  submitAccountDeletionRequest,
+  getAccountDeletionStatus,
+  cancelAccountDeletionRequest,
+} from './accountDeletion.api';
+export type {
+  AccountDeletionRequestStatus,
+  DeletionReason,
+  SubmitAccountDeletionRequestPayload,
+  AccountDeletionRequestSummaryDto,
+  SubmitAccountDeletionResponse,
+  GetAccountDeletionStatusResponse,
+  CancelAccountDeletionResponse,
+} from './accountDeletion.types';

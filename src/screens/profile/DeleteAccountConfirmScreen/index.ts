@@ -1,0 +1,2 @@
+export { DeleteAccountConfirmScreen } from './DeleteAccountConfirmScreen';
+

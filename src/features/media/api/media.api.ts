@@ -91,6 +91,9 @@ export const saveProfilePhotoUrl = async (
     try {
       const profile = await authService.updateProfilePhoto(secureUrl);
       authSession.setUserFromProfile(profile);
+      const { invalidateUserProfileCache } = await import('@/network/resourceCache');
+      invalidateUserProfileCache();
+      await authService.hydrateAuthenticatedUser({ force: true }).catch(() => undefined);
     } catch (error) {
       logger.warn('PATCH /users/profile profilePhoto failed after Cloudinary upload', {
         secureUrl,

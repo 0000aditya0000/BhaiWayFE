@@ -25,6 +25,8 @@ export const CompleteProfileScreen = () => {
     form,
     avatarUri,
     setAvatarUri,
+    avatarUploading,
+    setAvatarUploading,
     loading,
     isIdentityVerified,
     genderLabel,
@@ -44,6 +46,8 @@ export const CompleteProfileScreen = () => {
   const handleHelp = useCallback(() => {
     router.push({ pathname: ROUTES.authFaq, params: { topic: 'profile' } });
   }, [router]);
+
+  const isBusy = loading || avatarUploading;
 
   return (
     <View style={styles.screen}>
@@ -70,7 +74,11 @@ export const CompleteProfileScreen = () => {
             showsVerticalScrollIndicator={false}
           >
             <Animated.View entering={FadeInUp.duration(400)}>
-              <AvatarPicker imageUri={avatarUri} onImageSelected={setAvatarUri} />
+              <AvatarPicker
+                imageUri={avatarUri}
+                onImageSelected={setAvatarUri}
+                onUploadingChange={setAvatarUploading}
+              />
             </Animated.View>
 
             <Animated.View entering={FadeInDown.delay(100).duration(400)}>
@@ -87,6 +95,7 @@ export const CompleteProfileScreen = () => {
                     error={errors.fullName?.message}
                     autoCapitalize="words"
                     returnKeyType="next"
+                    editable={!isBusy}
                   />
                 )}
               />
@@ -106,6 +115,7 @@ export const CompleteProfileScreen = () => {
                     autoCapitalize="none"
                     autoCorrect={false}
                     returnKeyType="done"
+                    editable={!isBusy}
                   />
                 )}
               />
@@ -136,10 +146,10 @@ export const CompleteProfileScreen = () => {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}>
         <Button
-          label="Save and Continue"
+          label={avatarUploading ? 'Uploading photo…' : 'Save and Continue'}
           onPress={submit}
-          disabled={!isValid || loading}
-          loading={loading}
+          disabled={!isValid || isBusy}
+          loading={isBusy}
           accessibilityLabel="Save profile and continue"
         />
       </View>

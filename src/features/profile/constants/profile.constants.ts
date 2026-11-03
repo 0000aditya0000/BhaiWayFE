@@ -107,4 +107,10 @@ export const PROFILE_MENU_ITEMS: readonly ProfileMenuItem[] = [
     subtitle: 'Terms, Privacy, Policies',
     icon: 'document-text-outline',
   },
-] as const;
+  {
+    id: 'deleteAccount',
+    title: 'Delete Account',
+    subtitle: 'Delete your account and review data retention policies',
+    icon: 'trash-outline',
+  },
+];

@@ -16,6 +16,7 @@ export interface PersistedAuthSession {
     gender?: ApiGender | null;
   };
   role?: string | null;
+  deletionPending?: boolean;
 }
 
 const isSessionUser = (value: unknown): value is PersistedAuthSession['user'] => {
@@ -50,6 +51,7 @@ export const authStorage = {
           gender: parsed.user.gender ?? null,
         },
         role: parsed.role ?? null,
+        deletionPending: Boolean(parsed.deletionPending),
       };
     } catch {
       return null;

@@ -28,6 +28,10 @@ export const WelcomeScreen = () => {
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
+    if (authSession.isDeletionPending()) {
+      router.replace(ROUTES.accountDeletionPending);
+      return;
+    }
     if (authSession.isAuthenticated()) {
       router.replace(ROUTES.home);
     }

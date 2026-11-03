@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { APP_CONFIG, ROUTES } from '@/config';
 import { AppText as Text } from '@/shared/components';
 import { colors } from '@/shared/theme';
-import { appModeStore } from '@/store';
+import { appModeStore, authSession } from '@/store';
 import { myRidesSurfaceStore } from '@/features/my-rides/store';
 import {
   ActiveRideContainer,
@@ -39,6 +39,12 @@ export const HomeScreen = () => {
   } = useHome();
   const { count: unreadNotificationCount } = useUnreadNotificationCount();
   const activeRide = useActiveRides();
+
+  useEffect(() => {
+    if (authSession.isDeletionPending()) {
+      router.replace(ROUTES.accountDeletionPending);
+    }
+  }, [router]);
 
   const handleNotifications = useCallback(() => {
     router.push(ROUTES.notifications);

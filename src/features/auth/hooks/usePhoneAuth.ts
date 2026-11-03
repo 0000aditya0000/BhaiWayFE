@@ -11,6 +11,7 @@ import {
   normalizeOptionalReferralCode,
 } from '@/features/profile/utils/referrals.mapper';
 import { getErrorMessage, showAppAlert, triggerSuccessHaptic } from '@/shared/utils';
+import { isPhoneAlreadyRegisteredError } from '../api';
 import { AUTH_CONSTANTS } from '../constants';
 import { authService } from '../services';
 import type { AuthFlow } from '../types';
@@ -36,12 +37,16 @@ const applySessionAndNavigate = async (
   verificationId: string,
   code = '',
   referralCode?: string,
+  flow?: AuthFlow,
 ): Promise<void> => {
+  const isRegistration = flow === 'signup';
   const session = await authService.verifyOtp({
     verificationId,
     code,
     phoneNumber,
     referralCode,
+    isRegistration,
+    mode: isRegistration ? 'register' : undefined,
   });
   triggerSuccessHaptic();
   await authService.establishAuthSession(session, phoneNumber, {
@@ -89,9 +94,12 @@ export const usePhoneAuth = (flow: AuthFlow): UsePhoneAuthResult => {
     setLoading(true);
 
     try {
+      const isRegistration = flow === 'signup';
       const result = await authService.requestOtp({
         phoneNumber,
         dialCode: APP_CONFIG.defaultDialCode,
+        isRegistration,
+        mode: isRegistration ? 'register' : undefined,
       });
 
       // Invisible / already-verified path — skip OTP entry screen.
@@ -102,6 +110,7 @@ export const usePhoneAuth = (flow: AuthFlow): UsePhoneAuthResult => {
           result.verificationId,
           '',
           normalizedReferral,
+          flow,
         );
         return;
       }
@@ -116,6 +125,23 @@ export const usePhoneAuth = (flow: AuthFlow): UsePhoneAuthResult => {
         },
       });
     } catch (error) {
+      if (isPhoneAlreadyRegisteredError(error)) {
+        showAppAlert(
+          'Already Registered',
+          'Number already registered. Please login.',
+          [
+            {
+              text: 'Login',
+              onPress: () => router.replace(ROUTES.login),
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+          ],
+        );
+        return;
+      }
       showAppAlert('Unable to continue', getErrorMessage(error));
     } finally {
       setLoading(false);

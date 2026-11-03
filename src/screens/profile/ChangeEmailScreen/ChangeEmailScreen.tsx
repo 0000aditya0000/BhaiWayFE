@@ -17,6 +17,8 @@ import { changeEmailTokens, styles } from './ChangeEmailScreen.styles';
 
 export const ChangeEmailScreen = () => {
   const {
+    title,
+    description,
     newEmail,
     setNewEmail,
     currentEmail,
@@ -46,7 +48,7 @@ export const ChangeEmailScreen = () => {
           accessibilityLabel="Go back"
         />
         <Text style={styles.headerTitle} accessibilityRole="header" numberOfLines={1}>
-          {CHANGE_EMAIL_SCREEN.title}
+          {title}
         </Text>
       </View>
 
@@ -61,8 +63,8 @@ export const ChangeEmailScreen = () => {
             <Ionicons name="mail-outline" size={32} color={changeEmailTokens.PRIMARY} />
           </View>
           <View style={styles.heroText}>
-            <Text style={styles.heroTitle}>{CHANGE_EMAIL_SCREEN.title}</Text>
-            <Text style={styles.heroSubtitle}>{CHANGE_EMAIL_SCREEN.description}</Text>
+            <Text style={styles.heroTitle}>{title}</Text>
+            <Text style={styles.heroSubtitle}>{description}</Text>
           </View>
         </View>
 

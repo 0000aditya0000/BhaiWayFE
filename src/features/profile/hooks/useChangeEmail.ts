@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Keyboard } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
 import { useSessionUser } from '@/shared/hooks';
@@ -14,6 +14,8 @@ import {
 } from '../utils/emailChange.mapper';
 
 export interface UseChangeEmailResult {
+  title: string;
+  description: string;
   newEmail: string;
   setNewEmail: (email: string) => void;
   currentEmail: string | null;
@@ -27,8 +29,15 @@ export interface UseChangeEmailResult {
 
 export const useChangeEmail = (): UseChangeEmailResult => {
   const router = useRouter();
+  const params = useLocalSearchParams<{ mode?: string }>();
   const sessionUser = useSessionUser();
   const currentEmail = sessionUser?.email?.trim() || null;
+  const isAddMode = params.mode === 'add' || !currentEmail;
+
+  const title = isAddMode ? 'Add Email' : 'Change Email';
+  const description = isAddMode
+    ? 'Enter your email address. We will send a verification code to link it to your account.'
+    : 'Enter your new email address. We will send a verification code to confirm it.';
 
   const [newEmail, setNewEmailState] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +109,8 @@ export const useChangeEmail = (): UseChangeEmailResult => {
   const canSubmit = Boolean(newEmail.trim()) && !isSubmitting;
 
   return {
+    title,
+    description,
     newEmail,
     setNewEmail,
     currentEmail,

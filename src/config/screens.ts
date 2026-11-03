@@ -132,6 +132,24 @@ export const ROOT_SCREENS = {
     path: '/account-deleted',
     title: 'Account Deleted',
   },
+  deleteAccountConfirm: {
+    id: 'delete-account-confirm',
+    segment: 'delete-account-confirm',
+    path: '/delete-account-confirm',
+    title: 'Confirm Delete Account',
+  },
+  accountDeletionReceived: {
+    id: 'account-deletion-received',
+    segment: 'account-deletion-received',
+    path: '/account-deletion-received',
+    title: 'Deletion Request Received',
+  },
+  accountDeletionPending: {
+    id: 'account-deletion-pending',
+    segment: 'account-deletion-pending',
+    path: '/account-deletion-pending',
+    title: 'Account Deletion Pending',
+  },
   availableCoupons: {
     id: 'available-coupons',
     segment: 'available-coupons',
@@ -841,6 +859,7 @@ export type ScreenPath = (typeof SCREENS)[keyof typeof SCREENS]['path'];
 
 export const ROUTES = {
   welcome: ROOT_SCREENS.welcome.path,
+  login: ROOT_SCREENS.login.path,
   phone: AUTH_SCREENS.phone.path,
   account: AUTH_SCREENS.account.path,
   authFaq: AUTH_SCREENS.faq.path,
@@ -931,6 +950,9 @@ export const ROUTES = {
   legalPolicies: ROOT_SCREENS.legalPolicies.path,
   deleteAccount: ROOT_SCREENS.deleteAccount.path,
   accountDeleted: ROOT_SCREENS.accountDeleted.path,
+  deleteAccountConfirm: ROOT_SCREENS.deleteAccountConfirm.path,
+  accountDeletionReceived: ROOT_SCREENS.accountDeletionReceived.path,
+  accountDeletionPending: ROOT_SCREENS.accountDeletionPending.path,
   availableCoupons: ROOT_SCREENS.availableCoupons.path,
   promotionsCoupons: ROOT_SCREENS.promotionsCoupons.path,
   noShowClaim: ROOT_SCREENS.noShowClaim.path,

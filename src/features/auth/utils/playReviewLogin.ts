@@ -30,10 +30,16 @@ export interface BuildMsg91VerifyPayloadInput {
    * Caller should pass already-normalized (trim + uppercase) values, or omit.
    */
   referralCode?: string;
+  /** Optional email submitted during registration. */
+  email?: string;
+  /** Mode: "register" when on signup flow. */
+  mode?: string;
+  /** Flag for registration intent. */
+  isRegistration?: boolean;
 }
 
 /**
- * Selects `/auth/msg91/verify` body from the entered phone.
+ * Selects `/auth/msg91/verify` (or `/auth/msg91/register`) body from the entered phone.
  * Review phone → `{ phone, otp }`; everyone else → `{ accessToken }`.
  * Adds `referralCode` only when a non-empty value is provided (never sends "").
  */
@@ -41,17 +47,26 @@ export const buildMsg91VerifyPayload = (
   input: BuildMsg91VerifyPayloadInput,
 ): VerifyMsg91Payload => {
   const referralCode = String(input.referralCode ?? '').trim().toUpperCase();
-  const withReferral = <T extends object>(base: T): T & { referralCode?: string } =>
-    referralCode ? { ...base, referralCode } : base;
+  const email = input.email?.trim() ? input.email.trim().toLowerCase() : undefined;
+  const isRegistration = Boolean(input.isRegistration || input.mode?.toLowerCase() === 'register');
+  const mode = input.mode ?? (isRegistration ? 'register' : undefined);
+
+  const extraFields = {
+    ...(referralCode ? { referralCode } : {}),
+    ...(email ? { email } : {}),
+    ...(isRegistration ? { isRegistration: true, mode: mode ?? 'register' } : {}),
+  };
 
   if (isPlayReviewPhone(input.phoneNumber)) {
-    return withReferral({
+    return {
       phone: normalizeAuthPhoneDigits(input.phoneNumber),
       otp: String(input.otp ?? ''),
-    });
+      ...extraFields,
+    };
   }
 
-  return withReferral({
+  return {
     accessToken: String(input.accessToken ?? ''),
-  });
+    ...extraFields,
+  };
 };

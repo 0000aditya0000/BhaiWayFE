@@ -60,10 +60,6 @@ export const resolveProfilePhotoForApi = (
   return trimmed;
 };
 
-/**
- * Maps Setup Profile form values to `CreateProfileDto`.
- * Omits empty optional fields so we never send `lastName: ""`.
- */
 /** Maps edit-profile form values to `PATCH /users/profile` body. */
 export const toUpdateProfileRequest = (
   payload: CompleteProfilePayload,
@@ -118,16 +114,21 @@ export const mapProfileResponseToUserProfile = (
   response: ProfileResponse,
   payload: CompleteProfilePayload,
   sessionUserId?: string | null,
-): UserProfile => ({
-  id: sessionUserId?.trim() || response.id,
-  fullName: joinProfileName(response.firstName, response.lastName) || payload.fullName.trim(),
-  email: payload.email.trim(),
-  gender: mapGenderFromApi(response.gender) ?? payload.gender ?? 'other',
-  avatarUri:
-    typeof response.profilePhoto === 'string' && response.profilePhoto
-      ? response.profilePhoto
-      : payload.avatarUri ?? null,
-});
+): UserProfile => {
+  const remotePhoto = resolveProfilePhotoForApi(response.profilePhoto) ?? null;
+  const payloadPhoto =
+    payload.avatarUri && /^https?:\/\//i.test(payload.avatarUri)
+      ? payload.avatarUri.trim()
+      : null;
+
+  return {
+    id: sessionUserId?.trim() || response.id,
+    fullName: joinProfileName(response.firstName, response.lastName) || payload.fullName.trim(),
+    email: response.email?.trim() || payload.email.trim(),
+    gender: mapGenderFromApi(response.gender) ?? payload.gender ?? 'other',
+    avatarUri: remotePhoto ?? payloadPhoto ?? null,
+  };
+};
 
 export const getPostAuthRoute = (
   profileCompleted: boolean,

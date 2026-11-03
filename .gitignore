@@ -32,7 +32,6 @@ GoogleService-Info.plist
 *.pem
 
 # local env files
-.env
 .env*.local
 
 # typescript
@@ -41,3 +40,4 @@ GoogleService-Info.plist
 # generated native folders
 /ios
 /android
+config.bat

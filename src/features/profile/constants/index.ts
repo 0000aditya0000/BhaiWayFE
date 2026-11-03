@@ -7,7 +7,14 @@ export {
 export { EDIT_PROFILE_SCREEN } from './edit-profile.constants';
 export { MY_RATINGS_SCREEN } from './my-ratings.constants';
 export { LEGAL_SCREEN, LEGAL_POLICY_ITEMS } from './legal.constants';
-export { DELETE_ACCOUNT_SCREEN, DELETE_ACCOUNT_REASONS } from './delete-account.constants';
+export {
+  DELETE_ACCOUNT_SCREEN,
+  DELETION_REASONS,
+  type DeletionReasonItem,
+  DELETE_ACCOUNT_CONFIRM_SCREEN,
+  ACCOUNT_DELETION_RECEIVED_SCREEN,
+  ACCOUNT_DELETION_PENDING_SCREEN,
+} from './delete-account.constants';
 export { ACCOUNT_DELETED_SCREEN } from './account-deleted.constants';
 export {
   HELP_SUPPORT_SCREEN,

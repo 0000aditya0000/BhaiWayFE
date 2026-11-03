@@ -1,0 +1,213 @@
+import { StyleSheet } from 'react-native';
+
+import { colors, layout, spacing } from '@/shared/theme';
+import { createShadow } from '@/shared/utils/platform';
+
+export const confirmTokens = {
+  PRIMARY: '#374BB1',
+  ON_SURFACE: '#191C1D',
+  ON_SURFACE_VARIANT: '#434655',
+  OUTLINE: '#747686',
+  OUTLINE_VARIANT: '#C4C5D7',
+  SURFACE: '#F8F9FA',
+  SURFACE_LOW: '#F3F4F5',
+  ERROR: '#BA1A1A',
+  ERROR_SOFT: 'rgba(255, 218, 214, 0.35)',
+  ERROR_BORDER: 'rgba(186, 26, 26, 0.2)',
+  DESTRUCTIVE: '#DC2626',
+  DESTRUCTIVE_DISABLED: '#F87171',
+} as const;
+
+export const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: confirmTokens.SURFACE,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    minHeight: 56,
+    backgroundColor: confirmTokens.SURFACE,
+    ...createShadow({ color: colors.shadow, opacity: 0.04, radius: 8, offsetY: 2, elevation: 2 }),
+  },
+  headerLeft: {
+    width: 44,
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  headerRight: {
+    width: 44,
+  },
+  headerTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '700',
+    color: confirmTokens.ON_SURFACE,
+    textAlign: 'center',
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.huge + spacing.xxxl,
+    gap: spacing.xl,
+    maxWidth: layout.maxContentWidth,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  introBlock: {
+    gap: spacing.xs,
+  },
+  pageTitle: {
+    fontSize: 24,
+    lineHeight: 32,
+    fontWeight: '700',
+    color: confirmTokens.ERROR,
+  },
+  warningCard: {
+    gap: spacing.md,
+    padding: spacing.xl,
+    borderRadius: layout.radiusXl,
+    backgroundColor: confirmTokens.ERROR_SOFT,
+    borderWidth: 1.5,
+    borderColor: confirmTokens.ERROR_BORDER,
+  },
+  warningHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  warningHeaderTitle: {
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '700',
+    color: confirmTokens.ERROR,
+  },
+  paragraph: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: confirmTokens.ON_SURFACE_VARIANT,
+  },
+  timelineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: layout.radiusLg,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: confirmTokens.OUTLINE_VARIANT,
+  },
+  timelineText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    color: confirmTokens.ON_SURFACE,
+  },
+  reasonReviewCard: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    borderRadius: layout.radiusLg,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: confirmTokens.OUTLINE_VARIANT,
+  },
+  reasonReviewLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    color: confirmTokens.OUTLINE,
+  },
+  reasonReviewValue: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+    color: confirmTokens.ON_SURFACE,
+  },
+  reasonCommentValue: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: confirmTokens.ON_SURFACE_VARIANT,
+    fontStyle: 'italic',
+    marginTop: spacing.xs,
+  },
+  acknowledgementRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: confirmTokens.OUTLINE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: confirmTokens.DESTRUCTIVE,
+    borderColor: confirmTokens.DESTRUCTIVE,
+  },
+  acknowledgementText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    color: confirmTokens.ON_SURFACE,
+  },
+  actions: {
+    gap: spacing.md,
+    paddingTop: spacing.sm,
+  },
+  submitButton: {
+    height: 52,
+    borderRadius: layout.radiusLg,
+    backgroundColor: confirmTokens.DESTRUCTIVE,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    ...createShadow({ color: confirmTokens.DESTRUCTIVE, opacity: 0.25, radius: 8, offsetY: 3, elevation: 3 }),
+  },
+  submitButtonDisabled: {
+    backgroundColor: confirmTokens.DESTRUCTIVE_DISABLED,
+    opacity: 0.7,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  submitButtonLabel: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  goBackButton: {
+    height: 52,
+    borderRadius: layout.radiusLg,
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: confirmTokens.OUTLINE_VARIANT,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goBackButtonLabel: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '600',
+    color: confirmTokens.ON_SURFACE,
+  },
+});
+

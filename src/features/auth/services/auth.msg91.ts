@@ -1,7 +1,7 @@
 /**
  * Auth OTP adapter backed by MSG91 SendOTP (custom UI / OTPWidget),
  * then exchanges the MSG91 access token for a BhaiWay JWT via
- * `POST /auth/msg91/verify`.
+ * `POST /auth/msg91/verify` or `POST /auth/msg91/register`.
  *
  * Temporary Play Store review path: when the entered phone matches
  * `PLAY_REVIEW_PHONE`, send/verify go through BhaiWay `/auth/msg91/send`
@@ -19,6 +19,7 @@ import {
 } from '../api';
 import type {
   AuthSession,
+  Msg91SendPayload,
   RequestOtpPayload,
   RequestOtpResult,
   VerifyOtpPayload,
@@ -58,7 +59,12 @@ const requestPlayReviewOtp = async (
 ): Promise<RequestOtpResult> => {
   const phone = normalizeAuthPhoneDigits(payload.phoneNumber);
   console.log('[MSG91 Auth] requestOtp play-review path', { phone });
-  await sendMsg91Otp({ phone });
+  const sendPayload: Msg91SendPayload = { phone };
+  if (payload.isRegistration) {
+    sendPayload.isRegistration = true;
+    sendPayload.mode = payload.mode ?? 'register';
+  }
+  await sendMsg91Otp(sendPayload);
   return {
     verificationId: playReviewVerificationId(phone),
     expiresInSeconds: OTP_EXPIRES_SECONDS,
@@ -68,6 +74,16 @@ const requestPlayReviewOtp = async (
 export const requestOtp = async (payload: RequestOtpPayload): Promise<RequestOtpResult> => {
   if (isPlayReviewPhone(payload.phoneNumber)) {
     return requestPlayReviewOtp(payload);
+  }
+
+  const phone = normalizeAuthPhoneDigits(payload.phoneNumber);
+  if (payload.isRegistration) {
+    // Proactively verify phone is not already registered on BhaiWay backend before sending SMS
+    await sendMsg91Otp({
+      phone,
+      mode: payload.mode ?? 'register',
+      isRegistration: true,
+    });
   }
 
   const identifier = buildMsg91Identifier(payload.phoneNumber, payload.dialCode);
@@ -112,6 +128,9 @@ export const verifyOtp = async (payload: VerifyOtpPayload): Promise<AuthSession>
     codeLength: payload.code?.length ?? 0,
   });
 
+  const isRegistration = Boolean(payload.isRegistration || payload.flow === 'signup');
+  const mode = payload.mode ?? (isRegistration ? 'register' : undefined);
+
   // Temporary Play Store review: same OTP UI → phone+otp verify payload.
   if (
     isPlayReviewPhone(payload.phoneNumber) ||
@@ -121,6 +140,9 @@ export const verifyOtp = async (payload: VerifyOtpPayload): Promise<AuthSession>
       phoneNumber: payload.phoneNumber,
       otp: payload.code,
       referralCode: payload.referralCode,
+      email: payload.email,
+      mode,
+      isRegistration,
     });
     return exchangeMsg91PayloadForBhaiWaySession(verifyPayload);
   }
@@ -139,11 +161,14 @@ export const verifyOtp = async (payload: VerifyOtpPayload): Promise<AuthSession>
     });
   }
 
-  // Docs: MSG91 access token → POST /auth/msg91/verify → BhaiWay JWT
+  // Docs: MSG91 access token → POST /auth/msg91/verify or POST /auth/msg91/register → BhaiWay JWT
   const verifyPayload = buildMsg91VerifyPayload({
     phoneNumber: payload.phoneNumber,
     accessToken: msg91AccessToken,
     referralCode: payload.referralCode,
+    email: payload.email,
+    mode,
+    isRegistration,
   });
   return exchangeMsg91PayloadForBhaiWaySession(verifyPayload);
 };

@@ -5,6 +5,8 @@ export type AuthFlow = 'signup' | 'login';
 export interface RequestOtpPayload {
   phoneNumber: string;
   dialCode: string;
+  isRegistration?: boolean;
+  mode?: string;
 }
 
 export interface RequestOtpResult {
@@ -18,21 +20,43 @@ export interface VerifyOtpPayload {
   phoneNumber: string;
   /** Optional referral code for NEW users — omitted when empty. */
   referralCode?: string;
+  isRegistration?: boolean;
+  mode?: string;
+  email?: string;
+  flow?: AuthFlow;
 }
 
 /**
- * Body for `POST /auth/msg91/verify`.
+ * Body for `POST /auth/msg91/verify` or `POST /auth/msg91/register`.
  * - Normal MSG91 users: `{ accessToken }`
  * - Temporary Play Store review phone: `{ phone, otp }` (backend-validated)
  * - Optional `referralCode` for NEW users only (backend ignores for existing accounts).
  */
 export type VerifyMsg91Payload =
-  | { accessToken: string; phone?: never; otp?: never; referralCode?: string }
-  | { phone: string; otp: string; accessToken?: never; referralCode?: string };
+  | {
+      accessToken: string;
+      phone?: never;
+      otp?: never;
+      referralCode?: string;
+      email?: string;
+      mode?: string;
+      isRegistration?: boolean;
+    }
+  | {
+      phone: string;
+      otp: string;
+      accessToken?: never;
+      referralCode?: string;
+      email?: string;
+      mode?: string;
+      isRegistration?: boolean;
+    };
 
 /** Body for `POST /auth/msg91/send` (review-phone acknowledge / normal send bridge). */
 export interface Msg91SendPayload {
   phone: string;
+  mode?: string;
+  isRegistration?: boolean;
 }
 
 /** User block from `AuthLoginResponseDto`. */
@@ -41,12 +65,16 @@ export interface AuthUserResponse {
   phone: string;
   phoneVerified: boolean;
   profileCompleted: boolean;
+  email?: string | null;
+  emailVerified?: boolean;
+  status?: string;
 }
 
 /** Response from `POST /auth/msg91/verify` (Swagger: AuthLoginResponseDto). */
 export interface AuthLoginResponse {
   accessToken: string;
   user: AuthUserResponse;
+  deletionPending?: boolean;
 }
 
 export interface AuthSession {
@@ -56,6 +84,8 @@ export interface AuthSession {
   isNewUser: boolean;
   phone?: string;
   profileCompleted?: boolean;
+  deletionPending?: boolean;
+  status?: string;
 }
 
 export interface CompleteProfilePayload {
@@ -99,6 +129,8 @@ export interface ProfileResponse {
   gender?: ApiGender | null;
   dateOfBirth?: string | null;
   profilePhoto?: string | null;
+  email?: string | null;
+  emailVerified?: boolean;
 }
 
 import type { WalletBalanceDto } from '@/features/profile/api/wallet.types';
