@@ -18,7 +18,8 @@ import {
   triggerErrorHaptic,
   triggerLightHaptic,
 } from '@/shared/utils';
-import { showAppAlert } from '@/store';
+import { authSession, showAppAlert } from '@/store';
+import { isPhoneAlreadyRegisteredError } from '../api';
 import { MORPHING_OTP_TIMING, type MorphingOtpStatus } from '../components/MorphingOTPInput';
 import { AUTH_CONSTANTS } from '../constants';
 import { authService } from '../services';
@@ -87,11 +88,15 @@ export const useOtpVerification = (): UseOtpVerificationResult => {
     const verifyStartedAt = Date.now();
 
     try {
+      const isRegistration = flow === 'signup';
       const session = await authService.verifyOtp({
         verificationId,
         code,
         phoneNumber,
         referralCode,
+        isRegistration,
+        mode: isRegistration ? 'register' : undefined,
+        flow,
       });
 
       const elapsed = Date.now() - verifyStartedAt;
@@ -101,6 +106,21 @@ export const useOtpVerification = (): UseOtpVerificationResult => {
       }
 
       setStatus('success');
+
+      if (session.deletionPending) {
+        authSession.setRestrictedDeletionSession(session.token, {
+          id: session.userId,
+          fullName: '',
+          firstName: null,
+          email: null,
+          avatarUri: null,
+          phone: session.phone ?? phoneNumber,
+          gender: null,
+        });
+        await wait(MORPHING_OTP_TIMING.successHoldMs - MORPHING_OTP_TIMING.spinnerMinMs);
+        router.replace(ROUTES.accountDeletionPending);
+        return;
+      }
 
       await authService.establishAuthSession(session, phoneNumber, {
         hydrateFromSheet: async () => {
@@ -118,6 +138,23 @@ export const useOtpVerification = (): UseOtpVerificationResult => {
 
       router.push(ROUTES.completeProfile);
     } catch (verifyError) {
+      if (isPhoneAlreadyRegisteredError(verifyError)) {
+        setStatus('error');
+        setError('Number already registered. Please login.');
+        triggerErrorHaptic();
+        showAppAlert(
+          'Already Registered',
+          'Number already registered. Please login.',
+          [
+            {
+              text: 'Login',
+              onPress: () => router.replace(ROUTES.login),
+            },
+          ],
+        );
+        return;
+      }
+
       const message = isReferralCodeAuthError(verifyError)
         ? mapReferralError(verifyError)
         : getErrorMessage(verifyError);
@@ -141,10 +178,13 @@ export const useOtpVerification = (): UseOtpVerificationResult => {
     triggerLightHaptic();
 
     try {
+      const isRegistration = flow === 'signup';
       const result = await authService.resendOtp({
         phoneNumber,
         dialCode: APP_CONFIG.defaultDialCode,
         verificationId,
+        isRegistration,
+        mode: isRegistration ? 'register' : undefined,
       });
       setVerificationId(result.verificationId);
       restart(AUTH_CONSTANTS.otpResendSeconds);
@@ -156,9 +196,22 @@ export const useOtpVerification = (): UseOtpVerificationResult => {
         `A new verification code was sent to ${maskPhoneNumber(phoneNumber, APP_CONFIG.defaultDialCode)}.`,
       );
     } catch (resendError) {
+      if (isPhoneAlreadyRegisteredError(resendError)) {
+        showAppAlert(
+          'Already Registered',
+          'Number already registered. Please login.',
+          [
+            {
+              text: 'Login',
+              onPress: () => router.replace(ROUTES.login),
+            },
+          ],
+        );
+        return;
+      }
       showAppAlert('Unable to resend', getErrorMessage(resendError));
     }
-  }, [canResend, phoneNumber, restart, verificationId]);
+  }, [canResend, flow, phoneNumber, restart, verificationId]);
 
   return {
     phoneNumber,

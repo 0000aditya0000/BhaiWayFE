@@ -63,6 +63,7 @@ export interface UseMasterProfileResult {
   openEditProfile: () => void;
   openVerifyEmail: () => void;
   openChangeEmail: () => void;
+  openAddEmail: () => void;
   openRatings: () => void;
   onMenuPress: (id: ProfileMenuActionId) => void;
   openLogout: () => void;
@@ -81,8 +82,9 @@ export const useMasterProfile = (): UseMasterProfileResult => {
 
   useEffect(() => {
     const nextEmail = user?.email?.trim() || null;
-    if (nextEmail) {
-      setEmail(nextEmail);
+    setEmail(nextEmail);
+    if (!nextEmail) {
+      setEmailVerified(false);
     }
   }, [user?.email]);
 
@@ -105,7 +107,9 @@ export const useMasterProfile = (): UseMasterProfileResult => {
 
   const { uploadLocalFile, isUploading: avatarUploading, cancelUpload } = useUpload({
     kind: 'profile',
-    onUploaded: saveProfilePhotoUrl,
+    onUploaded: async (result) => {
+      await saveProfilePhotoUrl(result);
+    },
     showAlerts: true,
   });
 
@@ -131,13 +135,13 @@ export const useMasterProfile = (): UseMasterProfileResult => {
             force: true,
             fetcher: getEmailVerificationStatus,
           });
-          const sessionEmail = authSession.getUser()?.email?.trim();
-          const backendEmail = emailResult.data.email?.trim();
-          setEmail(sessionEmail || backendEmail || null);
-          setEmailVerified(Boolean(emailResult.data.verified));
+          const backendEmail = emailResult.data.email?.trim() || null;
+          setEmail(backendEmail);
+          setEmailVerified(backendEmail ? Boolean(emailResult.data.verified) : false);
         } catch {
-          setEmail(authSession.getUser()?.email?.trim() || null);
-          setEmailVerified(false);
+          const fallbackEmail = authSession.getUser()?.email?.trim() || null;
+          setEmail(fallbackEmail);
+          setEmailVerified(fallbackEmail ? Boolean(authSession.getUser()?.emailVerified) : false);
         }
 
         try {
@@ -221,7 +225,7 @@ export const useMasterProfile = (): UseMasterProfileResult => {
       ...DEFAULT_MASTER_PROFILE,
       fullName,
       phoneLabel,
-      email: user?.email?.trim() || email?.trim() || null,
+      email: email?.trim() || null,
       emailVerified,
       avatarUri,
       walletBalanceLabel,
@@ -243,7 +247,6 @@ export const useMasterProfile = (): UseMasterProfileResult => {
     isCorporateVerified,
     localAvatarUri,
     user?.avatarUri,
-    user?.email,
     user?.fullName,
     user?.phone,
     walletBalanceLabel,
@@ -339,6 +342,11 @@ export const useMasterProfile = (): UseMasterProfileResult => {
     router.push(ROUTES.changeEmail);
   }, [router]);
 
+  const openAddEmail = useCallback(() => {
+    triggerLightHaptic();
+    router.push({ pathname: ROUTES.changeEmail, params: { mode: 'add' } });
+  }, [router]);
+
   const openRatings = useCallback(() => {
     triggerLightHaptic();
     router.push(ROUTES.myRatings);
@@ -365,6 +373,11 @@ export const useMasterProfile = (): UseMasterProfileResult => {
 
       if (id === 'legal') {
         router.push(ROUTES.legalPolicies);
+        return;
+      }
+
+      if (id === 'deleteAccount') {
+        router.push(ROUTES.deleteAccount);
         return;
       }
 
@@ -440,6 +453,7 @@ export const useMasterProfile = (): UseMasterProfileResult => {
     openEditProfile,
     openVerifyEmail,
     openChangeEmail,
+    openAddEmail,
     openRatings,
     onMenuPress,
     openLogout,

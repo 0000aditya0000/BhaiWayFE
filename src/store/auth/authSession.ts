@@ -9,18 +9,20 @@ export interface SessionUser {
   /** Preferred greeting name from profile.firstName when available. */
   firstName: string | null;
   email: string | null;
+  emailVerified?: boolean;
   avatarUri: string | null;
   phone: string | null;
   /** Canonical gender from GET /users/me profile.gender (Aadhaar-controlled). */
   gender: ApiGender | null;
 }
 
-interface AuthSessionState {
+export interface AuthSessionState {
   token: string | null;
   user: SessionUser | null;
   role: string | null;
   profileCompleted: boolean;
   hydrated: boolean;
+  deletionPending: boolean;
 }
 
 type SessionListener = (state: AuthSessionState) => void;
@@ -31,6 +33,7 @@ const state: AuthSessionState = {
   role: null,
   profileCompleted: false,
   hydrated: false,
+  deletionPending: false,
 };
 
 const listeners = new Set<SessionListener>();
@@ -43,6 +46,7 @@ const notify = (): void => {
       role: state.role,
       profileCompleted: state.profileCompleted,
       hydrated: state.hydrated,
+      deletionPending: state.deletionPending,
     }),
   );
 };
@@ -68,6 +72,7 @@ const persistCurrent = (): void => {
     token: state.token,
     user: state.user,
     role: state.role,
+    deletionPending: state.deletionPending,
   });
 };
 
@@ -77,7 +82,9 @@ export const authSession = {
   getRole: (): string | null => state.role,
   getProfileCompleted: (): boolean => state.profileCompleted,
   isHydrated: (): boolean => state.hydrated,
-  isAuthenticated: (): boolean => Boolean(state.token && state.user),
+  isAuthenticated: (): boolean => Boolean(state.token && state.user && !state.deletionPending),
+  isDeletionPending: (): boolean => Boolean(state.deletionPending),
+  hasRestrictedSession: (): boolean => Boolean(state.token && state.deletionPending),
 
   /** Restore session from AsyncStorage before rendering auth gates. */
   hydrate: async (): Promise<boolean> => {
@@ -94,11 +101,13 @@ export const authSession = {
         gender: saved.user.gender ?? null,
       });
       state.role = saved.role ?? null;
+      state.deletionPending = Boolean(saved.deletionPending);
     } else {
       state.token = null;
       state.user = null;
       state.role = null;
       state.profileCompleted = false;
+      state.deletionPending = false;
     }
     state.hydrated = true;
     notify();
@@ -110,6 +119,7 @@ export const authSession = {
     user: SessionUser,
     role?: string | null,
     profileCompleted?: boolean,
+    deletionPending?: boolean,
   ): void => {
     state.token = token;
     state.user = user;
@@ -117,7 +127,32 @@ export const authSession = {
     if (profileCompleted !== undefined) {
       state.profileCompleted = profileCompleted;
     }
+    state.deletionPending = Boolean(deletionPending);
     state.hydrated = true;
+    persistCurrent();
+    notify();
+  },
+
+  /** Store restricted session for users in DELETION_REQUESTED or DELETION_ACTION_REQUIRED state. */
+  setRestrictedDeletionSession: (token: string, user: SessionUser): void => {
+    state.token = token;
+    state.user = toSessionUser(user);
+    state.role = null;
+    state.profileCompleted = true;
+    state.deletionPending = true;
+    state.hydrated = true;
+    persistCurrent();
+    notify();
+  },
+
+  setDeletionPending: (pending: boolean): void => {
+    state.deletionPending = pending;
+    persistCurrent();
+    notify();
+  },
+
+  clearDeletionPending: (): void => {
+    state.deletionPending = false;
     persistCurrent();
     notify();
   },
@@ -158,6 +193,7 @@ export const authSession = {
     state.user = null;
     state.role = null;
     state.profileCompleted = false;
+    state.deletionPending = false;
     state.hydrated = true;
     void authStorage.clear();
     notify();
@@ -173,6 +209,7 @@ export const authSession = {
       role: state.role,
       profileCompleted: state.profileCompleted,
       hydrated: state.hydrated,
+      deletionPending: state.deletionPending,
     });
     return () => {
       listeners.delete(listener);

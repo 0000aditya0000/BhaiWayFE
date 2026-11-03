@@ -17,14 +17,22 @@ const PROFILE_PICKER_OPTIONS = {
   quality: 0.8,
 };
 
-export const AvatarPicker = ({ imageUri, onImageSelected, error }: AvatarPickerProps) => {
+export const AvatarPicker = ({
+  imageUri,
+  onImageSelected,
+  error,
+  onUploadingChange,
+  onUploadError,
+}: AvatarPickerProps) => {
   const [sheetVisible, setSheetVisible] = useState(false);
   const [brokenRemote, setBrokenRemote] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
 
   const { uploadLocalFile, isUploading, cancelUpload } = useUpload({
     kind: 'profile',
-    onUploaded: saveProfilePhotoUrl,
+    onUploaded: async (result) => {
+      await saveProfilePhotoUrl(result);
+    },
     showAlerts: true,
   });
 
@@ -51,25 +59,35 @@ export const AvatarPicker = ({ imageUri, onImageSelected, error }: AvatarPickerP
     (document: { uri: string; fileName?: string; mimeType?: string }) => {
       setBrokenRemote(false);
       setPreviewUri(document.uri);
-      onImageSelected(document.uri);
+      onUploadingChange?.(true);
 
       void (async () => {
-        const uploaded = await uploadLocalFile({
-          uri: document.uri,
-          fileName: document.fileName ?? `profile_${Date.now()}.jpg`,
-          mimeType: document.mimeType ?? 'image/jpeg',
-        });
+        try {
+          const uploaded = await uploadLocalFile({
+            uri: document.uri,
+            fileName: document.fileName ?? `profile_${Date.now()}.jpg`,
+            mimeType: document.mimeType ?? 'image/jpeg',
+          });
 
-        if (!uploaded) {
+          if (!uploaded) {
+            setPreviewUri(null);
+            onUploadingChange?.(false);
+            onUploadError?.(new Error('Failed to upload photo to Cloudinary. Please try again.'));
+            return;
+          }
+
+          setPreviewUri(uploaded.secureUrl);
+          onImageSelected(uploaded.secureUrl);
+          onUploadingChange?.(false);
+        } catch (err) {
           setPreviewUri(null);
-          return;
+          onUploadingChange?.(false);
+          const uploadError = err instanceof Error ? err : new Error('Upload failed');
+          onUploadError?.(uploadError);
         }
-
-        setPreviewUri(uploaded.secureUrl);
-        onImageSelected(uploaded.secureUrl);
       })();
     },
-    [onImageSelected, uploadLocalFile],
+    [onImageSelected, onUploadError, onUploadingChange, uploadLocalFile],
   );
 
   const displayUri = previewUri ?? imageUri;

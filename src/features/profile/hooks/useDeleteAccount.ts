@@ -1,81 +1,73 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 
 import { ROUTES } from '@/config';
-import { unregisterCurrentPushDevice } from '@/features/notifications/push/pushRegistration';
-import { triggerLightHaptic, triggerSuccessHaptic } from '@/shared/utils';
-import { authSession, showAppAlert } from '@/store';
-import { DELETE_ACCOUNT_REASONS, DELETE_ACCOUNT_SCREEN } from '../constants';
-import type { DeleteAccountReason, DeleteAccountReasonId } from '../types';
+import { triggerLightHaptic } from '@/shared/utils';
+import { DELETION_REASONS, type DeletionReasonItem } from '../constants';
+import type { DeletionReason } from '../api/accountDeletion.types';
 
 export interface UseDeleteAccountResult {
-  reasons: readonly DeleteAccountReason[];
-  selectedReason: DeleteAccountReasonId | null;
+  reasons: readonly DeletionReasonItem[];
+  selectedReasonId: string | null;
+  selectedReason: DeletionReasonItem | null;
   feedback: string;
-  selectReason: (id: DeleteAccountReasonId) => void;
+  canContinue: boolean;
+  selectReason: (id: string) => void;
   setFeedback: (value: string) => void;
   goBack: () => void;
-  openNotifications: () => void;
-  keepAccount: () => void;
-  deleteAccount: () => void;
+  continueToConfirm: () => void;
 }
 
 export const useDeleteAccount = (): UseDeleteAccountResult => {
   const router = useRouter();
-  const [selectedReason, setSelectedReason] = useState<DeleteAccountReasonId | null>(null);
+  const [selectedReasonId, setSelectedReasonId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
 
+  const selectedReason = useMemo(
+    () => DELETION_REASONS.find((item) => item.id === selectedReasonId) ?? null,
+    [selectedReasonId],
+  );
+
+  const canContinue = Boolean(selectedReason);
+
   const goBack = useCallback(() => {
+    triggerLightHaptic();
     if (router.canGoBack()) {
       router.back();
       return;
     }
-    router.replace(ROUTES.legalPolicies);
+    router.replace(ROUTES.profile);
   }, [router]);
 
-  const openNotifications = useCallback(() => {
+  const selectReason = useCallback((id: string) => {
     triggerLightHaptic();
-    router.push(ROUTES.notifications);
-  }, [router]);
-
-  const selectReason = useCallback((id: DeleteAccountReasonId) => {
-    triggerLightHaptic();
-    setSelectedReason(id);
+    setSelectedReasonId(id);
   }, []);
 
-  const keepAccount = useCallback(() => {
+  const continueToConfirm = useCallback(() => {
+    if (!selectedReason) {
+      return;
+    }
     triggerLightHaptic();
-    goBack();
-  }, [goBack]);
-
-  const deleteAccount = useCallback(() => {
-    triggerLightHaptic();
-    showAppAlert(DELETE_ACCOUNT_SCREEN.confirmTitle, DELETE_ACCOUNT_SCREEN.confirmMessage, [
-      { text: DELETE_ACCOUNT_SCREEN.confirmCancel, style: 'cancel' },
-      {
-        text: DELETE_ACCOUNT_SCREEN.confirmAction,
-        style: 'destructive',
-        onPress: () => {
-          triggerSuccessHaptic();
-          void (async () => {
-            await unregisterCurrentPushDevice();
-            authSession.clear();
-            router.replace(ROUTES.accountDeleted);
-          })();
-        },
+    router.push({
+      pathname: ROUTES.deleteAccountConfirm,
+      params: {
+        reason: selectedReason.reason,
+        reasonLabel: selectedReason.label,
+        comment: feedback.trim(),
       },
-    ]);
-  }, [router]);
+    });
+  }, [feedback, router, selectedReason]);
 
   return {
-    reasons: DELETE_ACCOUNT_REASONS,
+    reasons: DELETION_REASONS,
+    selectedReasonId,
     selectedReason,
     feedback,
+    canContinue,
     selectReason,
     setFeedback,
     goBack,
-    openNotifications,
-    keepAccount,
-    deleteAccount,
+    continueToConfirm,
   };
 };
